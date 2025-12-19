@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    /* Add your CSS styles here */
+    /* Night mode switch */
+    .night-mode {
+      background-color: black;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <!-- Full screen detect mobile or PC -->
+  <script>
+    if (screen.width <= 699) {
+      document.body.style.backgroundColor = "lightblue";
+    } else {
+      document.body.style.backgroundColor = "orange";
+    }
+  </script>
+
+  <form id="download-form">
+    <label for="url">Enter a URL for the file to download:</label>
+    <input type="url" id="url">
+    <br>
+    <button type="submit">Download</button>
+  </form>
+  <a id="download-link" download>Download</a>
+
+  <!-- Percent loading and terminal view -->
+  <div id="progress"></div>
+  <pre id="terminal"></pre>
+
+  <!-- Night mode switch -->
+  <label class="switch">
+    <input type="checkbox" onchange="toggleNightMode()">
+    <span class="slider round"></span>
+  </label>
+
+  <script>
+    const downloadForm = document.getElementById("download-form");
+    const downloadLink = document.getElementById("download-link");
+    const urlInput = document.getElementById("url");
+
+    downloadForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      // Create an XMLHttpRequest object
+      const xhr = new XMLHttpRequest();
+
+      // Set up the request
+      xhr.open("GET", urlInput.value, true);
+      xhr.responseType = "arraybuffer";
+
+      // Set up the progress event listener
+      xhr.addEventListener("progress", (event) => {
+        if (event.lengthComputable) {
+          const progress = (event.loaded / event.total) * 100;
+          document.getElementById("progress").innerHTML = `${progress.toFixed(2)}%`;
+          document.getElementById("terminal").innerText = `(${event.loaded}/${event.total} bytes)`;
+        }
+      });
+
+      // Set up the load event listener
+      xhr.addEventListener("load", () => {
+        if (xhr.status === 200) {
+          const fileContents = new Uint8Array(xhr.response);
+          showFile(fileContents);
+        } else {
+          alert("An error occurred while downloading the file");
+        }
+      });
+
+      // Send the request
+      xhr.send();
+    });
+
+    function showFile(fileContents) {
+      // Create a Blob object with the file contents
+      const blob = new Blob([fileContents], { type: "application/octet-stream" });
+
+      // Create a URL for the Blob object
+      const url = URL.createObjectURL(blob);
+
+      // Set the href and download attributes for the download link
+      downloadLink.href = url;
+      downloadLink.download = "file.txt";
+
+      // Show the download link
+      downloadLink.style.display = "inline-block";
+    }
+
+    function toggleNightMode() {
+      // Toggle the "night-mode" class on the body element
+      document.body.classList.toggle("night-mode");
+    }
+  </script>
+</body>
+</html>

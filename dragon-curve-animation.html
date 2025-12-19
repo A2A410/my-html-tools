@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dragon Curve Animation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #0a0a0f;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #eee;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      padding: 15px 20px;
+      background: rgba(20, 20, 30, 0.95);
+      border-bottom: 2px solid #667eea;
+      z-index: 10;
+    }
+    h1 {
+      font-size: 1.5em;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: #0f0f1e;
+    }
+    #canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* FAB Button */
+    .fab {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      z-index: 1000;
+      color: white;
+      font-size: 24px;
+    }
+    .fab:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 30px rgba(102, 126, 234, 0.7);
+    }
+    .fab.active {
+      background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+    }
+    
+    /* Settings Panel */
+    .settings-panel {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      background: rgba(20, 20, 30, 0.95);
+      border: 2px solid #667eea;
+      border-radius: 12px;
+      padding: 20px;
+      width: 320px;
+      max-height: calc(100vh - 140px);
+      overflow-y: auto;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      z-index: 999;
+      transition: all 0.3s ease;
+      transform-origin: bottom right;
+    }
+    .settings-panel.closed {
+      transform: scale(0);
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    /* Status Overlay */
+    .status-overlay {
+      position: fixed;
+      top: 80px;
+      left: 20px;
+      background: rgba(20, 20, 30, 0.7);
+      border: 2px solid rgba(102, 126, 234, 0.5);
+      border-radius: 12px;
+      padding: 15px 20px;
+      backdrop-filter: blur(5px);
+      z-index: 100;
+      transition: all 0.3s ease;
+    }
+    .status-overlay.transparent {
+      background: rgba(20, 20, 30, 0.4);
+      border-color: rgba(102, 126, 234, 0.3);
+    }
+    
+    .control-group {
+      margin-bottom: 18px;
+    }
+    .control-group:last-child {
+      margin-bottom: 0;
+    }
+    .control-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #667eea;
+      font-size: 0.9em;
+    }
+    .control-group input[type="number"],
+    .control-group select {
+      width: 100%;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid #667eea;
+      border-radius: 6px;
+      color: #eee;
+      font-size: 14px;
+    }
+    .control-group input:disabled,
+    .control-group select:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .checkbox-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    .checkbox-group input[type="checkbox"]:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    button:not(.fab) {
+      flex: 1;
+      padding: 10px;
+      font-size: 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    #startBtn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    #startBtn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    #stopBtn {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+    }
+    #stopBtn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
+    }
+    #resetBtn {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+    }
+    #resetBtn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.9em;
+    }
+    .status-row:last-child {
+      margin-bottom: 0;
+    }
+    .status-label {
+      color: #999;
+    }
+    .status-value {
+      color: #fff;
+      font-weight: 600;
+    }
+    .status-value.positive {
+      color: #4ade80;
+    }
+    .status-value.negative {
+      color: #f87171;
+    }
+    .description {
+      font-size: 0.75em;
+      color: #999;
+      margin-top: 4px;
+      line-height: 1.3;
+    }
+    .divider {
+      height: 1px;
+      background: rgba(102, 126, 234, 0.3);
+      margin: 15px 0;
+    }
+    .section-title {
+      font-size: 0.85em;
+      color: #667eea;
+      font-weight: 700;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .indent {
+      margin-left: 28px;
+    }
+    
+    @media (max-width: 768px) {
+      .settings-panel {
+        right: 10px;
+        left: 10px;
+        width: auto;
+        top: 70px;
+      }
+      .status-overlay {
+        left: 10px;
+        right: 10px;
+        top: auto;
+        bottom: 100px;
+      }
+      .fab {
+        bottom: 20px;
+        right: 20px;
+      }
+    }
+    
+    /* Scrollbar styling */
+    .settings-panel::-webkit-scrollbar {
+      width: 8px;
+    }
+    .settings-panel::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+    .settings-panel::-webkit-scrollbar-thumb {
+      background: #667eea;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Dragon Curve Fractal Generator</h1>
+  </div>
+  
+  <div class="canvas-container">
+    <canvas id="canvas"></canvas>
+    
+    <!-- Status Overlay -->
+    <div class="status-overlay" id="statusOverlay">
+      <div class="status-row">
+        <span class="status-label">Iteration:</span>
+        <span class="status-value" id="currentIter">0</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Calc Time:</span>
+        <span class="status-value" id="calcTime">0ms</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Predicted:</span>
+        <span class="status-value" id="predictedTime">0ms</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Difference:</span>
+        <span class="status-value" id="timeDiff">0s</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Points:</span>
+        <span class="status-value" id="totalPoints">0</span>
+      </div>
+    </div>
+    
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settingsPanel">
+      <div class="section-title">Generation Settings</div>
+      
+      <div class="control-group">
+        <label>Target Iteration</label>
+        <input type="number" id="targetIteration" min="1" max="18" value="12">
+        <div class="description">Maximum iteration to generate (1-18)</div>
+      </div>
+
+      <div class="control-group">
+        <label>Calculation Method</label>
+        <select id="calcMethod">
+          <option value="recursive">Recursive (Balanced)</option>
+          <option value="iterative">Iterative (Memory Efficient)</option>
+          <option value="bitwise">Bitwise (Fastest)</option>
+          <option value="lookup">Lookup Table (Ultra Fast)</option>
+        </select>
+        <div class="description" id="methodDesc">Balanced approach for speed and accuracy</div>
+      </div>
+
+      <div class="control-group">
+        <label>Calculation Speed</label>
+        <select id="calcSpeed">
+          <option value="slow">Slow (1x)</option>
+          <option value="normal" selected>Normal (5x)</option>
+          <option value="fast">Fast (10x)</option>
+        </select>
+        <div class="description">Batch processing multiplier</div>
+      </div>
+
+      <div class="divider"></div>
+      
+      <div class="section-title">Animation Settings</div>
+
+      <div class="control-group checkbox-group">
+        <input type="checkbox" id="smoothAnim" checked>
+        <label for="smoothAnim" style="margin: 0;">Smooth Animation</label>
+      </div>
+      <div class="description">Animate the 90° rotation and mirroring</div>
+
+      <div class="control-group checkbox-group">
+        <input type="checkbox" id="preIterate">
+        <label for="preIterate" style="margin: 0;">Pre-Iterate</label>
+      </div>
+      <div class="description">Don't wait for animation to finish before next iteration</div>
+
+      <div class="control-group indent">
+        <label>Re-animation Speed</label>
+        <select id="reanimSpeed" disabled>
+          <option value="default">Default (100%)</option>
+          <option value="slow">Slow (50%)</option>
+          <option value="slower">Slower (25%)</option>
+        </select>
+        <div class="description">Animation playback speed (requires Pre-Iterate)</div>
+      </div>
+
+      <div class="divider"></div>
+      
+      <div class="section-title">Display Settings</div>
+
+      <div class="control-group">
+        <label>Zoom Out Per Iteration (%)</label>
+        <input type="number" id="zoomScale" min="25" max="300" value="95" step="5">
+        <div class="description">Scale factor applied each iteration (25-300%)</div>
+      </div>
+
+      <div class="button-group">
+        <button id="startBtn">Start</button>
+        <button id="stopBtn" disabled>Stop</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+    </div>
+    
+    <!-- FAB Button -->
+    <button class="fab" id="fabBtn" title="Toggle Settings">⚙️</button>
+  </div>
+  
+  <script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// UI Elements
+const fabBtn = document.getElementById('fabBtn');
+const settingsPanel = document.getElementById('settingsPanel');
+const statusOverlay = document.getElementById('statusOverlay');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const resetBtn = document.getElementById('resetBtn');
+const targetIterInput = document.getElementById('targetIteration');
+const calcMethodSelect = document.getElementById('calcMethod');
+const calcSpeedSelect = document.getElementById('calcSpeed');
+const zoomScaleInput = document.getElementById('zoomScale');
+const smoothAnimCheck = document.getElementById('smoothAnim');
+const preIterateCheck = document.getElementById('preIterate');
+const reanimSpeedSelect = document.getElementById('reanimSpeed');
+const methodDescEl = document.getElementById('methodDesc');
+
+// Status elements
+const currentIterEl = document.getElementById('currentIter');
+const calcTimeEl = document.getElementById('calcTime');
+const predictedTimeEl = document.getElementById('predictedTime');
+const timeDiffEl = document.getElementById('timeDiff');
+const totalPointsEl = document.getElementById('totalPoints');
+
+// State
+let running = false;
+let settingsOpen = true;
+let iteration = 0;
+let animationId = null;
+let currentPoints = [];
+let previousPoints = [];
+let animationProgress = 0;
+let lastCalcTimes = [];
+let startIterTime = 0;
+
+// Method descriptions
+const methodDescriptions = {
+  recursive: 'Balanced approach for speed and accuracy',
+  iterative: 'Lower memory usage, slightly slower',
+  bitwise: 'Uses bit manipulation for fastest computation',
+  lookup: 'Pre-computed patterns for ultra-fast generation'
+};
+
+// FAB toggle
+fabBtn.addEventListener('click', () => {
+  settingsOpen = !settingsOpen;
+  if (settingsOpen) {
+    settingsPanel.classList.remove('closed');
+    statusOverlay.classList.remove('transparent');
+    fabBtn.classList.remove('active');
+    fabBtn.innerHTML = '⚙️';
+  } else {
+    settingsPanel.classList.add('closed');
+    statusOverlay.classList.add('transparent');
+    fabBtn.classList.add('active');
+    fabBtn.innerHTML = '✕';
+  }
+});
+
+// Pre-iterate checkbox control
+preIterateCheck.addEventListener('change', () => {
+  reanimSpeedSelect.disabled = !preIterateCheck.checked;
+});
+
+calcMethodSelect.addEventListener('change', () => {
+  methodDescEl.textContent = methodDescriptions[calcMethodSelect.value];
+});
+
+// Resize canvas to fill container
+function resizeCanvas() {
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+  if (currentPoints.length > 0) {
+    drawCurve(currentPoints, 1);
+  }
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// Calculation methods
+const calculationMethods = {
+  recursive: function(n) {
+    if (n === 0) return [1];
+    const prev = this.recursive(n - 1);
+    return [...prev, 1, ...prev.map(x => -x).reverse()];
+  },
+  
+  iterative: function(n) {
+    let sequence = [1];
+    for (let i = 0; i < n; i++) {
+      const newSeq = [...sequence, 1];
+      for (let j = sequence.length - 1; j >= 0; j--) {
+        newSeq.push(-sequence[j]);
+      }
+      sequence = newSeq;
+    }
+    return sequence;
+  },
+  
+  bitwise: function(n) {
+    const length = (1 << (n + 1)) - 1;
+    const sequence = [];
+    for (let i = 0; i < length; i++) {
+      const bit = i & -i;
+      const turn = ((i / bit) & 1) ? 1 : -1;
+      sequence.push(turn);
+    }
+    return sequence;
+  },
+  
+  lookup: function(n) {
+    const cache = {};
+    function generate(iter) {
+      if (iter === 0) return [1];
+      if (cache[iter]) return cache[iter];
+      const prev = generate(iter - 1);
+      const result = [...prev, 1, ...prev.map(x => -x).reverse()];
+      cache[iter] = result;
+      return result;
+    }
+    return generate(n);
+  }
+};
+
+// Generate dragon curve sequence
+function generateDragonSequence(n, method) {
+  return calculationMethods[method](n);
+}
+
+// Convert sequence to points
+function generatePoints(iter, method) {
+  const startTime = performance.now();
+  
+  const sequence = generateDragonSequence(iter, method);
+  const points = [[0, 0]];
+  const stepSize = 8;
+  
+  let x = 0;
+  let y = 0;
+  let direction = 0;
+  
+  x += stepSize;
+  points.push([x, y]);
+  
+  for (let turn of sequence) {
+    direction += turn * 90;
+    const rad = (direction * Math.PI) / 180;
+    x += Math.cos(rad) * stepSize;
+    y += Math.sin(rad) * stepSize;
+    points.push([x, y]);
+  }
+  
+  const calcTime = performance.now() - startTime;
+  
+  lastCalcTimes.push(calcTime);
+  if (lastCalcTimes.length > 5) lastCalcTimes.shift();
+  
+  return { points, calcTime };
+}
+
+// Interpolate between two point sets for smooth animation
+function interpolatePoints(fromPts, toPts, progress) {
+  if (!fromPts || fromPts.length === 0) return toPts;
+  
+  const interpolated = [];
+  const fromLen = fromPts.length;
+  
+  for (let i = 0; i < fromLen; i++) {
+    interpolated.push([...fromPts[i]]);
+  }
+  
+  const newPointsCount = toPts.length - fromLen;
+  const animatedCount = Math.floor(newPointsCount * progress);
+  
+  for (let i = 0; i < animatedCount; i++) {
+    interpolated.push([...toPts[fromLen + i]]);
+  }
+  
+  return interpolated;
+}
+
+// Draw the curve
+function drawCurve(pts, progress = 1) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  if (pts.length < 2) return;
+  
+  const minX = Math.min(...pts.map(p => p[0]));
+  const maxX = Math.max(...pts.map(p => p[0]));
+  const minY = Math.min(...pts.map(p => p[1]));
+  const maxY = Math.max(...pts.map(p => p[1]));
+  
+  const width = maxX - minX;
+  const height = maxY - minY;
+  const padding = 40;
+  
+  const zoomFactor = Math.pow(zoomScaleInput.value / 100, iteration);
+  
+  const scaleX = (canvas.width - padding * 2) / width * zoomFactor;
+  const scaleY = (canvas.height - padding * 2) / height * zoomFactor;
+  const scale = Math.min(scaleX, scaleY, 3);
+  
+  const offsetX = (canvas.width - width * scale) / 2 - minX * scale;
+  const offsetY = (canvas.height - height * scale) / 2 - minY * scale;
+  
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  for (let i = 0; i < pts.length - 1; i++) {
+    const segmentProgress = i / (pts.length - 1);
+    const hue = segmentProgress * 280 + 240;
+    ctx.strokeStyle = `hsla(${hue}, 80%, 60%, ${0.7 + progress * 0.3})`;
+    
+    ctx.beginPath();
+    ctx.moveTo(pts[i][0] * scale + offsetX, pts[i][1] * scale + offsetY);
+    ctx.lineTo(pts[i + 1][0] * scale + offsetX, pts[i + 1][1] * scale + offsetY);
+    ctx.stroke();
+  }
+  
+  totalPointsEl.textContent = pts.length.toLocaleString();
+}
+
+// Update status with predictions
+function updateStatus(calcTime) {
+  calcTimeEl.textContent = `${calcTime.toFixed(2)}ms`;
+  
+  const avgTime = lastCalcTimes.reduce((a, b) => a + b, 0) / lastCalcTimes.length;
+  const remainingIters = parseInt(targetIterInput.value) - iteration;
+  const predictedTotal = avgTime * remainingIters;
+  
+  predictedTimeEl.textContent = `${predictedTotal.toFixed(0)}ms`;
+  
+  const actualTime = performance.now() - startIterTime;
+  const expectedTime = avgTime;
+  const diff = (actualTime - expectedTime) / 1000;
+  
+  timeDiffEl.textContent = `${diff > 0 ? '+' : ''}${diff.toFixed(2)}s`;
+  timeDiffEl.className = 'status-value';
+  if (diff < -0.1) timeDiffEl.classList.add('positive');
+  else if (diff > 0.1) timeDiffEl.classList.add('negative');
+}
+
+// Animation loop
+function animate() {
+  if (!running) return;
+  
+  const smoothEnabled = smoothAnimCheck.checked;
+  const preIterate = preIterateCheck.checked;
+  const targetIter = parseInt(targetIterInput.value);
+  const method = calcMethodSelect.value;
+  const speedMultiplier = {slow: 1, normal: 5, fast: 10}[calcSpeedSelect.value];
+  const reanimMultiplier = {default: 1, slow: 0.5, slower: 0.25}[reanimSpeedSelect.value];
+  
+  if (iteration > targetIter) {
+    stop();
+    return;
+  }
+  
+  if (smoothEnabled && animationProgress < 1 && !preIterate) {
+    // Wait for animation to complete
+    animationProgress += 0.02 * speedMultiplier * reanimMultiplier;
+    if (animationProgress > 1) animationProgress = 1;
+    
+    const interpolated = interpolatePoints(previousPoints, currentPoints, animationProgress);
+    drawCurve(interpolated, animationProgress);
+  } else {
+    // Generate next iteration (pre-iterate mode or animation complete)
+    if (iteration <= targetIter) {
+      startIterTime = performance.now();
+      const { points, calcTime } = generatePoints(iteration, method);
+      
+      previousPoints = [...currentPoints];
+      currentPoints = points;
+      
+      if (preIterate && smoothEnabled) {
+        // Pre-iterate mode: continue animating previous while generating next
+        animationProgress = Math.min(animationProgress + 0.02 * speedMultiplier * reanimMultiplier, 1);
+        const interpolated = interpolatePoints(previousPoints, currentPoints, animationProgress);
+        drawCurve(interpolated, animationProgress);
+      } else {
+        animationProgress = smoothEnabled ? 0 : 1;
+        if (!smoothEnabled) {
+          drawCurve(currentPoints, 1);
+        }
+      }
+      
+      currentIterEl.textContent = iteration;
+      updateStatus(calcTime);
+      
+      iteration++;
+    }
+  }
+  
+  animationId = requestAnimationFrame(animate);
+}
+
+// Control functions
+function start() {
+  if (!running) {
+    running = true;
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    targetIterInput.disabled = true;
+    calcMethodSelect.disabled = true;
+    animationId = requestAnimationFrame(animate);
+  }
+}
+
+function stop() {
+  running = false;
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+  targetIterInput.disabled = false;
+  calcMethodSelect.disabled = false;
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+}
+
+function reset() {
+  stop();
+  iteration = 0;
+  currentPoints = [];
+  previousPoints = [];
+  animationProgress = 0;
+  lastCalcTimes = [];
+  currentIterEl.textContent = '0';
+  calcTimeEl.textContent = '0ms';
+  predictedTimeEl.textContent = '0ms';
+  timeDiffEl.textContent = '0s';
+  totalPointsEl.textContent = '0';
+  timeDiffEl.className = 'status-value';
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// Event listeners
+startBtn.addEventListener('click', start);
+stopBtn.addEventListener('click', stop);
+resetBtn.addEventListener('click', reset);
+  </script>
+</body>
+</html>

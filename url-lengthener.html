@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google-style Redirect Generator</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+    input, button, textarea {
+      padding: 10px;
+      margin: 10px 0;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    textarea {
+      resize: none;
+      cursor: pointer;
+      background: #eee;
+    }
+    #toggleScheme {
+      width: auto;
+      background: #333;
+      color: #fff;
+      cursor: pointer;
+    }
+    .history {
+      background: #ddd;
+      margin-bottom: 6px;
+      padding: 8px;
+      border: none;
+      width: 100%;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  </style>
+</head>
+<body>
+  <h2>Google Redirect Link Generator</h2>
+  <button id="toggleScheme">https</button>
+  <button id="toggleBase64">Base64: Off</button>
+  <input type="text" id="urlInput" placeholder="Enter your URL (with or without http/s or encoded)" />
+  <button onclick="generateLink()">Generate Link</button>
+
+  <div id="historyLinks"></div>
+  <div id="charCount">Length: 0</div>
+  
+  <button onclick="downloadHistory()">Download History</button>
+
+  <script>
+    let currentScheme = 'https';
+    let useBase64 = false;
+    const maxHistory = 6;
+    const historyContainer = document.getElementById('historyLinks');
+    const sessionHistoryKey = 'generatedHistory';  // Key to store history in session storage
+
+    // Load existing history from sessionStorage
+    function loadHistory() {
+      const history = JSON.parse(sessionStorage.getItem(sessionHistoryKey)) || [];
+      history.forEach(link => {
+        addToHistory(link);
+      });
+    }
+
+    // Save history to sessionStorage
+    function saveHistory(history) {
+      sessionStorage.setItem(sessionHistoryKey, JSON.stringify(history));
+    }
+
+    document.getElementById('toggleScheme').addEventListener('click', () => {
+      if (currentScheme === 'https') currentScheme = 'http';
+      else if (currentScheme === 'http') currentScheme = '';
+      else currentScheme = 'https';
+      document.getElementById('toggleScheme').textContent = currentScheme || 'none';
+    });
+
+    document.getElementById('toggleBase64').onclick = () => {
+      useBase64 = !useBase64;
+      document.getElementById('toggleBase64').textContent = `Base64: ${useBase64 ? 'On' : 'Off'}`;
+    };
+
+    function cleanURL(inputUrl) {
+      return inputUrl.replace(/^(https?:\/\/)/i, '');
+    }
+
+    function isEncoded(str) {
+      try {
+        return decodeURIComponent(str) !== str;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function generateLink() {
+      let rawInput = document.getElementById('urlInput').value.trim();
+      if (!rawInput) return;
+
+      let cleanInput = cleanURL(rawInput);
+      let finalUrl = currentScheme ? `${currentScheme}://${cleanInput}` : cleanInput;
+
+      let encoded = isEncoded(finalUrl) ? finalUrl : encodeURIComponent(finalUrl);
+      if (useBase64) {
+        encoded = btoa(encoded);  // Convert to Base64 if the toggle is on
+      }
+
+      let finalLink = `https://www.google.com/url?q=${encoded}`;
+      addToHistory(finalLink);
+      
+      // Save the history after each generation
+      const history = Array.from(historyContainer.children).map(entry => entry.value);
+      saveHistory(history);
+
+      document.getElementById('charCount').textContent = `Length: ${finalLink.length}`;
+    }
+
+    function addToHistory(link) {
+      const entry = document.createElement('textarea');
+      entry.className = 'history';
+      entry.readOnly = true;
+      entry.rows = 1;
+      entry.value = link;  // Just show the link without a number
+      entry.onclick = () => {
+        entry.select();
+        document.execCommand('copy');
+      };
+
+      historyContainer.prepend(entry);
+      
+      // If more than the max history, remove the oldest
+      while (historyContainer.children.length > maxHistory) {
+        historyContainer.removeChild(historyContainer.lastChild);
+      }
+    }
+
+    function downloadHistory() {
+      const links = Array.from(historyContainer.children).map((t, index) => `${index + 1}. ${t.value}`);
+      const timestamp = new Date().toISOString().replace(/[^0-9]/g, '');
+      const filename = `generated_links_${timestamp}.txt`;  // Unique file name based on the current timestamp
+
+      const blob = new Blob([links.join('\n')], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+
+      // Clear history after download
+      historyContainer.innerHTML = '';  // Clear the history from the UI
+      sessionStorage.removeItem(sessionHistoryKey);  // Remove from sessionStorage
+    }
+
+    // Load the history when the page loads
+    window.onload = loadHistory;
+  </script>
+</body>
+</html>

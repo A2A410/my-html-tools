@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>APK Cert Hash</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Roboto',sans-serif;background:#1a1a1a;color:#e0e0e0;padding:16px;min-height:100vh}
+.container{max-width:600px;margin:0 auto;background:#2d2d2d;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.3);overflow:hidden}
+.header{background:#3f51b5;color:#fff;padding:20px;text-align:center;font-size:20px;font-weight:500}
+.content{padding:24px}
+.upload-zone{border:2px dashed #555;border-radius:8px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .3s;margin-bottom:20px}
+.upload-zone:hover{border-color:#3f51b5;background:#333}
+.upload-zone.drag{border-color:#3f51b5;background:#333}
+input[type=file]{display:none}
+.btn{background:#3f51b5;color:#fff;border:none;padding:12px 24px;border-radius:4px;cursor:pointer;font-size:14px;font-weight:500;width:100%;margin-top:12px;transition:background .3s}
+.btn:hover{background:#303f9f}
+.btn:disabled{background:#555;cursor:not-allowed}
+.result{margin-top:20px;padding:16px;background:#1a1a1a;border-radius:4px;display:none}
+.result.show{display:block}
+.hash-item{margin:12px 0;padding:12px;background:#2d2d2d;border-radius:4px;border-left:4px solid #3f51b5}
+.hash-label{font-size:12px;color:#999;margin-bottom:4px}
+.hash-value{font-family:'Courier New',monospace;font-size:13px;word-break:break-all;color:#4caf50}
+.error{color:#f44336;padding:12px;background:#1a1a1a;border-radius:4px;margin-top:12px;display:none}
+.error.show{display:block}
+.info{font-size:13px;color:#999;margin-top:8px}
+.loader{border:3px solid #555;border-top:3px solid #3f51b5;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:20px auto;display:none}
+.loader.show{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.file-list{margin-top:16px;max-height:200px;overflow-y:auto}
+.file-item{padding:8px;background:#1a1a1a;margin:4px 0;border-radius:4px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">APK Certificate Hash Extractor</div>
+<div class="content">
+<div class="upload-zone" id="uploadZone">
+<div>📦 Drop APK or CERT.RSA here</div>
+<div class="info">or click to browse</div>
+<input type="file" id="fileInput" multiple accept=".apk,.rsa">
+</div>
+<div class="file-list" id="fileList"></div>
+<button class="btn" id="processBtn" disabled>Extract Hash</button>
+<div class="loader" id="loader"></div>
+<div class="error" id="error"></div>
+<div class="result" id="result"></div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+const uz=document.getElementById('uploadZone');
+const fi=document.getElementById('fileInput');
+const pb=document.getElementById('processBtn');
+const ld=document.getElementById('loader');
+const er=document.getElementById('error');
+const rs=document.getElementById('result');
+const fl=document.getElementById('fileList');
+let files=[];
+
+uz.onclick=()=>fi.click();
+uz.ondragover=e=>{e.preventDefault();uz.classList.add('drag')};
+uz.ondragleave=()=>uz.classList.remove('drag');
+uz.ondrop=e=>{e.preventDefault();uz.classList.remove('drag');handleFiles(e.dataTransfer.files)};
+fi.onchange=e=>handleFiles(e.target.files);
+
+function handleFiles(f){
+files=Array.from(f);
+fl.innerHTML='';
+if(files.length>0){
+pb.disabled=false;
+files.forEach(file=>{
+const div=document.createElement('div');
+div.className='file-item';
+div.textContent=`${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+fl.appendChild(div);
+});
+}else{pb.disabled=true}
+}
+
+pb.onclick=async()=>{
+er.classList.remove('show');
+rs.classList.remove('show');
+ld.classList.add('show');
+pb.disabled=true;
+try{
+let certData=null;
+for(const file of files){
+if(file.name.endsWith('.apk')){
+certData=await extractFromAPK(file);
+break;
+}else if(file.name.toLowerCase().endsWith('.rsa')){
+certData=await file.arrayBuffer();
+break;
+}
+}
+if(!certData)throw new Error('No valid APK or CERT.RSA found');
+const hashes=await computeHashes(certData);
+displayHashes(hashes);
+}catch(e){
+showError(e.message);
+}finally{
+ld.classList.remove('show');
+pb.disabled=false;
+}
+};
+
+async function extractFromAPK(file){
+const zip=await JSZip.loadAsync(file);
+const rsaFiles=Object.keys(zip.files).filter(n=>n.startsWith('META-INF/')&&n.toUpperCase().endsWith('.RSA'));
+if(rsaFiles.length===0)throw new Error('No CERT.RSA found in APK');
+return await zip.files[rsaFiles[0]].async('arraybuffer');
+}
+
+async function computeHashes(certData){
+const certDer=extractCertDER(certData);
+const sha256=await crypto.subtle.digest('SHA-256',certDer);
+const sha1=await crypto.subtle.digest('SHA-1',certDer);
+const md5=await digestMD5(certDer);
+return{
+sha256:toHex(sha256),
+sha1:toHex(sha1),
+md5:toHex(md5)
+};
+}
+
+function extractCertDER(rsaData){
+// Simple PKCS#7 parse - find cert sequence
+const buf=new Uint8Array(rsaData);
+let idx=0;
+// Find cert sequence tag 0x30 (SEQUENCE)
+// Skip PKCS#7 wrapper, find first large sequence
+for(let i=0;i<buf.length-4;i++){
+if(buf[i]===0x30&&buf[i+1]===0x82){
+// Found DER sequence with long form length
+const len=(buf[i+2]<<8)|buf[i+3];
+if(len>500&&len<5000){
+// Likely the certificate
+return buf.slice(i,i+len+4);
+}
+}
+}
+throw new Error('Certificate DER not found');
+}
+
+function toHex(buf){
+return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+
+async function digestMD5(data){
+// Simple MD5 implementation
+const buf=new Uint8Array(data);
+const s=[7,12,17,22,5,9,14,20,4,11,16,23,6,10,15,21];
+const K=new Uint32Array(64);
+for(let i=0;i<64;i++)K[i]=Math.floor(Math.abs(Math.sin(i+1))*0x100000000);
+const pad=new Uint8Array(((buf.length+8>>>6)+1)*64);
+pad.set(buf);
+pad[buf.length]=0x80;
+const bits=buf.length*8;
+pad[pad.length-8]=bits&0xff;
+pad[pad.length-7]=(bits>>>8)&0xff;
+pad[pad.length-6]=(bits>>>16)&0xff;
+pad[pad.length-5]=(bits>>>24)&0xff;
+let[a,b,c,d]=[0x67452301,0xefcdab89,0x98badcfe,0x10325476];
+for(let i=0;i<pad.length;i+=64){
+const M=new Uint32Array(16);
+for(let j=0;j<16;j++)M[j]=pad[i+j*4]|(pad[i+j*4+1]<<8)|(pad[i+j*4+2]<<16)|(pad[i+j*4+3]<<24);
+let[A,B,C,D]=[a,b,c,d];
+for(let j=0;j<64;j++){
+let F,g;
+if(j<16){F=(B&C)|(~B&D);g=j}
+else if(j<32){F=(D&B)|(~D&C);g=(5*j+1)%16}
+else if(j<48){F=B^C^D;g=(3*j+5)%16}
+else{F=C^(B|~D);g=(7*j)%16}
+F=(F+A+K[j]+M[g])>>>0;
+A=D;D=C;C=B;
+B=(B+((F<<s[j%4+(j>>>4)*4])|(F>>>(32-s[j%4+(j>>>4)*4]))))>>>0;
+}
+a=(a+A)>>>0;b=(b+B)>>>0;c=(c+C)>>>0;d=(d+D)>>>0;
+}
+const res=new Uint8Array(16);
+[a,b,c,d].forEach((v,i)=>{
+res[i*4]=v&0xff;res[i*4+1]=(v>>>8)&0xff;res[i*4+2]=(v>>>16)&0xff;res[i*4+3]=(v>>>24)&0xff;
+});
+return res;
+}
+
+function displayHashes(h){
+rs.innerHTML=`
+<div class="hash-item">
+<div class="hash-label">SHA-256 (Primary)</div>
+<div class="hash-value">${h.sha256}</div>
+</div>
+<div class="hash-item">
+<div class="hash-label">SHA-1</div>
+<div class="hash-value">${h.sha1}</div>
+</div>
+<div class="hash-item">
+<div class="hash-label">MD5 (Legacy)</div>
+<div class="hash-value">${h.md5}</div>
+</div>
+`;
+rs.classList.add('show');
+}
+
+function showError(msg){
+er.textContent='❌ '+msg;
+er.classList.add('show');
+}
+</script>
+</body>
+</html>

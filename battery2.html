@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Battery Status</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  color: #333;
+  transition: background-color 0.3s, color 0.3s;
+  padding: 20px;
+}
+
+body.dark-mode {
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+}
+
+.container {
+  text-align: center;
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  min-width: 300px;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+body.dark-mode .container {
+  background: #2a2a2a;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+
+.battery-icon-discharging {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  display: inline-block;
+  height: 80px;
+  width: 140px;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.battery-icon-charging {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  box-shadow: 0 4px 15px rgba(56, 239, 125, 0.4);
+}
+
+.battery-icon-level {
+  background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 0%;
+  transition: height 0.5s ease;
+}
+
+.battery-tip {
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 30px;
+  background: inherit;
+  border-radius: 0 4px 4px 0;
+}
+
+#battery-percentage {
+  font-size: 48px;
+  font-weight: 700;
+  margin: 20px 0 10px;
+}
+
+#battery-current {
+  font-size: 18px;
+  color: #666;
+  margin-bottom: 30px;
+}
+
+body.dark-mode #battery-current {
+  color: #aaa;
+}
+
+#dark-mode-toggle {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+#dark-mode-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+#dark-mode-toggle:active {
+  transform: translateY(0);
+}
+
+.status-text {
+  font-size: 14px;
+  color: #888;
+  margin-top: 10px;
+}
+
+body.dark-mode .status-text {
+  color: #999;
+}
+
+.not-supported {
+  font-size: 18px;
+  color: #e74c3c;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div id="battery-icon" class="battery-icon-discharging">
+    <div class="battery-icon-level"></div>
+    <div class="battery-tip"></div>
+  </div>
+  
+  <p id="battery-percentage">--%</p>
+  <p id="battery-current">-- mA</p>
+  <p class="status-text" id="status-text">Loading...</p>
+  
+  <button id="dark-mode-toggle">Toggle Dark Mode</button>
+</div>
+
+<script>
+const batteryIcon = document.getElementById('battery-icon');
+const batteryPercentage = document.getElementById('battery-percentage');
+const batteryCurrent = document.getElementById('battery-current');
+const statusText = document.getElementById('status-text');
+const darkModeToggle = document.getElementById('dark-mode-toggle');
+
+if ('getBattery' in navigator) {
+  navigator.getBattery().then(function(battery) {
+    function updateBatteryStatus() {
+      const level = Math.round(battery.level * 100);
+      
+      if (battery.charging) {
+        batteryIcon.classList.remove('battery-icon-discharging');
+        batteryIcon.classList.add('battery-icon-charging');
+        statusText.textContent = 'Charging';
+      } else {
+        batteryIcon.classList.remove('battery-icon-charging');
+        batteryIcon.classList.add('battery-icon-discharging');
+        statusText.textContent = 'Discharging';
+      }
+      
+      batteryPercentage.textContent = level + '%';
+      
+      if (battery.charging) {
+        batteryCurrent.textContent = '⚡ Charging';
+      } else {
+        const hoursRemaining = battery.dischargingTime / 3600;
+        if (isFinite(hoursRemaining)) {
+          batteryCurrent.textContent = hoursRemaining.toFixed(1) + ' hours remaining';
+        } else {
+          batteryCurrent.textContent = 'Calculating...';
+        }
+      }
+      
+      batteryIcon.querySelector('.battery-icon-level').style.height = level + '%';
+      
+      if (level >= 98 && battery.charging) {
+        setTimeout(function() {
+          alert("Battery is fully charged. Consider unplugging the device.");
+        }, 15 * 60 * 1000);
+      }
+    }
+    
+    updateBatteryStatus();
+    
+    battery.addEventListener('chargingchange', updateBatteryStatus);
+    battery.addEventListener('levelchange', updateBatteryStatus);
+    battery.addEventListener('dischargingtimechange', updateBatteryStatus);
+  });
+} else {
+  batteryIcon.innerHTML = '<p class="not-supported">Battery API not supported</p>';
+  batteryPercentage.style.display = 'none';
+  batteryCurrent.style.display = 'none';
+  statusText.textContent = 'Your browser does not support the Battery Status API';
+}
+
+darkModeToggle.addEventListener('click', function() {
+  document.body.classList.toggle('dark-mode');
+});
+</script>
+</body>
+</html>

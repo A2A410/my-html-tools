@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="PTAM Merger - Mobile-optimized file merger">
+    <meta name="theme-color" content="#6366f1">
+    <title>PTAM Merger Mobile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #252538;
+            --text-primary: #e8e8f0;
+            --text-secondary: #a8a8b8;
+            --text-tertiary: #707080;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --accent-dim: rgba(99, 102, 241, 0.15);
+            --success: #10b981;
+            --success-dim: rgba(16, 185, 129, 0.15);
+            --danger: #ef4444;
+            --danger-dim: rgba(239, 68, 68, 0.15);
+            --warning: #f59e0b;
+            --warning-dim: rgba(245, 158, 11, 0.15);
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 8px 48px rgba(0, 0, 0, 0.5);
+        }
+
+        body.light-mode {
+            --bg-primary: #fafafa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f5f5f5;
+            --text-primary: #0f0f1a;
+            --text-secondary: #404050;
+            --text-tertiary: #808090;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(0, 0, 0, 0.08);
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 8px 48px rgba(0, 0, 0, 0.12);
+        }
+
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: 'Syne', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .icon-btn:active {
+            transform: scale(0.92);
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        /* Stats Bar */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .stat-card {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        /* Container */
+        .container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            background: var(--bg-secondary);
+            border: 2px dashed var(--border);
+            border-radius: 20px;
+            padding: 48px 24px;
+            text-align: center;
+            margin-bottom: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            touch-action: manipulation;
+        }
+
+        .upload-zone:active {
+            transform: scale(0.98);
+            background: var(--accent-dim);
+            border-color: var(--accent);
+        }
+
+        .upload-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .upload-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* File List */
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .file-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-bottom: 4px;
+        }
+
+        .file-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 11px;
+            color: var(--text-tertiary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .file-type {
+            padding: 2px 6px;
+            background: var(--accent-dim);
+            color: var(--accent);
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .remove-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: none;
+            background: var(--danger-dim);
+            color: var(--danger);
+            font-size: 18px;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .remove-btn:active {
+            transform: scale(0.9);
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Bottom Actions */
+        .bottom-actions {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 16px 20px;
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+            z-index: 90;
+        }
+
+        .filename-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .filename-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+
+        .merge-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 16px var(--accent-dim);
+            touch-action: manipulation;
+        }
+
+        .merge-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: var(--bg-tertiary);
+            box-shadow: none;
+        }
+
+        .merge-btn:active:not(:disabled) {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px var(--accent-dim);
+        }
+
+        /* Alert */
+        .alert {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            animation: alertSlide 0.3s ease;
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(20px);
+        }
+
+        @keyframes alertSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert.success {
+            background: var(--success-dim);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .alert.error {
+            background: var(--danger-dim);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .alert.warning {
+            background: var(--warning-dim);
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        .alert-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .alert-text {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .alert-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: inherit;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .alert-close:active {
+            opacity: 1;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            animation: modalSlide 0.3s ease;
+        }
+
+        @keyframes modalSlide {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:active {
+            transform: scale(0.9);
+            background: var(--danger);
+            color: white;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .modal-btn.primary {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+        }
+
+        .modal-btn.secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .modal-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Preview */
+        .preview-content {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--text-secondary);
+        }
+
+        /* Loading */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .loading.active {
+            display: flex;
+        }
+
+        .loading-content {
+            text-align: center;
+            padding: 32px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .loading-detail {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Hidden */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-tertiary);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-top">
+            <div class="logo">PTAM</div>
+            <div class="header-actions">
+                <button class="icon-btn" id="themeBtn" onclick="app.toggleTheme()" title="Toggle theme">🌙</button>
+                <button class="icon-btn" id="refreshBtn" onclick="app.showRefreshConfirm()" title="Refresh">🔄</button>
+                <button class="icon-btn" id="saveBtn" onclick="app.saveState()" title="Save">💾</button>
+            </div>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="statFiles">0</div>
+                <div class="stat-label">Files</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statSize">0B</div>
+                <div class="stat-label">Size</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statText">0</div>
+                <div class="stat-label">Text</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statBinary">0</div>
+                <div class="stat-label">Binary</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container -->
+    <div class="container">
+        <!-- Upload Zone -->
+        <div class="upload-zone" id="uploadZone">
+            <div class="upload-icon">📁</div>
+            <div class="upload-title">Tap to select files</div>
+            <div class="upload-hint">Text files only • Local processing<br>All data stays on your device</div>
+        </div>
+        <input type="file" id="fileInput" multiple accept="text/*,.txt,.js,.css,.html,.json,.xml,.md,.log">
+
+        <!-- File List -->
+        <div class="file-list" id="fileList">
+            <div class="empty-state">
+                <div class="empty-icon">📄</div>
+                <div class="empty-text">No files added yet</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Actions -->
+    <div class="bottom-actions">
+        <input 
+            type="text" 
+            class="filename-input" 
+            id="filenameInput" 
+            placeholder="Enter filename..."
+            value="merged"
+        >
+        <button class="merge-btn" id="mergeBtn" onclick="app.merge()" disabled>
+            <span>⚡</span>
+            <span>Merge Files</span>
+        </button>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+
+    <!-- Preview Modal -->
+    <div class="modal" id="previewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Preview Merged File</div>
+                <button class="modal-close" onclick="app.closeModal('previewModal')">×</button>
+            </div>
+            <div class="preview-content" id="previewContent"></div>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="app.closeModal('previewModal')">Close</button>
+                <button class="modal-btn primary" onclick="app.downloadMerged()">📥 Download</button>
+                <button class="modal-btn primary" onclick="app.copyMerged()">📋 Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refresh Confirm Modal -->
+    <div class="modal" id="refreshModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Clear All Files?</div>
+                <button class="modal-close" onclick="app.closeModal('refreshModal')">×</button>
+            </div>
+            <p style="margin-bottom: 20px; color: var(--text-secondary); font-size: 14px;">This will remove all added files and reset the app. Continue?</p>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="app.closeModal('refreshModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="app.confirmRefresh()">Clear All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div class="loading-text">Processing Files</div>
+            <div class="loading-detail" id="loadingDetail">Please wait...</div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== APP STATE ====================
+        const app = {
+            files: [],
+            mergedContent: null,
+            
+            // ==================== INITIALIZATION ====================
+            init() {
+                this.loadState();
+                this.setupEventListeners();
+                this.updateUI();
+            },
+
+            setupEventListeners() {
+                const fileInput = document.getElementById('fileInput');
+                const uploadZone = document.getElementById('uploadZone');
+
+                // Click to upload
+                uploadZone.addEventListener('click', () => fileInput.click());
+
+                // Touch events for mobile
+                uploadZone.addEventListener('touchstart', (e) => {
+                    e.currentTarget.style.transform = 'scale(0.98)';
+                    e.currentTarget.style.background = 'var(--accent-dim)';
+                    e.currentTarget.style.borderColor = 'var(--accent)';
+                });
+
+                uploadZone.addEventListener('touchend', (e) => {
+                    e.currentTarget.style.transform = '';
+                    e.currentTarget.style.background = '';
+                    e.currentTarget.style.borderColor = '';
+                });
+
+                // File selection
+                fileInput.addEventListener('change', (e) => {
+                    this.handleFiles(e.target.files);
+                    e.target.value = ''; // Reset for same file selection
+                });
+
+                // Modal backdrop close
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            this.closeModal(modal.id);
+                        }
+                    });
+                });
+
+                // ESC key to close modals
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        document.querySelectorAll('.modal.active').forEach(modal => {
+                            this.closeModal(modal.id);
+                        });
+                    }
+                });
+
+                // Prevent accidental navigation
+                window.addEventListener('beforeunload', (e) => {
+                    if (this.files.length > 0 && !this.mergedContent) {
+                        e.preventDefault();
+                        e.returnValue = '';
+                    }
+                });
+            },
+
+            // ==================== FILE HANDLING ====================
+            async handleFiles(fileList) {
+                const newFiles = Array.from(fileList);
+                
+                if (newFiles.length === 0) return;
+
+                this.showLoading('Reading files...');
+
+                for (const file of newFiles) {
+                    // Check if file already exists
+                    if (this.files.some(f => f.name === file.name && f.size === file.size)) {
+                        this.showAlert(`"${file.name}" already added`, 'warning');
+                        continue;
+                    }
+
+                    // Detect file type by extension
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    const textExtensions = ['txt', 'js', 'jsx', 'ts', 'tsx', 'css', 'html', 'json', 'xml', 'md', 'log', 'csv', 'yml', 'yaml', 'py', 'java', 'c', 'cpp', 'h', 'php', 'rb', 'go', 'rs', 'sql'];
+                    const isText = textExtensions.includes(ext) || file.type.startsWith('text/');
+
+                    this.files.push({
+                        file: file,
+                        name: file.name,
+                        size: file.size,
+                        type: isText ? 'text' : 'binary',
+                        lastModified: file.lastModified
+                    });
+                }
+
+                this.hideLoading();
+                this.updateUI();
+                this.saveState();
+                
+                if (newFiles.length === 1) {
+                    this.showAlert(`Added ${newFiles[0].name}`, 'success');
+                } else {
+                    this.showAlert(`Added ${newFiles.length} files`, 'success');
+                }
+            },
+
+            removeFile(index) {
+                const file = this.files[index];
+                this.files.splice(index, 1);
+                this.updateUI();
+                this.saveState();
+                this.showAlert(`Removed ${file.name}`, 'success');
+            },
+
+            // ==================== MERGE OPERATION ====================
+            async merge() {
+                if (this.files.length === 0) return;
+
+                this.showLoading('Merging files...');
+
+                try {
+                    const parts = [];
+                    let processedCount = 0;
+
+                    for (const fileData of this.files) {
+                        processedCount++;
+                        this.updateLoadingDetail(`Processing ${processedCount}/${this.files.length}: ${fileData.name}`);
+
+                        try {
+                            const content = await this.readFileAsText(fileData.file);
+                            
+                            // Create separator
+                            const separator = '='.repeat(60);
+                            parts.push(`${separator}`);
+                            parts.push(`FILE: ${fileData.name}`);
+                            parts.push(`SIZE: ${this.formatSize(fileData.size)}`);
+                            parts.push(`TYPE: ${fileData.type.toUpperCase()}`);
+                            parts.push(`${separator}`);
+                            parts.push(content);
+                            parts.push(''); // Empty line between files
+                            parts.push('');
+                        } catch (error) {
+                            parts.push(`[ERROR reading ${fileData.name}: ${error.message}]`);
+                        }
+                    }
+
+                    this.mergedContent = parts.join('\n');
+                    this.hideLoading();
+                    this.showPreview();
+                } catch (error) {
+                    this.hideLoading();
+                    this.showAlert(`Merge failed: ${error.message}`, 'error');
+                }
+            },
+
+            readFileAsText(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsText(file, 'UTF-8');
+                });
+            },
+
+            // ==================== PREVIEW & DOWNLOAD ====================
+            showPreview() {
+                const previewContent = document.getElementById('previewContent');
+                const preview = this.mergedContent.substring(0, 2000);
+                const remaining = this.mergedContent.length - 2000;
+                
+                previewContent.textContent = preview + (remaining > 0 ? `\n\n... (${remaining} more characters)` : '');
+                this.openModal('previewModal');
+            },
+
+            downloadMerged() {
+                if (!this.mergedContent) return;
+
+                const filename = this.getFilename();
+                const blob = new Blob([this.mergedContent], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                this.showAlert(`Downloaded ${filename}`, 'success');
+            },
+
+            async copyMerged() {
+                if (!this.mergedContent) return;
+
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(this.mergedContent);
+                    } else {
+                        // Fallback
+                        const textarea = document.createElement('textarea');
+                        textarea.value = this.mergedContent;
+                        textarea.style.position = 'fixed';
+                        textarea.style.opacity = '0';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                    }
+                    this.showAlert('Copied to clipboard!', 'success');
+                } catch (error) {
+                    this.showAlert('Failed to copy', 'error');
+                }
+            },
+
+            getFilename() {
+                const input = document.getElementById('filenameInput').value.trim();
+                const sanitized = (input || 'merged')
+                    .replace(/[<>:"/\\|?*]/g, '_')
+                    .substring(0, 100);
+                return `${sanitized}.ptam.txt`;
+            },
+
+            // ==================== UI UPDATES ====================
+            updateUI() {
+                // Update stats
+                const totalSize = this.files.reduce((sum, f) => sum + f.size, 0);
+                const textCount = this.files.filter(f => f.type === 'text').length;
+                const binaryCount = this.files.filter(f => f.type === 'binary').length;
+
+                document.getElementById('statFiles').textContent = this.files.length;
+                document.getElementById('statSize').textContent = this.formatSize(totalSize);
+                document.getElementById('statText').textContent = textCount;
+                document.getElementById('statBinary').textContent = binaryCount;
+
+                // Update file list
+                const fileList = document.getElementById('fileList');
+                
+                if (this.files.length === 0) {
+                    fileList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📄</div>
+                            <div class="empty-text">No files added yet</div>
+                        </div>
+                    `;
+                } else {
+                    fileList.innerHTML = this.files.map((f, i) => `
+                        <div class="file-card">
+                            <div class="file-info">
+                                <div class="file-name">${this.escapeHtml(f.name)}</div>
+                                <div class="file-meta">
+                                    <span class="file-type">${f.type}</span>
+                                    <span>${this.formatSize(f.size)}</span>
+                                </div>
+                            </div>
+                            <button class="remove-btn" onclick="app.removeFile(${i})" title="Remove">×</button>
+                        </div>
+                    `).join('');
+                }
+
+                // Enable/disable merge button
+                document.getElementById('mergeBtn').disabled = this.files.length === 0;
+            },
+
+            // ==================== UTILITIES ====================
+            formatSize(bytes) {
+                if (bytes === 0) return '0B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return (bytes / Math.pow(k, i)).toFixed(1) + sizes[i];
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            // ==================== THEME ====================
+            toggleTheme() {
+                const body = document.body;
+                const btn = document.getElementById('themeBtn');
+                
+                body.classList.toggle('light-mode');
+                btn.textContent = body.classList.contains('light-mode') ? '☀️' : '🌙';
+                
+                const theme = body.classList.contains('light-mode') ? 'light' : 'dark';
+                localStorage.setItem('ptam_theme', theme);
+            },
+
+            loadTheme() {
+                const theme = localStorage.getItem('ptam_theme');
+                if (theme === 'light') {
+                    document.body.classList.add('light-mode');
+                    document.getElementById('themeBtn').textContent = '☀️';
+                }
+            },
+
+            // ==================== STATE PERSISTENCE ====================
+            saveState() {
+                try {
+                    const state = {
+                        filename: document.getElementById('filenameInput').value,
+                        fileCount: this.files.length,
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('ptam_state', JSON.stringify(state));
+                    this.showAlert('State saved', 'success');
+                } catch (error) {
+                    console.error('Failed to save state:', error);
+                }
+            },
+
+            loadState() {
+                try {
+                    this.loadTheme();
+                    
+                    const state = localStorage.getItem('ptam_state');
+                    if (state) {
+                        const data = JSON.parse(state);
+                        if (data.filename) {
+                            document.getElementById('filenameInput').value = data.filename;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to load state:', error);
+                }
+            },
+
+            // ==================== REFRESH ====================
+            showRefreshConfirm() {
+                if (this.files.length > 0) {
+                    this.openModal('refreshModal');
+                } else {
+                    this.showAlert('Nothing to clear', 'warning');
+                }
+            },
+
+            confirmRefresh() {
+                this.files = [];
+                this.mergedContent = null;
+                document.getElementById('filenameInput').value = 'merged';
+                this.updateUI();
+                this.closeModal('refreshModal');
+                this.showAlert('All files cleared', 'success');
+            },
+
+            // ==================== MODALS ====================
+            openModal(id) {
+                document.getElementById(id).classList.add('active');
+            },
+
+            closeModal(id) {
+                document.getElementById(id).classList.remove('active');
+            },
+
+            // ==================== LOADING ====================
+            showLoading(text) {
+                document.getElementById('loadingDetail').textContent = text;
+                document.getElementById('loading').classList.add('active');
+            },
+
+            updateLoadingDetail(text) {
+                document.getElementById('loadingDetail').textContent = text;
+            },
+
+            hideLoading() {
+                document.getElementById('loading').classList.remove('active');
+            },
+
+            // ==================== ALERTS ====================
+            showAlert(message, type = 'success') {
+                const container = document.getElementById('alertContainer');
+                
+                const icons = {
+                    success: '✓',
+                    error: '✗',
+                    warning: '⚠'
+                };
+
+                const alert = document.createElement('div');
+                alert.className = `alert ${type}`;
+                alert.innerHTML = `
+                    <div class="alert-icon">${icons[type] || 'ℹ'}</div>
+                    <div class="alert-text">${this.escapeHtml(message)}</div>
+                    <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+                `;
+
+                container.appendChild(alert);
+
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    if (alert.parentElement) {
+                        alert.style.opacity = '0';
+                        alert.style.transform = 'translateY(-20px)';
+                        setTimeout(() => alert.remove(), 300);
+                    }
+                }, 5000);
+            }
+        };
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => app.init());
+    </script>
+</body>
+</html>

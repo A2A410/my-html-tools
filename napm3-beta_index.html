@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>NA Plugin Generator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Roboto,sans-serif;background:#0a0a0a;color:#e0e0e0;padding:0;overflow-x:hidden}
+.header{background:linear-gradient(135deg,#1e3c72,#2a5298);padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.3);position:sticky;top:0;z-index:100}
+.header h1{font-size:20px;font-weight:500;letter-spacing:0.5px}
+.container{padding:16px;max-width:800px;margin:0 auto;padding-bottom:80px}
+.controls{display:flex;gap:8px;margin:16px 0;flex-wrap:wrap}
+.btn{padding:10px 20px;background:#2a5298;color:#fff;border:none;border-radius:4px;font-size:14px;font-weight:500;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2);transition:all 0.2s;flex:1;min-width:120px;text-transform:uppercase;letter-spacing:0.5px}
+.btn:active{transform:scale(0.98);box-shadow:0 1px 2px rgba(0,0,0,0.2)}
+.btn.primary{background:#4CAF50}
+.btn.danger{background:#f44336}
+.btn.secondary{background:#607d8b}
+.card{background:#1a1a1a;border-radius:8px;padding:16px;margin:16px 0;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:1px solid #2a2a2a;position:relative}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #2a2a2a}
+.card-title{font-size:16px;font-weight:500;color:#4CAF50}
+.card-num{background:#2a5298;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.input-group{margin:12px 0}
+.input-label{display:block;font-size:12px;font-weight:500;color:#aaa;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+input,textarea{width:100%;padding:12px;background:#0f0f0f;color:#e0e0e0;border:1px solid #333;border-radius:4px;font-size:14px;font-family:inherit;transition:border 0.2s}
+input:focus,textarea:focus{outline:none;border-color:#4CAF50}
+textarea{resize:vertical;min-height:80px;font-family:'Courier New',monospace}
+.output-section{margin-top:24px}
+.output-box{background:#0f0f0f;border:1px solid #333;border-radius:4px;padding:12px;max-height:400px;overflow-y:auto;font-family:'Courier New',monospace;font-size:13px;white-space:pre-wrap;word-break:break-all}
+.output-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.delete-btn{position:absolute;top:16px;right:16px;background:#f44336;color:#fff;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:18px;line-height:32px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.3)}
+.delete-btn:active{transform:scale(0.95)}
+.empty-state{text-align:center;padding:40px 20px;color:#666}
+.empty-state-icon{font-size:48px;margin-bottom:16px}
+.storage-info{background:#1a3a1a;border:1px solid #2d5a2d;border-radius:4px;padding:12px;margin:16px 0;font-size:13px;color:#8bc34a}
+.badge{display:inline-block;background:#2a5298;color:#fff;padding:4px 8px;border-radius:12px;font-size:11px;margin-left:8px;font-weight:500}
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:#0a0a0a}
+::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#444}
+.hint{font-size:11px;color:#666;margin-top:4px;font-style:italic}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>⚡ NA Plugin Generator</h1>
+</div>
+
+<div class="container">
+<div class="controls">
+<button class="btn primary" onclick="addCommandBlock()">+ Add Command</button>
+<button class="btn" onclick="generateOutput()">🔄 Update Output</button>
+<button class="btn secondary" onclick="saveToStorage()">💾 Save</button>
+<button class="btn secondary" onclick="loadFromStorage()">📂 Load</button>
+<button class="btn danger" onclick="clearAll()">🗑️ Clear All</button>
+</div>
+
+<div id="cmdContainer"></div>
+
+<div id="emptyState" class="empty-state">
+<div class="empty-state-icon">📝</div>
+<p>No commands yet. Click "Add Command" to start!</p>
+</div>
+
+<div class="output-section">
+<div class="card">
+<div class="card-header">
+<div class="card-title">Generated Output</div>
+</div>
+<div class="output-box" id="output">-- Click "Update Output" to generate code</div>
+<div class="output-actions">
+<button class="btn" onclick="copyOutput()">📋 Copy</button>
+<button class="btn" onclick="downloadFile()">⬇️ Download .na</button>
+<button class="btn secondary" onclick="selectAllOutput()">✓ Select All</button>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+let cmdCounter=0;
+
+function updateEmptyState(){
+const boxes=document.querySelectorAll(".card[data-cmd]");
+document.getElementById("emptyState").style.display=boxes.length>0?"none":"block";
+}
+
+function addCommandBlock(){
+cmdCounter++;
+const box=document.createElement("div");
+box.className="card";
+box.setAttribute("data-cmd",cmdCounter);
+box.innerHTML=`
+<div class="card-header">
+<div class="card-title">Command Block</div>
+<div class="card-num">${cmdCounter}</div>
+</div>
+<button class="delete-btn" onclick="deleteBlock(this)">×</button>
+
+<div class="input-group">
+<label class="input-label">Command & Aliases <span class="badge">One per line</span></label>
+<textarea class="aliases" rows="3" placeholder="mycommand&#10;alias1&#10;alias2"></textarea>
+<div class="hint">First line = main command, rest = aliases. No spaces allowed.</div>
+</div>
+
+<div class="input-group">
+<label class="input-label">Description</label>
+<input class="info" placeholder="What does this command do?">
+</div>
+
+<div class="input-group">
+<label class="input-label">Arguments Hint <span class="badge">Optional</span></label>
+<input class="argshint" placeholder="<player> <amount>">
+<div class="hint">e.g., &lt;arg&gt; or &lt;player&gt; &lt;speed&gt; - shown in help text</div>
+</div>
+
+<div class="input-group">
+<label class="input-label">
+<input type="checkbox" class="reqargs" style="width:auto;margin-right:8px">
+Requires Arguments
+</label>
+<div class="hint">Check if this command needs arguments to work</div>
+</div>
+
+<div class="input-group">
+<label class="input-label">Place IDs <span class="badge">Optional</span></label>
+<input class="pids" placeholder="123456, 789012, 345678">
+<div class="hint">Comma-separated. Leave empty for all games.</div>
+</div>
+
+<div class="input-group">
+<label class="input-label">
+<input type="checkbox" class="donotif" style="width:auto;margin-right:8px">
+DoNotif Message
+</label>
+<input class="notiftext" placeholder="Command executed!" style="margin-top:8px">
+<label style="display:flex;align-items:center;margin-top:8px;font-size:12px">
+<input type="radio" name="notifpos${cmdCounter}" value="pre" class="notifpos" style="width:auto;margin-right:4px">Pre-execution
+<input type="radio" name="notifpos${cmdCounter}" value="post" class="notifpos" style="width:auto;margin:0 4px 0 16px" checked>Post-execution
+</label>
+<div class="hint">Optional notification when command runs</div>
+</div>
+
+<div class="input-group">
+<label class="input-label">Commands to Execute</label>
+<textarea class="runcmd" rows="4" placeholder="fly 50&#10;noclip&#10;fullbright"></textarea>
+<div class="hint">One command per line. These run when your plugin command is called.</div>
+</div>
+
+<div class="input-group">
+<label class="input-label">Delay Between Commands <span class="badge">Seconds</span></label>
+<input type="number" class="delay" value="0" min="0" step="0.1" placeholder="0">
+<div class="hint">Wait time between each command execution (0 = instant)</div>
+</div>
+`;
+document.getElementById("cmdContainer").appendChild(box);
+updateEmptyState();
+generateOutput();
+}
+
+function deleteBlock(btn){
+if(confirm("Delete this command block?")){
+btn.closest(".card[data-cmd]").remove();
+updateEmptyState();
+generateOutput();
+}
+}
+
+function clearAll(){
+if(confirm("Delete ALL command blocks? This cannot be undone!")){
+document.getElementById("cmdContainer").innerHTML="";
+cmdCounter=0;
+updateEmptyState();
+generateOutput();
+}
+}
+
+function sanitizeAliases(lines){
+return lines.filter(x=>x.length>0&&/^[A-Za-z0-9_]+$/.test(x));
+}
+
+function generateOutput(){
+const blocks=[];
+const boxes=document.querySelectorAll(".card[data-cmd]");
+
+boxes.forEach(box=>{
+const aliases=sanitizeAliases(
+box.querySelector(".aliases").value.split("\n").map(x=>x.trim())
+);
+if(aliases.length===0)return;
+
+const info=box.querySelector(".info").value.trim();
+const argshint=box.querySelector(".argshint").value.trim();
+const reqargs=box.querySelector(".reqargs").checked;
+const pidraw=box.querySelector(".pids").value.trim();
+const donotif=box.querySelector(".donotif").checked;
+const notiftext=box.querySelector(".notiftext").value.trim();
+const notifpos=box.querySelector(".notifpos:checked").value;
+const delay=parseFloat(box.querySelector(".delay").value)||0;
+
+let pidcode="";
+if(pidraw.length>0){
+const nums=pidraw.split(",").map(x=>x.trim()).filter(x=>/^\d+$/.test(x));
+if(nums.length>0){
+pidcode=`local allowed={${nums.join(",")}}
+            if not table.find(allowed,game.PlaceId) then return end
+            `;
+}
+}
+
+let prenotif="";
+let postnotif="";
+if(donotif&&notiftext){
+const notifcode=`DoNotif("${notiftext}")`;
+if(notifpos==="pre"){
+prenotif=notifcode+"\n            ";
+}else{
+postnotif="\n            "+notifcode;
+}
+}
+
+const runcmdLines=box.querySelector(".runcmd").value.split("\n").map(x=>x.trim()).filter(x=>x.length>0);
+let exec="";
+if(runcmdLines.length>0){
+if(delay>0){
+runcmdLines.forEach((line,idx)=>{
+exec+=`runCommand("${line}")`;
+if(idx<runcmdLines.length-1){
+exec+=`\n            task.wait(${delay})`;
+}
+exec+="\n            ";
+});
+}else{
+runcmdLines.forEach(line=>{
+exec+=`runCommand("${line}")\n            `;
+});
+}
+}
+
+const argshintField=argshint?`\n        ArgsHint = "${argshint}",`:"";
+const funcParam=reqargs?"arg":"";
+
+const block=`{
+        Aliases = {${aliases.map(x=>`"${x}"`).join(",")}},${argshintField}
+        Info = "${info}",
+        Function = function(${funcParam})
+            ${pidcode}${prenotif}${exec}${postnotif}
+        end,
+        RequiresArguments = ${reqargs}
+    }`;
+
+blocks.push(block);
+});
+
+const output=blocks.length>0?`cmdPluginAdd = {
+${blocks.join(",\n")}
+}`:"-- No commands defined yet";
+
+document.getElementById("output").textContent=output;
+}
+
+function copyOutput(){
+const text=document.getElementById("output").textContent;
+if(navigator.clipboard){
+navigator.clipboard.writeText(text).then(()=>{
+alert("✓ Copied to clipboard!");
+});
+}else{
+const temp=document.createElement("textarea");
+temp.value=text;
+temp.style.position="fixed";
+temp.style.opacity="0";
+document.body.appendChild(temp);
+temp.select();
+document.execCommand("copy");
+document.body.removeChild(temp);
+alert("✓ Copied to clipboard!");
+}
+}
+
+function selectAllOutput(){
+const el=document.getElementById("output");
+const range=document.createRange();
+range.selectNodeContents(el);
+const sel=window.getSelection();
+sel.removeAllRanges();
+sel.addRange(range);
+}
+
+function downloadFile(){
+const content=document.getElementById("output").textContent;
+const blob=new Blob([content],{type:"text/plain"});
+const a=document.createElement("a");
+a.download="plugin.na";
+a.href=URL.createObjectURL(blob);
+a.click();
+URL.revokeObjectURL(a.href);
+}
+
+function saveToStorage(){
+const boxes=document.querySelectorAll(".card[data-cmd]");
+const data=[];
+boxes.forEach(box=>{
+data.push({
+aliases:box.querySelector(".aliases").value,
+info:box.querySelector(".info").value,
+argshint:box.querySelector(".argshint").value,
+reqargs:box.querySelector(".reqargs").checked,
+pids:box.querySelector(".pids").value,
+donotif:box.querySelector(".donotif").checked,
+notiftext:box.querySelector(".notiftext").value,
+notifpos:box.querySelector(".notifpos:checked").value,
+runcmd:box.querySelector(".runcmd").value,
+delay:box.querySelector(".delay").value
+});
+});
+localStorage.setItem("naPluginData",JSON.stringify({commands:data,counter:cmdCounter}));
+alert("✓ Saved to browser storage!");
+}
+
+function loadFromStorage(){
+const stored=localStorage.getItem("naPluginData");
+if(!stored){
+alert("⚠️ No saved data found!");
+return;
+}
+if(!confirm("Load saved data? Current commands will be replaced!")){
+return;
+}
+const data=JSON.parse(stored);
+document.getElementById("cmdContainer").innerHTML="";
+cmdCounter=data.counter||0;
+
+data.commands.forEach((cmd,i)=>{
+cmdCounter++;
+const box=document.createElement("div");
+box.className="card";
+box.setAttribute("data-cmd",cmdCounter);
+box.innerHTML=`
+<div class="card-header">
+<div class="card-title">Command Block</div>
+<div class="card-num">${cmdCounter}</div>
+</div>
+<button class="delete-btn" onclick="deleteBlock(this)">×</button>
+<div class="input-group">
+<label class="input-label">Command & Aliases <span class="badge">One per line</span></label>
+<textarea class="aliases" rows="3">${cmd.aliases}</textarea>
+<div class="hint">First line = main command, rest = aliases. No spaces allowed.</div>
+</div>
+<div class="input-group">
+<label class="input-label">Description</label>
+<input class="info" value="${cmd.info}">
+</div>
+<div class="input-group">
+<label class="input-label">Arguments Hint <span class="badge">Optional</span></label>
+<input class="argshint" value="${cmd.argshint||''}">
+<div class="hint">e.g., &lt;arg&gt; or &lt;player&gt; &lt;speed&gt; - shown in help text</div>
+</div>
+<div class="input-group">
+<label class="input-label">
+<input type="checkbox" class="reqargs" style="width:auto;margin-right:8px" ${cmd.reqargs?'checked':''}>
+Requires Arguments
+</label>
+<div class="hint">Check if this command needs arguments to work</div>
+</div>
+<div class="input-group">
+<label class="input-label">Place IDs <span class="badge">Optional</span></label>
+<input class="pids" value="${cmd.pids}">
+<div class="hint">Comma-separated. Leave empty for all games.</div>
+</div>
+<div class="input-group">
+<label class="input-label">
+<input type="checkbox" class="donotif" style="width:auto;margin-right:8px" ${cmd.donotif?'checked':''}>
+DoNotif Message
+</label>
+<input class="notiftext" value="${cmd.notiftext||''}" style="margin-top:8px">
+<label style="display:flex;align-items:center;margin-top:8px;font-size:12px">
+<input type="radio" name="notifpos${cmdCounter}" value="pre" class="notifpos" style="width:auto;margin-right:4px" ${cmd.notifpos==='pre'?'checked':''}>Pre-execution
+<input type="radio" name="notifpos${cmdCounter}" value="post" class="notifpos" style="width:auto;margin:0 4px 0 16px" ${!cmd.notifpos||cmd.notifpos==='post'?'checked':''}>Post-execution
+</label>
+<div class="hint">Optional notification when command runs</div>
+</div>
+<div class="input-group">
+<label class="input-label">Commands to Execute</label>
+<textarea class="runcmd" rows="4">${cmd.runcmd}</textarea>
+<div class="hint">One command per line. These run when your plugin command is called.</div>
+</div>
+<div class="input-group">
+<label class="input-label">Delay Between Commands <span class="badge">Seconds</span></label>
+<input type="number" class="delay" value="${cmd.delay||0}" min="0" step="0.1" placeholder="0">
+<div class="hint">Wait time between each command execution (0 = instant)</div>
+</div>
+`;
+document.getElementById("cmdContainer").appendChild(box);
+});
+updateEmptyState();
+generateOutput();
+alert("✓ Data loaded successfully!");
+}
+
+// Auto-generate on input
+document.addEventListener("input",function(e){
+if(e.target.matches(".aliases,.info,.argshint,.pids,.runcmd,.delay,.notiftext")){
+generateOutput();
+}
+});
+
+document.addEventListener("change",function(e){
+if(e.target.matches(".reqargs,.donotif,.notifpos")){
+generateOutput();
+}
+});
+
+// Initial state
+updateEmptyState();
+</script>
+
+</body>
+</html>
