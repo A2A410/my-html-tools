@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>New Year Countdown</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: 'Roboto', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            overflow-x: hidden;
+            overflow-y: auto;
+            padding: 20px 10px;
+        }
+        
+        .controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+        }
+        
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-size: 18px;
+            color: white;
+            user-select: none;
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .container {
+            text-align: center;
+            padding: 30px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 95%;
+            width: 600px;
+            margin: auto;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            animation: glow 2s ease-in-out infinite alternate;
+            font-weight: 500;
+        }
+        
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #fff;
+            }
+            to {
+                text-shadow: 0 0 20px #fff, 0 0 30px #ff00de, 0 0 40px #ff00de;
+            }
+        }
+        
+        .year {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            opacity: 0.95;
+            font-weight: 500;
+        }
+        
+        .countdown {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+        }
+        
+        .time-box {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 18px 22px;
+            border-radius: 12px;
+            min-width: 90px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .time-box:active {
+            transform: scale(0.98);
+        }
+        
+        .time-value {
+            font-size: 2.8rem;
+            font-weight: 700;
+            display: block;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+        
+        .time-label {
+            font-size: 0.85rem;
+            opacity: 0.85;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 500;
+        }
+        
+        .message-container {
+            margin-top: 25px;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .message {
+            font-size: 1.15rem;
+            opacity: 0.95;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px 20px;
+            border-radius: 12px;
+            transition: all 0.5s ease;
+            animation: fadeIn 0.5s ease;
+            font-weight: 400;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 0.95;
+                transform: translateY(0);
+            }
+        }
+        
+        .greeting {
+            font-size: 1.3rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .month-info {
+            font-size: 0.95rem;
+            opacity: 0.8;
+            font-style: italic;
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .year {
+                font-size: 1.4rem;
+            }
+            
+            .time-box {
+                min-width: 70px;
+                padding: 12px 16px;
+            }
+            
+            .time-value {
+                font-size: 2rem;
+            }
+            
+            .time-label {
+                font-size: 0.7rem;
+            }
+            
+            .message {
+                font-size: 1rem;
+                padding: 10px 15px;
+            }
+            
+            .greeting {
+                font-size: 1.1rem;
+            }
+        }
+        
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .particle {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: float 15s infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+        
+        .interactive-hint {
+            font-size: 0.75rem;
+            opacity: 0.6;
+            margin-top: 15px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <div class="controls">
+        <div class="btn" id="refreshBtn" title="Refresh">↻</div>
+        <div class="btn" id="saveBtn" title="Save Preferences">💾</div>
+    </div>
+    
+    <div class="container">
+        <h1>Countdown to</h1>
+        <div class="year" id="targetYear"></div>
+        
+        <div class="countdown" id="countdown">
+            <div class="time-box">
+                <span class="time-value" id="days">0</span>
+                <span class="time-label">Days</span>
+            </div>
+            <div class="time-box">
+                <span class="time-value" id="hours">0</span>
+                <span class="time-label">Hours</span>
+            </div>
+            <div class="time-box">
+                <span class="time-value" id="minutes">0</span>
+                <span class="time-label">Minutes</span>
+            </div>
+            <div class="time-box">
+                <span class="time-value" id="seconds">0</span>
+                <span class="time-label">Seconds</span>
+            </div>
+        </div>
+        
+        <div class="message-container" id="messageContainer"></div>
+        
+        <div class="interactive-hint">Tap messages for surprises! ✨</div>
+    </div>
+
+    <script>
+        const monthGreetings = {
+            0: ["🎊 Happy New Year!", "Starting fresh!", "New beginnings await!"],
+            1: ["💝 Love is in the air!", "February vibes!", "Short but sweet month!"],
+            2: ["🌸 Spring is coming!", "March forward!", "Fresh starts ahead!"],
+            3: ["🌷 Spring has sprung!", "April showers bring flowers!", "Bloom where planted!"],
+            4: ["🌺 May flowers bloom!", "Halfway through!", "Summer is near!"],
+            5: ["☀️ Summer begins!", "June joy!", "Longest days ahead!"],
+            6: ["🎆 Summer in full swing!", "July fireworks!", "Mid-year celebration!"],
+            7: ["🏖️ August adventures!", "Summer memories!", "Vacation vibes!"],
+            8: ["🍂 Fall approaches!", "September starts!", "Back to routine!"],
+            9: ["🎃 Spooky season!", "October magic!", "Autumn colors!"],
+            10: ["🦃 Thanksgiving soon!", "November gratitude!", "Holiday prep begins!"],
+            11: ["🎄 December magic!", "Holiday season!", "Year-end celebrations!"]
+        };
+        
+        const urgencyMessages = {
+            months: (m, d) => `${m} months and ${d} days to go! Time flies!`,
+            weeks: (w, d) => `Only ${w} weeks ${d} days left! Getting closer!`,
+            days30: (d) => `${d} days remaining! Buckle up!`,
+            days7: (d) => `Just ${d} days away! 🎉 Almost here!`,
+            day1: "Tomorrow is the day! 🌟 Get ready!",
+            hours12: (h) => `${h} hours left! 🎊 Final countdown!`,
+            hours6: (h) => `${h} hours to go! 🎆 Nearly midnight!`,
+            hour1: (m) => `${m} minutes remaining! 🎉 So close!`,
+            min30: (m) => `${m} minutes! 🎊 Brace yourself!`,
+            min10: (s) => `${s} seconds! 🚀 ALMOST THERE!`,
+            min5: (s) => `${s} seconds! 🎆 COUNT WITH ME!`,
+            min1: (s) => `${s}! 🎉 COUNTDOWN!!!`,
+            arrived: (y) => `🎊 HAPPY NEW YEAR ${y}! 🎊`
+        };
+        
+        let clickCount = 0;
+        const surprises = ["🎉", "✨", "🎊", "🌟", "💫", "🎆", "🎇", "⭐"];
+        
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.width = Math.random() * 5 + 2 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = Math.random() * 10 + 10 + 's';
+                container.appendChild(particle);
+            }
+        }
+        
+        function getTargetYear() {
+            const now = new Date();
+            return now.getFullYear() + 1;
+        }
+        
+        function getMonthGreeting() {
+            const month = new Date().getMonth();
+            const greetings = monthGreetings[month];
+            return greetings[Math.floor(Math.random() * greetings.length)];
+        }
+        
+        function getUrgencyMessage(diff) {
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            if (diff <= 0) return urgencyMessages.arrived(getTargetYear());
+            if (seconds <= 60 && minutes === 0 && hours === 0 && days === 0) return urgencyMessages.min1(seconds);
+            if (minutes < 5 && hours === 0 && days === 0) return urgencyMessages.min5(seconds);
+            if (minutes < 10 && hours === 0 && days === 0) return urgencyMessages.min10(seconds);
+            if (minutes < 30 && hours === 0 && days === 0) return urgencyMessages.min30(minutes);
+            if (hours < 1 && days === 0) return urgencyMessages.hour1(minutes);
+            if (hours < 6 && days === 0) return urgencyMessages.hours6(hours);
+            if (hours < 12 && days === 0) return urgencyMessages.hours12(hours);
+            if (days === 1) return urgencyMessages.day1;
+            if (days < 7) return urgencyMessages.days7(days);
+            if (days < 30) return urgencyMessages.days30(days);
+            
+            const weeks = Math.floor(days / 7);
+            const remainDays = days % 7;
+            if (days < 60) return urgencyMessages.weeks(weeks, remainDays);
+            
+            const months = Math.floor(days / 30);
+            const remainDaysM = days % 30;
+            return urgencyMessages.months(months, remainDaysM);
+        }
+        
+        function updateMessages(diff) {
+            const container = document.getElementById('messageContainer');
+            const monthMsg = getMonthGreeting();
+            const urgencyMsg = getUrgencyMessage(diff);
+            
+            container.innerHTML = `
+                <div class="message greeting" onclick="handleMessageClick(this)">${monthMsg}</div>
+                <div class="message" onclick="handleMessageClick(this)">${urgencyMsg}</div>
+            `;
+        }
+        
+        function handleMessageClick(el) {
+            clickCount++;
+            const surprise = surprises[clickCount % surprises.length];
+            el.textContent = `${surprise} ${el.textContent} ${surprise}`;
+            setTimeout(() => {
+                el.textContent = el.textContent.replace(new RegExp(surprise, 'g'), '').trim();
+            }, 1000);
+        }
+        
+        function updateCountdown() {
+            const now = new Date();
+            const targetYear = getTargetYear();
+            const newYear = new Date(targetYear, 0, 1);
+            
+            document.getElementById('targetYear').textContent = targetYear;
+            
+            const diff = newYear - now;
+            
+            if (diff <= 0) {
+                document.getElementById('days').textContent = '0';
+                document.getElementById('hours').textContent = '00';
+                document.getElementById('minutes').textContent = '00';
+                document.getElementById('seconds').textContent = '00';
+                updateMessages(diff);
+                setTimeout(() => location.reload(), 10000);
+                return;
+            }
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            document.getElementById('days').textContent = days;
+            document.getElementById('hours').textContent = String(hours).padStart(2, '0');
+            document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
+            document.getElementById('seconds').textContent = String(seconds).padStart(2, '0');
+            
+            updateMessages(diff);
+        }
+        
+        function savePrefs() {
+            const prefs = {
+                lastVisit: new Date().toISOString(),
+                clickCount: clickCount
+            };
+            localStorage.setItem('countdownPrefs', JSON.stringify(prefs));
+            alert('✅ Preferences saved!');
+        }
+        
+        function loadPrefs() {
+            const saved = localStorage.getItem('countdownPrefs');
+            if (saved) {
+                const prefs = JSON.parse(saved);
+                clickCount = prefs.clickCount || 0;
+            }
+        }
+        
+        document.getElementById('refreshBtn').onclick = () => location.reload();
+        document.getElementById('saveBtn').onclick = savePrefs;
+        
+        document.getElementById('countdown').onclick = (e) => {
+            if (e.target.closest('.time-box')) {
+                e.target.closest('.time-box').style.transform = 'scale(1.05)';
+                setTimeout(() => {
+                    e.target.closest('.time-box').style.transform = '';
+                }, 200);
+            }
+        };
+        
+        loadPrefs();
+        createParticles();
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+    </script>
+</body>
+</html>
