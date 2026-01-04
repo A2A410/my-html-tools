@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Talk Myself</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Roboto,sans-serif;background:#f5f5f5;overflow:hidden;height:100vh}
+.app{display:flex;flex-direction:column;height:100vh;background:#fff}
+.header{background:#6200ea;color:#fff;padding:16px;box-shadow:0 2px 4px rgba(0,0,0,.2);display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:20px;font-weight:500}
+.btn{background:#fff;color:#6200ea;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-weight:500;font-size:14px}
+.btn:active{background:#f0f0f0}
+.btn-icon{background:transparent;color:#fff;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px}
+.content{flex:1;overflow-y:auto;padding:16px}
+.user-card{background:#fff;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.12);cursor:pointer;transition:.2s}
+.user-card:active{background:#f5f5f5;transform:scale(.98)}
+.user-card h3{color:#6200ea;margin-bottom:4px;font-size:16px}
+.user-card p{color:#666;font-size:14px;line-height:1.4}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:20px}
+.modal.show{display:flex}
+.modal-content{background:#fff;border-radius:8px;width:100%;max-width:400px;max-height:80vh;overflow-y:auto}
+.modal-header{padding:16px;border-bottom:1px solid #e0e0e0;display:flex;justify-content:space-between;align-items:center}
+.modal-header h2{font-size:18px;color:#6200ea}
+.modal-body{padding:16px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;margin-bottom:8px;color:#333;font-weight:500;font-size:14px}
+.form-group input,.form-group textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:4px;font-size:14px;font-family:inherit}
+.form-group textarea{resize:vertical;min-height:80px}
+.form-actions{display:flex;gap:8px;justify-content:flex-end;padding:16px;border-top:1px solid #e0e0e0}
+.btn-primary{background:#6200ea;color:#fff}
+.btn-secondary{background:#e0e0e0;color:#333}
+.chat-container{display:flex;flex-direction:column;height:100vh}
+.chat-header{background:#6200ea;color:#fff;padding:16px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;background:#f5f5f5}
+.message{margin-bottom:16px;display:flex;flex-direction:column}
+.message-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.message-avatar{width:32px;height:32px;border-radius:50%;background:#6200ea;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:14px}
+.message-name{font-weight:500;font-size:14px;color:#333}
+.message-time{font-size:12px;color:#999;margin-left:auto}
+.message-bubble{background:#fff;padding:12px;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.1);margin-left:40px;word-wrap:break-word}
+.chat-input{padding:16px;background:#fff;border-top:1px solid #e0e0e0;display:flex;gap:8px}
+.chat-input input{flex:1;padding:12px;border:1px solid #ddd;border-radius:24px;font-size:14px}
+.chat-input button{width:48px;height:48px;border-radius:50%;background:#6200ea;color:#fff;border:none;font-size:20px;cursor:pointer}
+.chat-input button:active{background:#5100d0}
+.instance-card{background:#fff;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.12);cursor:pointer}
+.instance-card:active{background:#f5f5f5}
+.instance-card h3{color:#6200ea;margin-bottom:4px;font-size:16px}
+.instance-card p{color:#666;font-size:12px}
+.empty-state{text-align:center;padding:40px 20px;color:#999}
+.empty-state div{font-size:48px;margin-bottom:16px}
+.identity-selector{background:#fff;border-radius:8px;padding:12px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.identity-selector label{display:block;margin-bottom:8px;color:#666;font-size:12px}
+.identity-selector select{width:100%;padding:12px;border:1px solid #ddd;border-radius:4px;font-size:14px;background:#fff}
+.participants{font-size:12px;color:#999;margin-top:4px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// Storage utilities
+const S={
+  get:(k)=>JSON.parse(localStorage.getItem(k)||'null'),
+  set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))
+};
+
+// State
+let state={
+  screen:'users',
+  users:S.get('users')||[],
+  instances:S.get('instances')||[],
+  currentUser:null,
+  currentInstance:null
+};
+
+// Render functions
+const r={
+  users:()=>`
+    <div class="app">
+      <div class="header">
+        <h1>Talk Myself</h1>
+        <button class="btn" onclick="showAddUser()">+ Add Identity</button>
+      </div>
+      <div class="content">
+        ${state.users.length?state.users.map(u=>`
+          <div class="user-card" onclick="selectUser('${u.id}')">
+            <h3>${u.name}</h3>
+            <p>${u.description}</p>
+          </div>
+        `).join(''):`
+          <div class="empty-state">
+            <div>👤</div>
+            <p>No identities yet.<br>Create your first identity to start.</p>
+          </div>
+        `}
+      </div>
+    </div>
+  `,
+  instances:()=>`
+    <div class="app">
+      <div class="header">
+        <button class="btn-icon" onclick="goBack()">←</button>
+        <h1>${state.currentUser.name}</h1>
+        <button class="btn" onclick="showAddInstance()">+ New Chat</button>
+      </div>
+      <div class="content">
+        ${state.instances.length?state.instances.map(i=>`
+          <div class="instance-card" onclick="openChat('${i.id}')">
+            <h3>${i.name}</h3>
+            <p>Created: ${new Date(i.created).toLocaleString()}</p>
+            <p class="participants">${i.messages.length} messages</p>
+          </div>
+        `).join(''):`
+          <div class="empty-state">
+            <div>💬</div>
+            <p>No chat instances yet.<br>Create one to start talking to yourself.</p>
+          </div>
+        `}
+      </div>
+    </div>
+  `,
+  chat:()=>{
+    const inst=state.currentInstance;
+    return`
+    <div class="chat-container">
+      <div class="chat-header">
+        <button class="btn-icon" onclick="goBack()">←</button>
+        <div style="flex:1">
+          <div style="font-weight:500">${inst.name}</div>
+          <div style="font-size:12px;opacity:.9">${inst.messages.length} messages</div>
+        </div>
+      </div>
+      <div class="chat-messages" id="chatMsg">
+        ${inst.messages.map(m=>{
+          const u=state.users.find(x=>x.id===m.userId);
+          return`
+          <div class="message">
+            <div class="message-header">
+              <div class="message-avatar">${u.name[0].toUpperCase()}</div>
+              <div class="message-name">${u.name}</div>
+              <div class="message-time">${new Date(m.timestamp).toLocaleTimeString()}</div>
+            </div>
+            <div class="message-bubble">${m.text}</div>
+          </div>
+        `}).join('')}
+      </div>
+      <div class="identity-selector">
+        <label>Chatting as:</label>
+        <select id="identitySelect" onchange="switchIdentity(this.value)">
+          ${state.users.map(u=>`
+            <option value="${u.id}" ${u.id===state.currentUser.id?'selected':''}>${u.name}</option>
+          `).join('')}
+        </select>
+      </div>
+      <div class="chat-input">
+        <input type="text" id="msgInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendMsg()">
+        <button onclick="sendMsg()">➤</button>
+      </div>
+    </div>
+  `}
+};
+
+// Actions
+function render(){
+  document.getElementById('app').innerHTML=r[state.screen]();
+  if(state.screen==='chat')setTimeout(()=>document.getElementById('chatMsg').scrollTop=9e9,10);
+}
+
+function showAddUser(){
+  showModal(`
+    <div class="modal-header">
+      <h2>Create Identity</h2>
+      <button class="btn-icon" onclick="hideModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="userName" placeholder="e.g., Morning Me, Confident Me">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="userDesc" placeholder="Describe this identity's perspective, mood, or role..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="hideModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="addUser()">Create</button>
+    </div>
+  `);
+}
+
+function addUser(){
+  const name=document.getElementById('userName').value.trim();
+  const description=document.getElementById('userDesc').value.trim();
+  if(!name)return alert('Name required');
+  state.users.push({id:Date.now().toString(),name,description:description||'No description'});
+  S.set('users',state.users);
+  hideModal();
+  render();
+}
+
+function selectUser(id){
+  state.currentUser=state.users.find(u=>u.id===id);
+  state.screen='instances';
+  render();
+}
+
+function showAddInstance(){
+  showModal(`
+    <div class="modal-header">
+      <h2>New Chat Instance</h2>
+      <button class="btn-icon" onclick="hideModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Chat Name</label>
+        <input type="text" id="instName" placeholder="e.g., Weekend Plans, Life Decisions">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="hideModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="addInstance()">Create</button>
+    </div>
+  `);
+}
+
+function addInstance(){
+  const name=document.getElementById('instName').value.trim();
+  if(!name)return alert('Name required');
+  state.instances.push({id:Date.now().toString(),name,created:Date.now(),messages:[]});
+  S.set('instances',state.instances);
+  hideModal();
+  render();
+}
+
+function openChat(id){
+  state.currentInstance=state.instances.find(i=>i.id===id);
+  state.screen='chat';
+  render();
+}
+
+function sendMsg(){
+  const input=document.getElementById('msgInput');
+  const text=input.value.trim();
+  if(!text)return;
+  state.currentInstance.messages.push({
+    userId:state.currentUser.id,
+    text,
+    timestamp:Date.now()
+  });
+  S.set('instances',state.instances);
+  input.value='';
+  render();
+}
+
+function switchIdentity(id){
+  state.currentUser=state.users.find(u=>u.id===id);
+  document.getElementById('msgInput').focus();
+}
+
+function goBack(){
+  if(state.screen==='chat'){
+    state.screen='instances';
+    state.currentInstance=null;
+  }else if(state.screen==='instances'){
+    state.screen='users';
+    state.currentUser=null;
+  }
+  render();
+}
+
+function showModal(html){
+  const m=document.createElement('div');
+  m.className='modal show';
+  m.id='modal';
+  m.innerHTML=`<div class="modal-content">${html}</div>`;
+  m.onclick=(e)=>{if(e.target===m)hideModal()};
+  document.body.appendChild(m);
+}
+
+function hideModal(){
+  const m=document.getElementById('modal');
+  if(m)m.remove();
+}
+
+// Init
+render();
+</script>
+</body>
+</html>
