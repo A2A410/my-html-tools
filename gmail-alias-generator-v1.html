@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gmail Alias Generator v5</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow-y: auto;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: 500;
+        }
+        .content {
+            padding: 20px;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.95em;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+            -webkit-appearance: none;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #e0e0e0 0%, #667eea 50%, #764ba2 100%);
+            outline: none;
+            -webkit-appearance: none;
+            margin: 16px 0 8px 0;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+        }
+        input[type="range"]::-webkit-slider-thumb:active {
+            transform: scale(1.2);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        }
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75em;
+            color: #666;
+            margin-top: 4px;
+            user-select: none;
+        }
+        .slider-labels span {
+            flex: 1;
+            text-align: center;
+        }
+        .level-info {
+            background: #f0f4ff;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 12px;
+            text-align: center;
+            color: #667eea;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        #autoVariants {
+            font-weight: 700;
+            color: #764ba2;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+        .btn-secondary:active {
+            background: #e0e0e0;
+        }
+        .btn-full {
+            grid-column: 1 / -1;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .result-section {
+            margin-bottom: 24px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .result-section h3 {
+            color: #667eea;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .result-item {
+            background: white;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            word-break: break-all;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .result-item:active {
+            background: #f0f0f0;
+            transform: scale(0.99);
+        }
+        .result-text {
+            flex: 1;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #333;
+        }
+        .copy-indicator {
+            color: #4caf50;
+            font-size: 0.85em;
+            margin-left: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .copy-indicator.show {
+            opacity: 1;
+        }
+        .stats {
+            background: #e3f2fd;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 16px;
+            text-align: center;
+            color: #1976d2;
+            font-weight: 500;
+        }
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+            font-style: italic;
+        }
+        .toggle-icon {
+            font-size: 0.8em;
+        }
+        .collapsed {
+            display: none;
+        }
+        .see-more-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 0.9em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .see-more-btn:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+        .loading {
+            text-align: center;
+            padding: 12px;
+            color: #667eea;
+            font-style: italic;
+        }
+        .result-item.fade-in {
+            animation: fadeInUp 0.5s ease-out;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .progress-indicator {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 8px;
+            text-align: center;
+            font-size: 0.85em;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .show-all-btn {
+            width: 100%;
+            background: #f5f5f5;
+            color: #667eea;
+            padding: 10px;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 0.85em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .show-all-btn:active {
+            background: #667eea;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            📧 Gmail Alias Generator
+        </div>
+        <div class="content">
+            <div class="input-group">
+                <label for="username">Gmail Username (without @gmail.com)</label>
+                <input type="text" id="username" placeholder="e.g., johnsmith" autocomplete="off">
+            </div>
+            
+            <div class="input-group">
+                <label for="dotLevel">Dot Variation Level</label>
+                <input type="range" id="dotLevel" min="0" max="4" value="2" step="1">
+                <div class="slider-labels">
+                    <span>None</span>
+                    <span>Light</span>
+                    <span>Medium</span>
+                    <span>Heavy</span>
+                    <span>Full</span>
+                </div>
+                <div class="level-info" id="levelInfo">Medium (Auto-detected: <span id="autoVariants">0</span> variants)</div>
+            </div>
+            
+            <div class="input-group">
+                <label for="plusText">Plus Sign Suffix (optional)</label>
+                <input type="text" id="plusText" placeholder="e.g., work, shopping, newsletter">
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn-primary" onclick="generate()">Generate</button>
+                <button class="btn-secondary" onclick="clearAll()">Clear</button>
+            </div>
+            
+            <div class="results" id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        let generatedAliases = { dots: [], plus: [], combined: [] };
+        const levelNames = ['None', 'Light', 'Medium', 'Heavy', 'Full'];
+
+        // Auto-detect and update variant count on input
+        document.getElementById('username').addEventListener('input', updateAutoDetect);
+        document.getElementById('dotLevel').addEventListener('input', updateLevelDisplay);
+
+        function cleanUsername(input) {
+            // Remove @ symbol and @gmail.com if present, strip spaces
+            let cleaned = input.trim();
+            cleaned = cleaned.replace(/\s+/g, ''); // Remove all whitespace
+            cleaned = cleaned.replace(/@gmail\.com$/i, '');
+            cleaned = cleaned.replace(/@/g, '');
+            cleaned = cleaned.toLowerCase();
+            return cleaned;
+        }
+
+        function updateAutoDetect() {
+            const username = cleanUsername(document.getElementById('username').value);
+            const level = parseInt(document.getElementById('dotLevel').value);
+            const count = calculateVariantCount(username, level);
+            document.getElementById('autoVariants').textContent = count;
+        }
+
+        function updateLevelDisplay() {
+            const level = parseInt(document.getElementById('dotLevel').value);
+            const username = cleanUsername(document.getElementById('username').value);
+            const count = calculateVariantCount(username, level);
+            document.getElementById('levelInfo').innerHTML = 
+                `${levelNames[level]} (Auto-detected: <span id="autoVariants">${count}</span> variants)`;
+        }
+
+        function calculateVariantCount(username, level) {
+            if (!username || username.length < 2) return 0;
+            const positions = username.length - 1;
+            
+            switch(level) {
+                case 0: return 1;
+                case 1: return Math.min(positions + 1, 5);
+                case 2: return Math.min(Math.pow(2, Math.min(positions, 4)), 16);
+                case 3: return Math.min(Math.pow(2, Math.min(positions, 5)), 50);
+                case 4: 
+                    const fullCount = Math.pow(2, positions);
+                    return Math.min(fullCount, 500); // Cap at 500 for safety
+                default: return 1;
+            }
+        }
+
+        function generate() {
+            const rawInput = document.getElementById('username').value;
+            const username = cleanUsername(rawInput);
+            const level = parseInt(document.getElementById('dotLevel').value);
+            const plusText = document.getElementById('plusText').value.trim();
+            
+            if (!username) {
+                alert('Please enter a username');
+                return;
+            }
+            
+            if (username.length < 2) {
+                alert('Username must be at least 2 characters');
+                return;
+            }
+            
+            generatedAliases = { dots: [], plus: [], combined: [] };
+            
+            // Generate dot variations based on level
+            generatedAliases.dots = generateDotVariationsByLevel(username, level);
+            
+            // Generate plus variations
+            if (plusText) {
+                const suffixes = plusText.split(',').map(s => s.trim()).filter(s => s);
+                suffixes.forEach(suffix => {
+                    generatedAliases.plus.push(`${username}+${suffix}@gmail.com`);
+                });
+            }
+            
+            // Generate combined (dot + plus)
+            if (plusText && generatedAliases.dots.length > 0) {
+                const suffixes = plusText.split(',').map(s => s.trim()).filter(s => s);
+                const sampleDots = generatedAliases.dots.slice(0, Math.min(5, generatedAliases.dots.length));
+                sampleDots.forEach(dotEmail => {
+                    const dotUsername = dotEmail.replace('@gmail.com', '');
+                    suffixes.forEach(suffix => {
+                        generatedAliases.combined.push(`${dotUsername}+${suffix}@gmail.com`);
+                    });
+                });
+            }
+            
+            displayResults();
+            autoSaveState();
+        }
+
+        function generateDotVariationsByLevel(username, level) {
+            const variations = [];
+            const len = username.length;
+            
+            if (level === 0) {
+                variations.push(`${username}@gmail.com`);
+                return variations;
+            }
+            
+            variations.push(`${username}@gmail.com`);
+            
+            if (level === 4) {
+                // Full - optimized generation with safety cap
+                const totalCombos = Math.pow(2, len - 1);
+                const maxVariants = Math.min(totalCombos, 500);
+                
+                if (totalCombos <= 500) {
+                    // Generate all if under limit
+                    for (let i = 0; i < totalCombos; i++) {
+                        let modified = username[0];
+                        for (let j = 0; j < len - 1; j++) {
+                            if (i & (1 << j)) modified += '.';
+                            modified += username[j + 1];
+                        }
+                        const email = `${modified}@gmail.com`;
+                        if (!variations.includes(email)) variations.push(email);
+                    }
+                } else {
+                    // Sample evenly if over limit
+                    const step = Math.floor(totalCombos / 500);
+                    for (let i = 0; i < totalCombos && variations.length < 500; i += step) {
+                        let modified = username[0];
+                        for (let j = 0; j < len - 1; j++) {
+                            if (i & (1 << j)) modified += '.';
+                            modified += username[j + 1];
+                        }
+                        const email = `${modified}@gmail.com`;
+                        if (!variations.includes(email)) variations.push(email);
+                    }
+                }
+                return variations;
+            }
+            
+            // Light, Medium, Heavy
+            const positions = len - 1;
+            const targetCount = calculateVariantCount(username, level);
+            
+            // Generate strategic patterns
+            const maxDots = Math.min(Math.ceil(positions / 2), level + 1);
+            for (let dotCount = 1; dotCount <= maxDots; dotCount++) {
+                // Evenly spaced
+                if (dotCount <= positions) {
+                    const gap = Math.floor(positions / dotCount);
+                    let modified = '';
+                    let dotsPlaced = 0;
+                    for (let i = 0; i < len; i++) {
+                        if (i > 0 && i < len && dotsPlaced < dotCount && i % (gap + 1) === 0) {
+                            modified += '.';
+                            dotsPlaced++;
+                        }
+                        modified += username[i];
+                    }
+                    const email = `${modified}@gmail.com`;
+                    if (!variations.includes(email) && modified !== username) {
+                        variations.push(email);
+                    }
+                }
+            }
+            
+            // Fill with random patterns
+            const seed = username.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+            let rng = seed;
+            const random = () => {
+                rng = (rng * 9301 + 49297) % 233280;
+                return rng / 233280;
+            };
+            
+            const maxAttempts = targetCount * 20;
+            let attempts = 0;
+            while (variations.length < targetCount && attempts < maxAttempts) {
+                let modified = username[0];
+                const prob = level * 0.15;
+                for (let i = 1; i < len; i++) {
+                    if (random() < prob) modified += '.';
+                    modified += username[i];
+                }
+                const email = `${modified}@gmail.com`;
+                if (!variations.includes(email) && modified !== username) {
+                    variations.push(email);
+                }
+                attempts++;
+            }
+            
+            return variations.slice(0, targetCount);
+        }
+
+        function displayResults() {
+            // Stop any running auto-loads before displaying new results
+            stopAllAutoLoad();
+            
+            const resultsDiv = document.getElementById('results');
+            
+            if (generatedAliases.dots.length === 0 && generatedAliases.plus.length === 0) {
+                resultsDiv.innerHTML = '<div class="empty-state">No aliases generated yet. Fill in the form and click Generate!</div>';
+                return;
+            }
+            
+            let html = '';
+            let totalCount = 0;
+            
+            if (generatedAliases.dots.length > 0) {
+                html += createSection('Dot Variations', generatedAliases.dots, 'dots');
+                totalCount += generatedAliases.dots.length;
+            }
+            
+            if (generatedAliases.plus.length > 0) {
+                html += createSection('Plus Sign Aliases', generatedAliases.plus, 'plus');
+                totalCount += generatedAliases.plus.length;
+            }
+            
+            if (generatedAliases.combined.length > 0) {
+                html += createSection('Combined (Dots + Plus)', generatedAliases.combined, 'combined');
+                totalCount += generatedAliases.combined.length;
+            }
+            
+            html += `<div class="stats">Total: ${totalCount} aliases generated</div>`;
+            resultsDiv.innerHTML = html;
+        }
+
+        function stopAllAutoLoad() {
+            ['dots', 'plus', 'combined'].forEach(id => {
+                if (window[`interval_${id}`]) {
+                    clearInterval(window[`interval_${id}`]);
+                    window[`interval_${id}`] = null;
+                }
+            });
+        }
+
+        function createSection(title, items, id) {
+            const initialShow = 20;
+            const autoLoadBatch = 10;
+            const autoLoadInterval = 1500; // 1.5 seconds
+            
+            let html = `<div class="result-section">
+                <h3 onclick="toggleSection('${id}')">${title} (${items.length}) <span class="toggle-icon" id="icon-${id}">▼</span></h3>
+                <div id="section-${id}">`;
+            
+            // Show first batch immediately
+            const firstBatch = items.slice(0, initialShow);
+            firstBatch.forEach((item, idx) => {
+                html += createResultItem(item);
+            });
+            
+            // Container for progressively loaded items
+            html += `<div id="more-${id}"></div>`;
+            
+            // Progress indicator and controls if there are hidden items
+            if (items.length > initialShow) {
+                const hiddenCount = items.length - initialShow;
+                html += `<div class="progress-indicator" id="progress-${id}">
+                    <div class="spinner"></div>
+                    <span>Loading more... (<span id="count-${id}">${hiddenCount}</span> remaining)</span>
+                </div>`;
+                html += `<button class="show-all-btn" onclick="showAllNow('${id}')" id="showall-${id}">
+                    ⚡ Show All Now
+                </button>`;
+            }
+            
+            html += '</div></div>';
+            
+            // Store data for progressive loading
+            window[`items_${id}`] = items;
+            window[`loaded_${id}`] = initialShow;
+            window[`interval_${id}`] = null;
+            
+            // Start auto-loading after section is rendered
+            if (items.length > initialShow) {
+                setTimeout(() => startAutoLoad(id, autoLoadBatch, autoLoadInterval), 500);
+            }
+            
+            return html;
+        }
+
+        function createResultItem(item) {
+            return `<div class="result-item fade-in" onclick="copyToClipboard('${item}', this)">
+                <span class="result-text">${item}</span>
+                <span class="copy-indicator">✓ Copied</span>
+            </div>`;
+        }
+
+        function startAutoLoad(sectionId, batchSize, interval) {
+            const items = window[`items_${sectionId}`];
+            
+            // Clear any existing interval
+            if (window[`interval_${sectionId}`]) {
+                clearInterval(window[`interval_${sectionId}`]);
+            }
+            
+            window[`interval_${sectionId}`] = setInterval(() => {
+                loadNextBatch(sectionId, batchSize);
+            }, interval);
+        }
+
+        function loadNextBatch(sectionId, batchSize) {
+            const items = window[`items_${sectionId}`];
+            const loaded = window[`loaded_${sectionId}`];
+            const container = document.getElementById(`more-${sectionId}`);
+            const countSpan = document.getElementById(`count-${sectionId}`);
+            const progressDiv = document.getElementById(`progress-${sectionId}`);
+            const showAllBtn = document.getElementById(`showall-${sectionId}`);
+            
+            if (!items || loaded >= items.length) {
+                stopAutoLoad(sectionId);
+                return;
+            }
+            
+            const nextBatch = items.slice(loaded, loaded + batchSize);
+            let html = '';
+            
+            nextBatch.forEach((item, idx) => {
+                html += createResultItem(item);
+            });
+            
+            container.innerHTML += html;
+            window[`loaded_${sectionId}`] = loaded + nextBatch.length;
+            
+            const remaining = items.length - (loaded + nextBatch.length);
+            
+            if (remaining > 0) {
+                countSpan.textContent = remaining;
+            } else {
+                stopAutoLoad(sectionId);
+                if (progressDiv) progressDiv.style.display = 'none';
+                if (showAllBtn) showAllBtn.style.display = 'none';
+            }
+        }
+
+        function stopAutoLoad(sectionId) {
+            if (window[`interval_${sectionId}`]) {
+                clearInterval(window[`interval_${sectionId}`]);
+                window[`interval_${sectionId}`] = null;
+            }
+        }
+
+        function showAllNow(sectionId) {
+            stopAutoLoad(sectionId);
+            
+            const items = window[`items_${sectionId}`];
+            const loaded = window[`loaded_${sectionId}`];
+            const container = document.getElementById(`more-${sectionId}`);
+            const progressDiv = document.getElementById(`progress-${sectionId}`);
+            const showAllBtn = document.getElementById(`showall-${sectionId}`);
+            
+            if (!items || loaded >= items.length) return;
+            
+            // Show loading state
+            if (progressDiv) progressDiv.innerHTML = '<div class="spinner"></div><span>Loading all...</span>';
+            
+            // Load remaining in chunks to prevent freeze
+            const remaining = items.slice(loaded);
+            const chunkSize = 50;
+            let currentIndex = 0;
+            
+            function loadChunk() {
+                const chunk = remaining.slice(currentIndex, currentIndex + chunkSize);
+                let html = '';
+                
+                chunk.forEach((item, idx) => {
+                    html += createResultItem(item);
+                });
+                
+                container.innerHTML += html;
+                currentIndex += chunkSize;
+                
+                if (currentIndex < remaining.length) {
+                    setTimeout(loadChunk, 50);
+                } else {
+                    window[`loaded_${sectionId}`] = items.length;
+                    if (progressDiv) progressDiv.style.display = 'none';
+                    if (showAllBtn) showAllBtn.style.display = 'none';
+                }
+            }
+            
+            loadChunk();
+        }
+
+        function loadMore(sectionId, currentLoaded, batchSize) {
+            // Legacy function - keeping for compatibility
+            loadNextBatch(sectionId, batchSize);
+        }
+
+        function toggleSection(id) {
+            const section = document.getElementById(`section-${id}`);
+            const icon = document.getElementById(`icon-${id}`);
+            section.classList.toggle('collapsed');
+            icon.textContent = section.classList.contains('collapsed') ? '▶' : '▼';
+        }
+
+        function copyToClipboard(text, element) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showCopyIndicator(element);
+                }).catch(() => {
+                    fallbackCopy(text, element);
+                });
+            } else {
+                fallbackCopy(text, element);
+            }
+        }
+
+        function fallbackCopy(text, element) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showCopyIndicator(element);
+            } catch (err) {
+                alert('Copy failed. Email: ' + text);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function showCopyIndicator(element) {
+            const indicator = element.querySelector('.copy-indicator');
+            indicator.classList.add('show');
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 2000);
+        }
+
+        function autoSaveState() {
+            const state = {
+                username: document.getElementById('username').value,
+                dotLevel: document.getElementById('dotLevel').value,
+                plusText: document.getElementById('plusText').value,
+                aliases: generatedAliases,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('gmailAliasGenerator', JSON.stringify(state));
+        }
+
+        function clearAll() {
+            if (confirm('Clear all data?')) {
+                // Stop all auto-loading intervals
+                stopAllAutoLoad();
+                
+                document.getElementById('username').value = '';
+                document.getElementById('dotLevel').value = 2;
+                document.getElementById('plusText').value = '';
+                generatedAliases = { dots: [], plus: [], combined: [] };
+                displayResults();
+                updateAutoDetect();
+                localStorage.removeItem('gmailAliasGenerator');
+            }
+        }
+
+        // Auto-load on startup
+        window.addEventListener('load', () => {
+            const saved = localStorage.getItem('gmailAliasGenerator');
+            if (saved) {
+                try {
+                    const state = JSON.parse(saved);
+                    document.getElementById('username').value = state.username || '';
+                    document.getElementById('dotLevel').value = state.dotLevel || 2;
+                    document.getElementById('plusText').value = state.plusText || '';
+                    generatedAliases = state.aliases || { dots: [], plus: [], combined: [] };
+                    if (generatedAliases.dots.length > 0 || generatedAliases.plus.length > 0) {
+                        displayResults();
+                    }
+                    updateAutoDetect();
+                } catch (e) {
+                    console.error('Error loading state:', e);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
