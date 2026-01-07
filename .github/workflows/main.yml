@@ -1,4 +1,4 @@
-name: Auto Release on Commit
+name: Auto Release on Every Commit
 
 on:
   push:
@@ -6,31 +6,42 @@ on:
       - main
 
 permissions:
-  contents: write  # << This is required to create releases
+  contents: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout full repo (with tags)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Get latest release version
-        id: get_version
+      - name: Determine next version
+        id: version
         run: |
-          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "0")
-          if [ "$latest_tag" = "0" ]; then
-            new_version="1"
+          git fetch --tags
+          latest=$(git tag --sort=-v:refname | head -n 1)
+
+          if [ -z "$latest" ]; then
+            next=1
           else
-            new_version=$((latest_tag + 1))
+            next=$((latest + 1))
           fi
-          echo "New version: $new_version"
-          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+
+          echo "next=$next" >> $GITHUB_OUTPUT
+
+      - name: Create tag
+        run: |
+          git tag ${{ steps.version.outputs.next }}
+          git push origin ${{ steps.version.outputs.next }}
 
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ steps.get_version.outputs.new_version }}
-          name: Release ${{ steps.get_version.outputs.new_version }}
-          body: "Automated release for commit ${{ github.sha }}"
+          tag: ${{ steps.version.outputs.next }}
+          name: Release ${{ steps.version.outputs.next }}
+          body: |
+            Automated release
+            Commit: ${{ github.sha }}
