@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website Status Checker v1</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 16px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+            font-size: 18px;
+        }
+
+        .icon-btn:active {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .content {
+            padding: 24px;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:active {
+            background: #d0d0d0;
+        }
+
+        .results {
+            margin-top: 24px;
+        }
+
+        .result-card {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid #ccc;
+        }
+
+        .result-card.success {
+            border-left-color: #4caf50;
+            background: #e8f5e9;
+        }
+
+        .result-card.error {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+
+        .result-card.loading {
+            border-left-color: #ff9800;
+            background: #fff3e0;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .result-title {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-badge.up {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status-badge.down {
+            background: #f44336;
+            color: white;
+        }
+
+        .status-badge.checking {
+            background: #ff9800;
+            color: white;
+        }
+
+        .result-details {
+            font-size: 0.875rem;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .result-details div {
+            margin: 4px 0;
+        }
+
+        .history {
+            margin-top: 24px;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            cursor: pointer;
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .history-header h3 {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            background: #fafafa;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item:active {
+            background: #e0e0e0;
+        }
+
+        .history-url {
+            font-weight: 500;
+            color: #667eea;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .delete-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .loader {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .timestamp {
+            font-size: 0.75rem;
+            color: #999;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 Website Checker v1</h1>
+            <div class="header-buttons">
+                <button class="icon-btn" onclick="refreshPage()" title="Refresh">↻</button>
+                <button class="icon-btn" onclick="saveData()" title="Save">💾</button>
+                <button class="icon-btn" onclick="loadData()" title="Load">📂</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="input-group">
+                <label for="urlInput">Enter Website URL:</label>
+                <div class="input-wrapper">
+                    <input type="text" id="urlInput" placeholder="https://example.com" value="">
+                    <button class="btn btn-primary" onclick="checkWebsite()">Check</button>
+                </div>
+            </div>
+
+            <div id="results" class="results hidden"></div>
+
+            <div class="history">
+                <div class="history-header" onclick="toggleHistory()">
+                    <h3>📜 Check History</h3>
+                    <span id="historyToggle">▼</span>
+                </div>
+                <div id="historyList" class="history-list hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let checkHistory = [];
+        let historyVisible = false;
+
+        // Load saved data on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadData();
+        });
+
+        function refreshPage() {
+            location.reload();
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('websiteCheckerHistory', JSON.stringify(checkHistory));
+                alert('✓ Data saved successfully!');
+            } catch (e) {
+                alert('✗ Failed to save data: ' + e.message);
+            }
+        }
+
+        function loadData() {
+            try {
+                const saved = localStorage.getItem('websiteCheckerHistory');
+                if (saved) {
+                    checkHistory = JSON.parse(saved);
+                    renderHistory();
+                    alert('✓ Data loaded successfully!');
+                }
+            } catch (e) {
+                alert('✗ Failed to load data: ' + e.message);
+            }
+        }
+
+        function toggleHistory() {
+            historyVisible = !historyVisible;
+            document.getElementById('historyList').classList.toggle('hidden');
+            document.getElementById('historyToggle').textContent = historyVisible ? '▲' : '▼';
+        }
+
+        async function checkWebsite() {
+            const input = document.getElementById('urlInput');
+            let url = input.value.trim();
+            
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+
+            // Add protocol if missing
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.classList.remove('hidden');
+            resultsDiv.innerHTML = '';
+
+            const timestamp = new Date().toLocaleString();
+            const checkData = {
+                url: url,
+                timestamp: timestamp,
+                results: []
+            };
+
+            // Method 1: Direct Browser Fetch
+            await checkMethod1(url, resultsDiv, checkData);
+
+            // Method 2: CORS Proxy Check
+            await checkMethod2(url, resultsDiv, checkData);
+
+            // Method 3: DNS/API Service Check
+            await checkMethod3(url, resultsDiv, checkData);
+
+            // Save to history
+            checkHistory.unshift(checkData);
+            if (checkHistory.length > 50) checkHistory.pop();
+            renderHistory();
+            saveData();
+        }
+
+        async function checkMethod1(url, container, checkData) {
+            const card = createResultCard('Method 1: Direct Browser Fetch', 'checking', 'Checking...');
+            container.appendChild(card);
+
+            try {
+                const start = Date.now();
+                const response = await fetch(url, {
+                    method: 'HEAD',
+                    mode: 'no-cors',
+                    cache: 'no-cache'
+                });
+                const time = Date.now() - start;
+
+                // no-cors mode always returns opaque response
+                updateResultCard(card, 'success', 'Reachable', 
+                    `Status: Request completed<br>Response Time: ${time}ms<br>Note: Browser security prevents full status check, but site is reachable`);
+                
+                checkData.results.push({
+                    method: 'Direct Browser Fetch',
+                    status: 'up',
+                    time: time
+                });
+            } catch (error) {
+                updateResultCard(card, 'error', 'Failed', 
+                    `Error: ${error.message}<br>Site may be down or unreachable`);
+                
+                checkData.results.push({
+                    method: 'Direct Browser Fetch',
+                    status: 'down',
+                    error: error.message
+                });
+            }
+        }
+
+        async function checkMethod2(url, container, checkData) {
+            const card = createResultCard('Method 2: CORS Proxy Check', 'checking', 'Checking...');
+            container.appendChild(card);
+
+            try {
+                const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+                const start = Date.now();
+                const response = await fetch(proxyUrl);
+                const time = Date.now() - start;
+                const data = await response.json();
+
+                if (data.status && data.status.http_code) {
+                    const httpCode = data.status.http_code;
+                    const isUp = httpCode >= 200 && httpCode < 400;
+                    
+                    updateResultCard(card, isUp ? 'success' : 'error', 
+                        isUp ? 'Up' : 'Down', 
+                        `HTTP Status: ${httpCode}<br>Response Time: ${time}ms<br>Content Length: ${data.contents?.length || 0} bytes`);
+                    
+                    checkData.results.push({
+                        method: 'CORS Proxy Check',
+                        status: isUp ? 'up' : 'down',
+                        httpCode: httpCode,
+                        time: time
+                    });
+                } else {
+                    updateResultCard(card, 'success', 'Reachable', 
+                        `Response Time: ${time}ms<br>Content received: ${data.contents?.length || 0} bytes`);
+                    
+                    checkData.results.push({
+                        method: 'CORS Proxy Check',
+                        status: 'up',
+                        time: time
+                    });
+                }
+            } catch (error) {
+                updateResultCard(card, 'error', 'Failed', 
+                    `Error: ${error.message}<br>Proxy check failed`);
+                
+                checkData.results.push({
+                    method: 'CORS Proxy Check',
+                    status: 'down',
+                    error: error.message
+                });
+            }
+        }
+
+        async function checkMethod3(url, container, checkData) {
+            const card = createResultCard('Method 3: DNS Lookup Check', 'checking', 'Checking...');
+            container.appendChild(card);
+
+            try {
+                const hostname = new URL(url).hostname;
+                const dnsUrl = `https://dns.google/resolve?name=${hostname}&type=A`;
+                
+                const start = Date.now();
+                const response = await fetch(dnsUrl);
+                const time = Date.now() - start;
+                const data = await response.json();
+
+                if (data.Status === 0 && data.Answer && data.Answer.length > 0) {
+                    const ips = data.Answer.map(a => a.data).join(', ');
+                    updateResultCard(card, 'success', 'DNS Resolved', 
+                        `Hostname: ${hostname}<br>IP Addresses: ${ips}<br>Response Time: ${time}ms<br>TTL: ${data.Answer[0].TTL}s`);
+                    
+                    checkData.results.push({
+                        method: 'DNS Lookup Check',
+                        status: 'up',
+                        ips: ips,
+                        time: time
+                    });
+                } else {
+                    updateResultCard(card, 'error', 'DNS Failed', 
+                        `Status: ${data.Status}<br>DNS resolution failed - domain may not exist`);
+                    
+                    checkData.results.push({
+                        method: 'DNS Lookup Check',
+                        status: 'down',
+                        dnsStatus: data.Status
+                    });
+                }
+            } catch (error) {
+                updateResultCard(card, 'error', 'Failed', 
+                    `Error: ${error.message}<br>DNS check failed`);
+                
+                checkData.results.push({
+                    method: 'DNS Lookup Check',
+                    status: 'down',
+                    error: error.message
+                });
+            }
+        }
+
+        function createResultCard(title, status, statusText) {
+            const card = document.createElement('div');
+            card.className = `result-card ${status}`;
+            card.innerHTML = `
+                <div class="result-header">
+                    <div class="result-title">${title}</div>
+                    <span class="status-badge ${status}">${statusText} ${status === 'checking' ? '<span class="loader"></span>' : ''}</span>
+                </div>
+                <div class="result-details"></div>
+            `;
+            return card;
+        }
+
+        function updateResultCard(card, status, statusText, details) {
+            card.className = `result-card ${status}`;
+            const badge = card.querySelector('.status-badge');
+            badge.className = `status-badge ${status === 'success' ? 'up' : 'down'}`;
+            badge.textContent = statusText;
+            
+            const detailsDiv = card.querySelector('.result-details');
+            detailsDiv.innerHTML = details;
+        }
+
+        function renderHistory() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+
+            checkHistory.forEach((item, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                
+                const upCount = item.results.filter(r => r.status === 'up').length;
+                const totalCount = item.results.length;
+                
+                historyItem.innerHTML = `
+                    <div style="flex: 1; min-width: 0;">
+                        <div class="history-url">${item.url}</div>
+                        <div class="timestamp">${item.timestamp} - ${upCount}/${totalCount} methods up</div>
+                    </div>
+                    <button class="delete-btn" onclick="deleteHistoryItem(${index}, event)">Delete</button>
+                `;
+                
+                historyItem.onclick = (e) => {
+                    if (!e.target.classList.contains('delete-btn')) {
+                        document.getElementById('urlInput').value = item.url;
+                    }
+                };
+                
+                historyList.appendChild(historyItem);
+            });
+        }
+
+        function deleteHistoryItem(index, event) {
+            event.stopPropagation();
+            checkHistory.splice(index, 1);
+            renderHistory();
+            saveData();
+        }
+    </script>
+</body>
+</html>
