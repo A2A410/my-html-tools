@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website Status Checker v2</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 16px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+            font-size: 18px;
+        }
+
+        .icon-btn:active {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .content {
+            padding: 24px;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:active {
+            background: #d0d0d0;
+        }
+
+        .results {
+            margin-top: 24px;
+        }
+
+        .result-card {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid #ccc;
+        }
+
+        .result-card.success {
+            border-left-color: #4caf50;
+            background: #e8f5e9;
+        }
+
+        .result-card.error {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+
+        .result-card.loading {
+            border-left-color: #ff9800;
+            background: #fff3e0;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .result-title {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-badge.up {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status-badge.down {
+            background: #f44336;
+            color: white;
+        }
+
+        .status-badge.checking {
+            background: #ff9800;
+            color: white;
+        }
+
+        .result-details {
+            font-size: 0.875rem;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .result-details div {
+            margin: 4px 0;
+        }
+
+        .history {
+            margin-top: 24px;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            cursor: pointer;
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .history-header h3 {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            background: #fafafa;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item:active {
+            background: #e0e0e0;
+        }
+
+        .history-url {
+            font-weight: 500;
+            color: #667eea;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .delete-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .loader {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .timestamp {
+            font-size: 0.75rem;
+            color: #999;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 Website Checker v2</h1>
+            <div class="header-buttons">
+                <button class="icon-btn" onclick="refreshPage()" title="Refresh">↻</button>
+                <button class="icon-btn" onclick="saveData()" title="Save">💾</button>
+                <button class="icon-btn" onclick="loadData()" title="Load">📂</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="input-group">
+                <label for="urlInput">Enter Website URL:</label>
+                <div class="input-wrapper">
+                    <input type="text" id="urlInput" placeholder="https://example.com" value="">
+                    <button class="btn btn-primary" onclick="checkWebsite()">Check</button>
+                </div>
+            </div>
+
+            <div id="results" class="results hidden"></div>
+
+            <div class="history">
+                <div class="history-header" onclick="toggleHistory()">
+                    <h3>📜 Check History</h3>
+                    <span id="historyToggle">▼</span>
+                </div>
+                <div id="historyList" class="history-list hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let checkHistory = [];
+        let historyVisible = false;
+
+        const DNS_PROVIDERS = [
+            { name: 'Cloudflare', url: 'https://cloudflare-dns.com/dns-query', type: 'doh' },
+            { name: 'Google', url: 'https://dns.google/resolve', type: 'google' },
+            { name: 'AdGuard', url: 'https://dns.adguard-dns.com/resolve', type: 'adguard' },
+            { name: 'Quad9', url: 'https://dns.quad9.net:5053/dns-query', type: 'doh' },
+            { name: 'AliDNS', url: 'https://dns.alidns.com/resolve', type: 'ali' },
+            { name: 'DNSPod', url: 'https://doh.pub/dns-query', type: 'doh' },
+            { name: '360', url: 'https://doh.360.cn/dns-query', type: 'doh' },
+            { name: 'Quad101', url: 'https://dns.twnic.tw/dns-query', type: 'doh' },
+            { name: 'Mullvad', url: 'https://doh.mullvad.net/dns-query', type: 'doh' },
+            { name: 'ControlD', url: 'https://freedns.controld.com/p0', type: 'doh' },
+            { name: 'Njalla', url: 'https://dns.njal.la/dns-query', type: 'doh' },
+            { name: 'Shecan', url: 'https://dns.shecan.ir/dns-query', type: 'doh' }
+        ];
+
+        const HTTP_STATUS_CODES = {
+            200: 'OK - Success',
+            201: 'Created',
+            204: 'No Content',
+            301: 'Moved Permanently',
+            302: 'Found (Redirect)',
+            304: 'Not Modified',
+            307: 'Temporary Redirect',
+            308: 'Permanent Redirect',
+            400: 'Bad Request',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not Found',
+            405: 'Method Not Allowed',
+            408: 'Request Timeout',
+            429: 'Too Many Requests',
+            500: 'Internal Server Error',
+            502: 'Bad Gateway',
+            503: 'Service Unavailable',
+            504: 'Gateway Timeout',
+            520: 'Cloudflare Unknown Error',
+            521: 'Cloudflare Web Server Down',
+            522: 'Cloudflare Connection Timed Out',
+            523: 'Cloudflare Origin Unreachable',
+            524: 'Cloudflare Timeout'
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadData();
+        });
+
+        function refreshPage() {
+            location.reload();
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('websiteCheckerHistory_v2', JSON.stringify(checkHistory));
+                alert('✓ Data saved successfully!');
+            } catch (e) {
+                alert('✗ Failed to save data: ' + e.message);
+            }
+        }
+
+        function loadData() {
+            try {
+                const saved = localStorage.getItem('websiteCheckerHistory_v2');
+                if (saved) {
+                    checkHistory = JSON.parse(saved);
+                    renderHistory();
+                }
+            } catch (e) {
+                console.error('Failed to load data:', e);
+            }
+        }
+
+        function toggleHistory() {
+            historyVisible = !historyVisible;
+            document.getElementById('historyList').classList.toggle('hidden');
+            document.getElementById('historyToggle').textContent = historyVisible ? '▲' : '▼';
+        }
+
+        function classifyFailure(error, timeElapsed) {
+            const errMsg = error.message.toLowerCase();
+            const errName = error.name.toLowerCase();
+            
+            if (timeElapsed !== undefined && timeElapsed > 30000) {
+                return { type: 'TIMEOUT', detail: 'Request exceeded 30s timeout', likely: 'Server not responding or extremely slow' };
+            }
+            
+            if (errMsg.includes('failed to fetch') || errName === 'typeerror') {
+                if (timeElapsed < 100) {
+                    return { type: 'DNS_LIKELY', detail: 'Immediate failure', likely: 'DNS resolution failed or domain does not exist' };
+                } else if (timeElapsed < 1000) {
+                    return { type: 'BLOCKED_LIKELY', detail: 'Fast failure', likely: 'Request blocked by firewall, CORS, or network policy' };
+                } else {
+                    return { type: 'NETWORK_LIKELY', detail: 'Connection failed', likely: 'Network error or server unreachable' };
+                }
+            }
+            
+            if (errMsg.includes('timeout') || errMsg.includes('timed out')) {
+                return { type: 'TIMEOUT', detail: 'Request timeout', likely: 'Server too slow or not responding' };
+            }
+            
+            if (errMsg.includes('network') || errMsg.includes('connection')) {
+                return { type: 'NETWORK_LIKELY', detail: 'Network error', likely: 'Connection issue or server down' };
+            }
+            
+            if (errMsg.includes('cors') || errMsg.includes('cross-origin')) {
+                return { type: 'BLOCKED_LIKELY', detail: 'CORS error', likely: 'CORS policy blocking request' };
+            }
+            
+            return { type: 'UNKNOWN', detail: error.message, likely: 'Unknown error type' };
+        }
+
+        async function checkWebsite() {
+            const input = document.getElementById('urlInput');
+            let url = input.value.trim();
+            
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.classList.remove('hidden');
+            resultsDiv.innerHTML = '';
+
+            const timestamp = new Date().toLocaleString();
+            const checkData = {
+                url: url,
+                timestamp: timestamp,
+                results: []
+            };
+
+            // Run all non-DNS checks simultaneously
+            const simultaneousChecks = [
+                checkDirectFetch(url, resultsDiv, checkData),
+                checkHeadRequest(url, resultsDiv, checkData),
+                checkCorsProxy(url, resultsDiv, checkData),
+                checkRobotsTxt(url, resultsDiv, checkData),
+                checkFavicon(url, resultsDiv, checkData)
+            ];
+
+            await Promise.all(simultaneousChecks);
+
+            // DNS checks run sequentially
+            await checkAllDNS(url, resultsDiv, checkData);
+
+            checkHistory.unshift(checkData);
+            if (checkHistory.length > 50) checkHistory.pop();
+            renderHistory();
+            saveData();
+        }
+
+        async function checkDirectFetch(url, container, checkData) {
+            const card = createResultCard('Method 1: Direct Browser Fetch (no-cors)', 'checking', 'Checking...');
+            container.appendChild(card);
+
+            const start = Date.now();
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    mode: 'no-cors',
+                    cache: 'no-cache',
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                
+                const time = Date.now() - start;
+
+                updateResultCard(card, 'success', 'Reachable', 
+                    `Status: Opaque response (no-cors mode)<br>Response Time: ${time}ms<br>Note: Site is reachable from browser`);
+                
+                checkData.results.push({
+                    method: 'Direct Fetch (no-cors)',
+                    status: 'up',
+                    time: time
+                });
+            } catch (error) {
+                const time = Date.now() - start;
+                const classification = classifyFailure(error, time);
+                
+                updateResultCard(card, 'error', 'Failed', 
+                    `Error: ${error.message}<br>Time: ${time}ms<br>Classification: ${classification.type}<br>Likely: ${classification.likely}`);
+                
+                checkData.results.push({
+                    method: 'Direct Fetch (no-cors)',
+                    status: 'down',
+                    error: error.message,
+                    time: time,
+                    classification: classification
+                });
+            }
+        }
+
+        async function checkHeadRequest(url, container, checkData) {
+            const card = createResultCard('Method 2: HEAD Request', 'checking', 'Checking...');
+            container.appendChild(card);
+
+            const start = Date.now();
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000);
+                
+                const response = await fetch(url, {
+                    method: 'HEAD',
+                    mode: 'no-cors',
+                    cache: 'no-cache',
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                
+                const time = Date.now() - start;
+
+                updateResultCard(card, 'success', 'Reachable', 
+                    `Status: HEAD request completed<br>Response Time: ${time}ms<br>Note: Server accepts HEAD requests`);
+                
+                checkData.results.push({
+                    method: 'HEAD Request',
+                    status: 'up',
+                    time: time
+                });
+            } catch (error) {
+                const time = Date.now() - start;
+                const classification = classifyFailure(error, time);
+                
+                updateResultCard(card, 'error', 'Failed', 
+                    `Error: ${error.message}<br>Time: ${time}ms<br>Classification: ${classification.type}<br>Likely: ${classification.likely}`);
+                
+                checkData.results.push({
+                    method: 'HEAD Request',
+                    status: 'down',
+                    error: error.message,
+                    time: time,
+                    classification: classification
+                });
+            }
+        }
+
+        async function checkCorsProxy(url, container, checkData) {
+            const card = createResultCard('Method 3: CORS Proxy Check', 'checking', 'Checking...');
+            container.appendChild(card);
+
+            const start = Date.now();
+            try {
+                const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000);
+                
+                const response = await fetch(proxyUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                const time = Date.now() - start;
+                const data = await response.json();
+
+                if (data.status && data.status.http_code) {
+                    const httpCode = data.status.http_code;
+                    const statusDesc = HTTP_STATUS_CODES[httpCode] || 'Unknown Status';
+                    const isUp = httpCode >= 200 && httpCode < 400;
+                    
+                    updateResultCard(card, isUp ? 'success' : 'error', 
+                        isUp ? 'Up' : 'Down', 
+                        `HTTP ${httpCode}: ${statusDesc}<br>Response Time: ${time}ms<br>Content Length: ${data.contents?.length || 0} bytes`);
+                    
+                    checkData.results.push({
+                        method: 'CORS Proxy',
+                        status: isUp ? 'up' : 'down',
+                        httpCode: httpCode,
+                        statusDesc: statusDesc,
+                        time: time
+                    });
+                } else {
+                    updateResultCard(card, 'success', 'Reachable', 
+                        `Response Time: ${time}ms<br>Content: ${data.contents?.length || 0} bytes<br>Proxy successfully fetched content`);
+                    
+                    checkData.results.push({
+                        method: 'CORS Proxy',
+                        status: 'up',
+                        time: time
+                    });
+                }
+            } catch (error) {
+                const time = Date.now() - start;
+                const classification = classifyFailure(error, time);
+                
+                updateResultCard(card, 'error', 'Failed', 
+                    `Error: ${error.message}<br>Time: ${time}ms<br>Classification: ${classification.type}<br>Likely: ${classification.likely}`);
+                
+                checkData.results.push({
+                    method: 'CORS Proxy',
+                    status: 'down',
+                    error: error.message,
+                    time: time,
+                    classification: classification
+                });
+            }
+        }
+
+        async function checkRobotsTxt(url, container, checkData) {
+            const card = createResultCard('Method 4: robots.txt Check', 'checking', 'Checking...');
+            container.appendChild(card);
+
+            try {
+                const urlObj = new URL(url);
+                const robotsUrl = `${urlObj.protocol}//${urlObj.hostname}/robots.txt`;
+                
+                const start = Date.now();
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000);
+                
+                const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(robotsUrl);
+                const response = await fetch(proxyUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                const time = Date.now() - start;
+                const data = await response.json();
+
+                if (data.status && data.status.http_code) {
+                    const httpCode = data.status.http_code;
+                    const statusDesc = HTTP_STATUS_CODES[httpCode] || 'Unknown Status';
+                    
+                    if (httpCode === 200) {
+                        const hasContent = data.contents && data.contents.length > 0;
+                        updateResultCard(card, 'success', 'Found', 
+                            `HTTP ${httpCode}: ${statusDesc}<br>Response Time: ${time}ms<br>robots.txt exists and accessible<br>Size: ${data.contents?.length || 0} bytes`);
+                        
+                        checkData.results.push({
+                            method: 'robots.txt',
+                            status: 'up',
+                            httpCode: httpCode,
+                            time: time,
+                            found: true
+                        });
+                    } else if (httpCode === 404) {
+                        updateResultCard(card, 'success', 'Site Up (No robots.txt)', 
+                            `HTTP ${httpCode}: ${statusDesc}<br>Response Time: ${time}ms<br>Server responded but no robots.txt<br>Site is accessible`);
+                        
+                        checkData.results.push({
+                            method: 'robots.txt',
+                            status: 'up',
+                            httpCode: httpCode,
+                            time: time,
+                            found: false
+                        });
+                    } else {
+                        updateResultCard(card, 'error', 'Error', 
+                            `HTTP ${httpCode}: ${statusDesc}<br>Response Time: ${time}ms<br>Unexpected status code`);
+                        
+                        checkData.results.push({
+                            method: 'robots.txt',
+                            status: 'error',
+                            httpCode: httpCode,
+                            time: time
+                        });
+                    }
+                }
+            } catch (error) {
+                const time = Date.now() - start;
+                const classification = classifyFailure(error, time);
+                
+                updateResultCard(card, 'error', 'Failed', 
+                    `Error: ${error.message}<br>Time: ${time}ms<br>Classification: ${classification.type}<br>Likely: ${classification.likely}`);
+                
+                checkData.results.push({
+                    method: 'robots.txt',
+                    status: 'down',
+                    error: error.message,
+                    time: time,
+                    classification: classification
+                });
+            }
+        }
+
+        async function checkFavicon(url, container, checkData) {
+            const card = createResultCard('Method 5: favicon.ico Check', 'checking', 'Checking...');
+            container.appendChild(card);
+
+            try {
+                const urlObj = new URL(url);
+                const faviconUrl = `${urlObj.protocol}//${urlObj.hostname}/favicon.ico`;
+                
+                const start = Date.now();
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000);
+                
+                const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(faviconUrl);
+                const response = await fetch(proxyUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                const time = Date.now() - start;
+                const data = await response.json();
+
+                if (data.status && data.status.http_code) {
+                    const httpCode = data.status.http_code;
+                    const statusDesc = HTTP_STATUS_CODES[httpCode] || 'Unknown Status';
+                    
+                    if (httpCode === 200) {
+                        updateResultCard(card, 'success', 'Found', 
+                            `HTTP ${httpCode}: ${statusDesc}<br>Response Time: ${time}ms<br>favicon.ico exists and accessible<br>Size: ${data.contents?.length || 0} bytes`);
+                        
+                        checkData.results.push({
+                            method: 'favicon.ico',
+                            status: 'up',
+                            httpCode: httpCode,
+                            time: time,
+                            found: true
+                        });
+                    } else if (httpCode === 404) {
+                        updateResultCard(card, 'success', 'Site Up (No favicon)', 
+                            `HTTP ${httpCode}: ${statusDesc}<br>Response Time: ${time}ms<br>Server responded but no favicon<br>Site is accessible`);
+                        
+                        checkData.results.push({
+                            method: 'favicon.ico',
+                            status: 'up',
+                            httpCode: httpCode,
+                            time: time,
+                            found: false
+                        });
+                    } else {
+                        updateResultCard(card, 'error', 'Error', 
+                            `HTTP ${httpCode}: ${statusDesc}<br>Response Time: ${time}ms<br>Unexpected status code`);
+                        
+                        checkData.results.push({
+                            method: 'favicon.ico',
+                            status: 'error',
+                            httpCode: httpCode,
+                            time: time
+                        });
+                    }
+                }
+            } catch (error) {
+                const time = Date.now() - start;
+                const classification = classifyFailure(error, time);
+                
+                updateResultCard(card, 'error', 'Failed', 
+                    `Error: ${error.message}<br>Time: ${time}ms<br>Classification: ${classification.type}<br>Likely: ${classification.likely}`);
+                
+                checkData.results.push({
+                    method: 'favicon.ico',
+                    status: 'down',
+                    error: error.message,
+                    time: time,
+                    classification: classification
+                });
+            }
+        }
+
+        async function checkAllDNS(url, container, checkData) {
+            const card = createResultCard('Method 6: Multi-DNS Lookup', 'checking', 'Checking...');
+            container.appendChild(card);
+
+            try {
+                const hostname = new URL(url).hostname;
+                const dnsResults = [];
+                let successCount = 0;
+
+                for (const provider of DNS_PROVIDERS) {
+                    const start = Date.now();
+                    try {
+                        const result = await checkDNSProvider(hostname, provider);
+                        const time = Date.now() - start;
+                        
+                        if (result.success) {
+                            successCount++;
+                            dnsResults.push({
+                                provider: provider.name,
+                                status: 'success',
+                                ips: result.ips,
+                                time: time
+                            });
+                        } else {
+                            dnsResults.push({
+                                provider: provider.name,
+                                status: 'failed',
+                                error: result.error,
+                                time: time
+                            });
+                        }
+                    } catch (error) {
+                        const time = Date.now() - start;
+                        dnsResults.push({
+                            provider: provider.name,
+                            status: 'failed',
+                            error: error.message,
+                            time: time
+                        });
+                    }
+                }
+
+                const successfulDNS = dnsResults.filter(r => r.status === 'success');
+                const detailsHtml = `
+                    <strong>Summary: ${successCount}/${DNS_PROVIDERS.length} DNS providers resolved</strong><br><br>
+                    ${successfulDNS.length > 0 ? '<strong>✓ Successful:</strong><br>' + 
+                        successfulDNS.map(r => `${r.provider}: ${r.ips} (${r.time}ms)`).join('<br>') : ''}
+                    ${successfulDNS.length > 0 && dnsResults.filter(r => r.status === 'failed').length > 0 ? '<br><br>' : ''}
+                    ${dnsResults.filter(r => r.status === 'failed').length > 0 ? 
+                        '<strong>✗ Failed:</strong><br>' + 
+                        dnsResults.filter(r => r.status === 'failed').map(r => `${r.provider}: ${r.error} (${r.time}ms)`).join('<br>') : ''}
+                `;
+
+                if (successCount > 0) {
+                    updateResultCard(card, 'success', `${successCount}/${DNS_PROVIDERS.length} Resolved`, detailsHtml);
+                } else {
+                    updateResultCard(card, 'error', 'All Failed', detailsHtml + '<br><br><strong>Domain likely does not exist or all DNS servers unreachable</strong>');
+                }
+
+                checkData.results.push({
+                    method: 'Multi-DNS',
+                    status: successCount > 0 ? 'up' : 'down',
+                    successCount: successCount,
+                    totalProviders: DNS_PROVIDERS.length,
+                    details: dnsResults
+                });
+
+            } catch (error) {
+                updateResultCard(card, 'error', 'Failed', `Error: ${error.message}<br>DNS check failed completely`);
+                checkData.results.push({
+                    method: 'Multi-DNS',
+                    status: 'down',
+                    error: error.message
+                });
+            }
+        }
+
+        async function checkDNSProvider(hostname, provider) {
+            try {
+                let fetchUrl;
+                let options = { 
+                    headers: { 'Accept': 'application/dns-json' }
+                };
+
+                if (provider.type === 'google') {
+                    fetchUrl = `${provider.url}?name=${hostname}&type=A`;
+                } else if (provider.type === 'ali' || provider.type === 'adguard') {
+                    fetchUrl = `${provider.url}?name=${hostname}&type=A`;
+                } else if (provider.type === 'doh') {
+                    fetchUrl = `${provider.url}?name=${hostname}&type=A`;
+                }
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+                
+                const response = await fetch(fetchUrl, { 
+                    ...options,
+                    signal: controller.signal 
+                });
+                clearTimeout(timeoutId);
+
+                const data = await response.json();
+
+                if (data.Status === 0 && data.Answer && data.Answer.length > 0) {
+                    const ips = data.Answer.filter(a => a.type === 1).map(a => a.data).join(', ');
+                    return { success: true, ips: ips || 'Resolved' };
+                } else if (data.Answer && data.Answer.length > 0) {
+                    const ips = data.Answer.map(a => a.data || a.address).filter(Boolean).join(', ');
+                    if (ips) return { success: true, ips: ips };
+                }
+
+                return { success: false, error: `Status: ${data.Status || 'No answer'}` };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        function createResultCard(title, status, statusText) {
+            const card = document.createElement('div');
+            card.className = `result-card ${status}`;
+            card.innerHTML = `
+                <div class="result-header">
+                    <div class="result-title">${title}</div>
+                    <span class="status-badge ${status}">${statusText} ${status === 'checking' ? '<span class="loader"></span>' : ''}</span>
+                </div>
+                <div class="result-details"></div>
+            `;
+            return card;
+        }
+
+        function updateResultCard(card, status, statusText, details) {
+            card.className = `result-card ${status}`;
+            const badge = card.querySelector('.status-badge');
+            badge.className = `status-badge ${status === 'success' ? 'up' : 'down'}`;
+            badge.textContent = statusText;
+            
+            const detailsDiv = card.querySelector('.result-details');
+            detailsDiv.innerHTML = details;
+        }
+
+        function renderHistory() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+
+            checkHistory.forEach((item, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                
+                const upCount = item.results.filter(r => r.status === 'up').length;
+                const totalCount = item.results.length;
+                
+                historyItem.innerHTML = `
+                    <div style="flex: 1; min-width: 0;">
+                        <div class="history-url">${item.url}</div>
+                        <div class="timestamp">${item.timestamp} - ${upCount}/${totalCount} methods up</div>
+                    </div>
+                    <button class="delete-btn" onclick="deleteHistoryItem(${index}, event)">Delete</button>
+                `;
+                
+                historyItem.onclick = (e) => {
+                    if (!e.target.classList.contains('delete-btn')) {
+                        document.getElementById('urlInput').value = item.url;
+                    }
+                };
+                
+                historyList.appendChild(historyItem);
+            });
+        }
+
+        function deleteHistoryItem(index, event) {
+            event.stopPropagation();
+            checkHistory.splice(index, 1);
+            renderHistory();
+            saveData();
+        }
+    </script>
+</body>
+</html>
