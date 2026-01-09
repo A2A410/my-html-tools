@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Audio Speed Multiplier Calculator</title>
+    <style>
+      body {
+          font-family: Arial, sans-serif;
+          background-color: #f4f4f4;
+          margin: 0;
+          padding: 20px;
+      }
+      h1 {
+          text-align: center;
+          color: #333;
+      }
+      .container {
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+          background: white;
+          border-radius: 5px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      label {
+          display: block;
+          margin: 15px 0 5px;
+          font-weight: bold;
+      }
+      input {
+          width: 100%;
+          padding: 10px;
+          margin-bottom: 20px;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          font-size: 16px;
+      }
+      button {
+          background-color: #007bff;
+          color: white;
+          padding: 10px;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          font-size: 16px;
+          width: 100%;
+      }
+      button:hover {
+          background-color: #0056b3;
+      }
+      .log {
+          margin-top: 20px;
+          padding: 10px;
+          background-color: #f9f9f9;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          max-height: 200px;
+          overflow-y: auto;
+      }
+      .modal {
+          display: none;
+          position: fixed;
+          z-index: 1;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          overflow: auto;
+          background-color: rgb(0,0,0);
+          background-color: rgba(0,0,0,0.4);
+          padding-top: 60px;
+      }
+      .modal-content {
+          background-color: #fefefe;
+          margin: 5% auto;
+          padding: 20px;
+          border: 1px solid #888;
+          width: 80%;
+          max-width: 300px;
+          border-radius: 5px;
+      }
+      .close {
+          color: #aaa;
+          float: right;
+          font-size: 28px;
+          font-weight: bold;
+      }
+      .close:hover,
+      .close:focus {
+          color: black;
+          text-decoration: none;
+          cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Audio Speed Multiplier Calculator</h1>
+      <label for="originalDuration">Original Duration (hh:mm:ss;ms):</label>
+      <input
+        type="text"
+        id="originalDuration"
+        placeholder="e.g., 01:30:45;500"
+      />
+      <label for="adjustedDuration">Adjusted Duration (hh:mm:ss;ms):</label>
+      <input
+        type="text"
+        id="adjustedDuration"
+        placeholder="e.g., 01:15:30;300"
+      />
+      <button id="calculateButton">Calculate Multiplier</button>
+      <div class="log" id="log"></div>
+    </div>
+    <div id="myModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <p id="modalMessage"></p>
+      </div>
+    </div>
+    <script>
+      function convertToSeconds(duration) {
+          const parts = duration.split(';');
+          const timeParts = parts[0].split(':');
+          const hours = parseInt(timeParts[0]) || 0;
+          const minutes = parseInt(timeParts[1]) || 0;
+          const seconds = parseInt(timeParts[2]) || 0;
+          const milliseconds = parseInt(parts[1]) || 0;
+          return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000;
+      }
+      function calculateMultiplier(original, adjusted) {
+          const od = convertToSeconds(original);
+          const ad = convertToSeconds(adjusted);
+          const multiplier = od / ad;
+          let interpretation;
+          if (multiplier > 1) {
+              interpretation = `The audio was sped up by a factor of ${multiplier.toFixed(2)}x.`;
+          } else {
+              interpretation = `The audio was slowed down by a factor of ${multiplier.toFixed(2)}x.`;
+          }
+          const percentageChange = ((Math.abs(1 - multiplier)) * 100).toFixed(2);
+          return { multiplier: multiplier.toFixed(2), interpretation, percentageChange };
+      }
+      function isValidDuration(duration) {
+          const regex = /^(?:(\d{1,2}):)?(?:(\d{1,2}):)?(\d{1,2});(\d{3})$/;
+          return regex.test(duration);
+      }
+      const calculateButton = document.getElementById('calculateButton');
+      const log = document.getElementById('log');
+      const modal = document.getElementById('myModal');
+      const modalMessage = document.getElementById('modalMessage');
+      const closeModal = document.getElementsByClassName('close')[0];
+      calculateButton?.addEventListener('click', function () {
+          const original = document.getElementById('originalDuration').value.trim();
+          const adjusted = document.getElementById('adjustedDuration').value.trim();
+          if (original && adjusted && isValidDuration(original) && isValidDuration(adjusted)) {
+              const result = calculateMultiplier(original, adjusted);
+              log.innerHTML += `Original: ${original}, Adjusted: ${adjusted}<br>Multiplier: ${result.multiplier}, ${result.interpretation} (Percentage Change: ${result.percentageChange}%)<br>========<br>`;
+              document.getElementById('originalDuration').value = '';
+              document.getElementById('adjustedDuration').value = '';
+          } else {
+              modalMessage.innerText = 'Invalid input. Please provide both durations in the correct format (e.g., hh:mm:ss;ms, mm:ss;ms, or ss;ms).';
+              modal.style.display = "block";
+          }
+          log.scrollTop = log.scrollHeight;
+      });
+      closeModal.onclick = function () {
+          modal.style.display = "none";
+      }
+      window.onclick = function (event) {
+          if (event.target === modal) {
+              modal.style.display = "none";
+          }
+      }
+    </script>
+  </body>
+</html>
+    

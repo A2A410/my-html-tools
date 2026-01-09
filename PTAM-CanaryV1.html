@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="PTAM ZIP - Mobile-optimized ZIP to PTAM converter">
+    <meta name="theme-color" content="#6366f1">
+    <title>PTAM ZIP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #252538;
+            --text-primary: #e8e8f0;
+            --text-secondary: #a8a8b8;
+            --text-tertiary: #707080;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --accent-dim: rgba(99, 102, 241, 0.15);
+            --success: #10b981;
+            --success-dim: rgba(16, 185, 129, 0.15);
+            --danger: #ef4444;
+            --danger-dim: rgba(239, 68, 68, 0.15);
+            --warning: #f59e0b;
+            --warning-dim: rgba(245, 158, 11, 0.15);
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 8px 48px rgba(0, 0, 0, 0.5);
+        }
+
+        body.light-mode {
+            --bg-primary: #fafafa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f5f5f5;
+            --text-primary: #0f0f1a;
+            --text-secondary: #404050;
+            --text-tertiary: #808090;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(0, 0, 0, 0.08);
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 8px 48px rgba(0, 0, 0, 0.12);
+        }
+
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: 'Syne', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .icon-btn:active {
+            transform: scale(0.92);
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .stat-card {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        .container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        .upload-zone {
+            background: var(--bg-secondary);
+            border: 2px dashed var(--border);
+            border-radius: 20px;
+            padding: 48px 24px;
+            text-align: center;
+            margin-bottom: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            touch-action: manipulation;
+        }
+
+        .upload-zone:active {
+            transform: scale(0.98);
+            background: var(--accent-dim);
+            border-color: var(--accent);
+        }
+
+        .upload-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .upload-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .file-info-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .file-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .file-name-display {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+
+        .remove-file-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: none;
+            background: var(--danger-dim);
+            color: var(--danger);
+            font-size: 18px;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .remove-file-btn:active {
+            transform: scale(0.9);
+            background: var(--danger);
+            color: white;
+        }
+
+        .tree-container {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .tree-item {
+            padding: 4px 0;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .tree-folder {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .tree-file {
+            color: var(--text-primary);
+        }
+
+        .tree-excluded {
+            color: var(--text-tertiary);
+            text-decoration: line-through;
+        }
+
+        .tree-empty {
+            color: var(--warning);
+            font-style: italic;
+        }
+
+        .bottom-actions {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 16px 20px;
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+            z-index: 90;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .mode-option {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .mode-option.active {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 2px 8px var(--accent-dim);
+        }
+
+        .mode-option:active:not(.active) {
+            transform: scale(0.95);
+        }
+
+        .filename-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .filename-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 16px var(--accent-dim);
+            touch-action: manipulation;
+            margin-bottom: 12px;
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: var(--bg-tertiary);
+            box-shadow: none;
+        }
+
+        .action-btn:active:not(:disabled) {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px var(--accent-dim);
+        }
+
+        .alert {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            animation: alertSlide 0.3s ease;
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(20px);
+        }
+
+        @keyframes alertSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert.success {
+            background: var(--success-dim);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .alert.error {
+            background: var(--danger-dim);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .alert.warning {
+            background: var(--warning-dim);
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        .alert-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .alert-text {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .alert-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: inherit;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .alert-close:active {
+            opacity: 1;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            animation: modalSlide 0.3s ease;
+        }
+
+        @keyframes modalSlide {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:active {
+            transform: scale(0.9);
+            background: var(--danger);
+            color: white;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .modal-btn.primary {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+        }
+
+        .modal-btn.secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .modal-btn:active {
+            transform: scale(0.96);
+        }
+
+        .preview-content {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: var(--text-secondary);
+        }
+
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .loading.active {
+            display: flex;
+        }
+
+        .loading-content {
+            text-align: center;
+            padding: 32px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .loading-detail {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-tertiary);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-top">
+            <div class="logo">PTAM ZIP</div>
+            <div class="header-actions">
+                <button class="icon-btn" id="themeBtn" onclick="app.toggleTheme()" title="Toggle theme">🌙</button>
+                <button class="icon-btn" id="refreshBtn" onclick="app.showRefreshConfirm()" title="Refresh">🔄</button>
+                <button class="icon-btn" id="saveBtn" onclick="app.saveState()" title="Save">💾</button>
+            </div>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="statZips">0</div>
+                <div class="stat-label">ZIPs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statFiles">0</div>
+                <div class="stat-label">Files</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statText">0</div>
+                <div class="stat-label">Text</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statSkip">0</div>
+                <div class="stat-label">Skip</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="upload-zone" id="uploadZone">
+            <div class="upload-icon">📦</div>
+            <div class="upload-title">Tap to select ZIP files</div>
+            <div class="upload-hint">Multiple ZIPs supported • Extracts hierarchy<br>Local processing • No upload</div>
+        </div>
+        <input type="file" id="fileInput" multiple accept=".zip,application/zip">
+
+        <div id="fileInfoContainer"></div>
+    </div>
+
+    <div class="bottom-actions">
+        <div class="mode-selector">
+            <button class="mode-option active" onclick="app.setMode('default')">
+                Default
+            </button>
+            <button class="mode-option" onclick="app.setMode('tokenized')">
+                Tokenized
+            </button>
+        </div>
+        <input 
+            type="text" 
+            class="filename-input" 
+            id="filenameInput" 
+            placeholder="Output filename..."
+            value="merged"
+        >
+        <button class="action-btn" id="convertBtn" onclick="app.convert()" disabled>
+            <span>⚡</span>
+            <span>Convert to PTAM</span>
+        </button>
+    </div>
+
+    <div id="alertContainer"></div>
+
+    <div class="modal" id="previewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">PTAM Preview</div>
+                <button class="modal-close" onclick="app.closeModal('previewModal')">×</button>
+            </div>
+            <div class="preview-content" id="previewContent"></div>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="app.closeModal('previewModal')">Close</button>
+                <button class="modal-btn primary" onclick="app.downloadPTAM()">📥 Download</button>
+                <button class="modal-btn primary" onclick="app.copyPTAM()">📋 Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="refreshModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Clear ZIP?</div>
+                <button class="modal-close" onclick="app.closeModal('refreshModal')">×</button>
+            </div>
+            <p style="margin-bottom: 20px; color: var(--text-secondary); font-size: 14px;">This will remove the loaded ZIP and reset. Continue?</p>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="app.closeModal('refreshModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="app.confirmRefresh()">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading" id="loading">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div class="loading-text">Processing ZIP</div>
+            <div class="loading-detail" id="loadingDetail">Please wait...</div>
+            <div class="loading-detail" id="loadingETA" style="margin-top: 8px; color: var(--accent); display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const app = {
+            zipFiles: [],
+            fileTree: null,
+            ptamContent: null,
+            stats: { total: 0, text: 0, empty: 0, skip: 0 },
+            mode: 'default',
+            etaTimer: null,
+            etaStartTime: null,
+            etaShown: false,
+
+            // Media/binary extensions to skip
+            mediaExts: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico', 'mp4', 'mp3', 'wav', 'avi', 'mov', 'pdf', 'zip', 'rar', '7z', 'tar', 'gz', 'exe', 'dll', 'so', 'dylib', 'bin', 'dat'],
+
+            init() {
+                this.loadState();
+                this.setupEventListeners();
+            },
+
+            setupEventListeners() {
+                const fileInput = document.getElementById('fileInput');
+                const uploadZone = document.getElementById('uploadZone');
+
+                uploadZone.addEventListener('click', () => fileInput.click());
+
+                uploadZone.addEventListener('touchstart', (e) => {
+                    e.currentTarget.style.transform = 'scale(0.98)';
+                    e.currentTarget.style.background = 'var(--accent-dim)';
+                    e.currentTarget.style.borderColor = 'var(--accent)';
+                });
+
+                uploadZone.addEventListener('touchend', (e) => {
+                    e.currentTarget.style.transform = '';
+                    e.currentTarget.style.background = '';
+                    e.currentTarget.style.borderColor = '';
+                });
+
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.handleZipFiles(e.target.files);
+                    }
+                    e.target.value = '';
+                });
+
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            this.closeModal(modal.id);
+                        }
+                    });
+                });
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        document.querySelectorAll('.modal.active').forEach(modal => {
+                            this.closeModal(modal.id);
+                        });
+                    }
+                });
+
+                window.addEventListener('beforeunload', (e) => {
+                    if (this.zipFiles.length > 0 && !this.ptamContent) {
+                        e.preventDefault();
+                        e.returnValue = '';
+                    }
+                });
+            },
+
+            async handleZipFile(file) {
+                if (!file.name.toLowerCase().endsWith('.zip')) {
+                    this.showAlert('Please select ZIP files only', 'error');
+                    return;
+                }
+
+                this.showLoading('Loading ZIP...');
+                this.startETA();
+
+                try {
+                    const zip = await JSZip.loadAsync(file);
+                    this.zipFiles.push({ file, zip, name: file.name });
+                    
+                    this.updateLoadingDetail(`Analyzing ${file.name}...`);
+                    await this.analyzeAllZips();
+                    
+                    this.stopETA();
+                    this.hideLoading();
+                    this.updateUI();
+                    this.showAlert(`Loaded ${file.name}`, 'success');
+                } catch (error) {
+                    this.stopETA();
+                    this.hideLoading();
+                    console.error('ZIP load error:', error);
+                    
+                    // Check if it's a password/encryption error
+                    if (error.message.includes('Encrypted') || error.message.includes('password')) {
+                        this.showAlert(`Skipped ${file.name}: Password protected`, 'warning');
+                    } else {
+                        this.showAlert(`Skipped ${file.name}: ${error.message || 'Corrupted or invalid'}`, 'warning');
+                    }
+                }
+            },
+
+            async handleZipFiles(files) {
+                const zipFiles = Array.from(files).filter(f => f.name.toLowerCase().endsWith('.zip'));
+                
+                if (zipFiles.length === 0) {
+                    this.showAlert('No ZIP files selected', 'error');
+                    return;
+                }
+
+                this.showLoading('Loading ZIPs...');
+                this.startETA();
+
+                let loaded = 0;
+                let skipped = 0;
+
+                for (const file of zipFiles) {
+                    try {
+                        this.updateLoadingDetail(`Loading ${file.name}... (${loaded + skipped + 1}/${zipFiles.length})`);
+                        const zip = await JSZip.loadAsync(file);
+                        this.zipFiles.push({ file, zip, name: file.name });
+                        loaded++;
+                    } catch (error) {
+                        console.error(`Failed to load ${file.name}:`, error);
+                        skipped++;
+                        // Continue with next ZIP instead of failing
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+
+                if (this.zipFiles.length > 0) {
+                    this.updateLoadingDetail('Analyzing all ZIPs...');
+                    await this.analyzeAllZips();
+                }
+
+                this.stopETA();
+                this.hideLoading();
+                this.updateUI();
+
+                if (loaded > 0 && skipped > 0) {
+                    this.showAlert(`Loaded ${loaded} ZIPs, skipped ${skipped} (locked/corrupted)`, 'warning');
+                } else if (loaded > 0) {
+                    this.showAlert(`Loaded ${loaded} ZIP${loaded > 1 ? 's' : ''}`, 'success');
+                } else {
+                    this.showAlert('All ZIPs failed to load (locked/corrupted)', 'error');
+                }
+            },
+
+            async analyzeAllZips() {
+                const tree = {};
+                this.stats = { total: 0, text: 0, empty: 0, skip: 0 };
+
+                for (let zipIdx = 0; zipIdx < this.zipFiles.length; zipIdx++) {
+                    const { zip, name } = this.zipFiles[zipIdx];
+                    const zipBaseName = name.replace('.zip', '');
+                    
+                    const entries = Object.entries(zip.files);
+                    let processed = 0;
+
+                    for (const [path, entry] of entries) {
+                        if (entry.dir) continue;
+
+                        this.stats.total++;
+
+                        const fileName = path.split('/').pop();
+                        const ext = fileName.split('.').pop().toLowerCase();
+                        
+                        // Skip files starting with symbols
+                        if (/^[^a-zA-Z0-9]/.test(fileName)) {
+                            this.stats.skip++;
+                            this.addToTree(tree, `${zipBaseName}/${path}`, { type: 'skip', name: fileName, size: 0 });
+                            continue;
+                        }
+
+                        // Skip media files
+                        if (this.mediaExts.includes(ext)) {
+                            this.stats.skip++;
+                            this.addToTree(tree, `${zipBaseName}/${path}`, { type: 'skip', name: fileName, size: 0 });
+                            continue;
+                        }
+
+                        // Check if empty
+                        try {
+                            const content = await entry.async('text');
+                            if (content.trim() === '') {
+                                this.stats.empty++;
+                                this.addToTree(tree, `${zipBaseName}/${path}`, { type: 'empty', name: fileName, size: 0 });
+                            } else {
+                                this.stats.text++;
+                                this.addToTree(tree, `${zipBaseName}/${path}`, { type: 'text', name: fileName, size: content.length, content });
+                            }
+                        } catch (error) {
+                            console.error(`Failed to read ${path}:`, error);
+                            this.stats.skip++;
+                            this.addToTree(tree, `${zipBaseName}/${path}`, { type: 'skip', name: fileName, size: 0 });
+                        }
+
+                        // Yield to browser every 10 files
+                        processed++;
+                        if (processed % 10 === 0) {
+                            await new Promise(resolve => setTimeout(resolve, 0));
+                            const zipPercent = Math.round(((zipIdx + processed / entries.length) / this.zipFiles.length) * 100);
+                            this.updateLoadingDetail(`Analyzing ZIPs... ${zipPercent}%`);
+                        }
+                    }
+                }
+
+                this.fileTree = tree;
+            },
+
+            addToTree(tree, path, data) {
+                const parts = path.split('/').filter(p => p);
+                let current = tree;
+
+                for (let i = 0; i < parts.length - 1; i++) {
+                    if (!current[parts[i]]) {
+                        current[parts[i]] = {};
+                    }
+                    current = current[parts[i]];
+                }
+
+                current[parts[parts.length - 1]] = data;
+            },
+
+            renderTree(tree, indent = '') {
+                let html = '';
+                const entries = Object.entries(tree).sort(([a], [b]) => {
+                    const aIsFolder = typeof tree[a] === 'object' && !tree[a].type;
+                    const bIsFolder = typeof tree[b] === 'object' && !tree[b].type;
+                    if (aIsFolder && !bIsFolder) return -1;
+                    if (!aIsFolder && bIsFolder) return 1;
+                    return a.localeCompare(b);
+                });
+
+                for (const [name, value] of entries) {
+                    if (typeof value === 'object' && !value.type) {
+                        html += `<div class="tree-item tree-folder">${indent}📁 ${name}/</div>`;
+                        html += this.renderTree(value, indent + '  ');
+                    } else {
+                        const icon = value.type === 'text' ? '📄' : value.type === 'empty' ? '📝' : '⊗';
+                        const className = value.type === 'skip' ? 'tree-excluded' : value.type === 'empty' ? 'tree-empty' : 'tree-file';
+                        html += `<div class="tree-item ${className}">${indent}${icon} ${name}</div>`;
+                    }
+                }
+
+                return html;
+            },
+
+            async convert() {
+                if (this.zipFiles.length === 0) return;
+
+                this.showLoading('Converting to PTAM...');
+                this.startETA();
+
+                try {
+                    if (this.mode === 'tokenized') {
+                        await this.convertTokenized();
+                    } else {
+                        await this.convertDefault();
+                    }
+
+                    this.stopETA();
+                    this.hideLoading();
+                    this.showPreview();
+                } catch (error) {
+                    this.stopETA();
+                    this.hideLoading();
+                    console.error('Conversion error:', error);
+                    this.showAlert(`Conversion failed: ${error.message || 'Unknown error'}`, 'error');
+                }
+            },
+
+            async convertDefault() {
+                const parts = [];
+                const timestamp = new Date().toISOString();
+                
+                this.updateLoadingDetail('Building header... 0%');
+                
+                // Header
+                parts.push('╔' + '═'.repeat(78) + '╗');
+                parts.push('║' + ' '.repeat(78) + '║');
+                parts.push('║' + this.centerText('PTAM FILE FORMAT', 78) + '║');
+                parts.push('║' + ' '.repeat(78) + '║');
+                parts.push('╠' + '═'.repeat(78) + '╣');
+                parts.push('║  SOURCE ZIPS: ' + this.padRight(String(this.zipFiles.length), 61) + '║');
+                parts.push('║  GENERATED: ' + this.padRight(timestamp, 63) + '║');
+                parts.push('║  TOTAL FILES: ' + this.padRight(String(this.stats.total), 61) + '║');
+                parts.push('║  TEXT FILES: ' + this.padRight(String(this.stats.text), 62) + '║');
+                parts.push('║  EMPTY FILES: ' + this.padRight(String(this.stats.empty), 61) + '║');
+                parts.push('║  SKIPPED: ' + this.padRight(String(this.stats.skip), 65) + '║');
+                parts.push('╚' + '═'.repeat(78) + '╝');
+                parts.push('');
+                parts.push('');
+
+                this.updateLoadingDetail('Converting files... 10%');
+                this._processedFiles = 0;
+                await this.convertTree(this.fileTree, parts, '', this.stats.text);
+
+                this.updateLoadingDetail('Complete! 100%');
+                this.ptamContent = parts.join('\n');
+            },
+
+            async convertTokenized() {
+                const candidateFreq = new Map();
+                const allContents = [];
+
+                // Phase 1: Collect all content and analyze frequency
+                this.updateLoadingDetail('Analyzing content... 0%');
+                await this.collectContent(this.fileTree, allContents, '');
+
+                const totalFiles = allContents.length;
+                let processedFiles = 0;
+
+                // Phase 2: Count token candidates
+                this.updateLoadingDetail('Building frequency map... 0%');
+                
+                const strictPatterns = [
+                    /https?:\/\/[^\s]+/g,
+                    /[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+                    /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g,
+                    /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/g,
+                    /\b0x[a-fA-F0-9]+\b/g,
+                ];
+
+                for (let i = 0; i < allContents.length; i++) {
+                    const { content } = allContents[i];
+                    
+                    // Count strict patterns
+                    strictPatterns.forEach(pattern => {
+                        const matches = content.match(pattern) || [];
+                        matches.forEach(match => {
+                            if (match.length > 5) {
+                                candidateFreq.set(match, (candidateFreq.get(match) || 0) + 1);
+                            }
+                        });
+                    });
+
+                    // Count words (5+ chars)
+                    const words = content.match(/\b[a-zA-Z_][a-zA-Z0-9_]{4,}\b/g) || [];
+                    words.forEach(word => {
+                        candidateFreq.set(word, (candidateFreq.get(word) || 0) + 1);
+                    });
+
+                    // Count numbers (5+ chars)
+                    const numbers = content.match(/\b\d{5,}\.?\d*\b/g) || [];
+                    numbers.forEach(num => {
+                        candidateFreq.set(`#${num}`, (candidateFreq.get(`#${num}`) || 0) + 1);
+                    });
+
+                    processedFiles++;
+                    if (processedFiles % 5 === 0 || processedFiles === totalFiles) {
+                        const percent = Math.round((processedFiles / totalFiles) * 50);
+                        this.updateLoadingDetail(`Building frequency map... ${percent}%`);
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                }
+
+                // Phase 3: Filter tokens (used 5+ times, 6+ chars)
+                this.updateLoadingDetail('Filtering tokens... 50%');
+                const tokenDict = new Map();
+                let tokenId = 0;
+
+                const sortedCandidates = Array.from(candidateFreq.entries())
+                    .filter(([token, freq]) => freq >= 5 && token.length >= 6)
+                    .sort((a, b) => {
+                        // Sort by frequency * length (compression benefit)
+                        const benefitA = a[1] * a[0].length;
+                        const benefitB = b[1] * b[0].length;
+                        return benefitB - benefitA;
+                    });
+
+                sortedCandidates.forEach(([token, freq]) => {
+                    tokenDict.set(token, `T${tokenId++}`);
+                });
+
+                this.updateLoadingDetail(`Filtered to ${tokenDict.size} tokens... 60%`);
+
+                // Phase 4: Tokenize content
+                const tokenData = [];
+                processedFiles = 0;
+
+                for (let i = 0; i < allContents.length; i++) {
+                    const { path, content } = allContents[i];
+                    
+                    let result = content;
+
+                    // Sort tokens by length (longest first to avoid partial matches)
+                    const sortedTokens = Array.from(tokenDict.entries())
+                        .sort((a, b) => b[0].length - a[0].length);
+
+                    // Replace with tokens
+                    sortedTokens.forEach(([original, token]) => {
+                        const escaped = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        result = result.replace(new RegExp(escaped, 'g'), token);
+                    });
+
+                    tokenData.push({ path, content: result });
+
+                    processedFiles++;
+                    if (processedFiles % 3 === 0 || processedFiles === totalFiles) {
+                        const percent = 60 + Math.round((processedFiles / totalFiles) * 30);
+                        this.updateLoadingDetail(`Tokenizing files... ${percent}%`);
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                }
+
+                // Phase 5: Build output
+                this.updateLoadingDetail('Building PTAM... 95%');
+                const parts = [];
+                const timestamp = new Date().toISOString();
+                
+                // Header
+                parts.push('╔' + '═'.repeat(78) + '╗');
+                parts.push('║' + ' '.repeat(78) + '║');
+                parts.push('║' + this.centerText('PTAM TOKENIZED FORMAT', 78) + '║');
+                parts.push('║' + ' '.repeat(78) + '║');
+                parts.push('╠' + '═'.repeat(78) + '╣');
+                parts.push('║  SOURCE ZIPS: ' + this.padRight(String(this.zipFiles.length), 61) + '║');
+                parts.push('║  GENERATED: ' + this.padRight(timestamp, 63) + '║');
+                parts.push('║  TOKENS: ' + this.padRight(String(tokenDict.size), 67) + '║');
+                parts.push('║  FILES: ' + this.padRight(String(tokenData.length), 68) + '║');
+                
+                // Calculate compression stats
+                const originalSize = allContents.reduce((sum, c) => sum + c.content.length, 0);
+                const tokenizedSize = tokenData.reduce((sum, c) => sum + c.content.length, 0);
+                const ratio = ((1 - tokenizedSize / originalSize) * 100).toFixed(1);
+                
+                parts.push('║  COMPRESSION: ' + this.padRight(`${ratio}%`, 62) + '║');
+                parts.push('╚' + '═'.repeat(78) + '╝');
+                parts.push('');
+                parts.push('');
+
+                // Token Dictionary Section
+                parts.push('╔' + '═'.repeat(78) + '╗');
+                parts.push('║' + this.centerText('TOKEN DICTIONARY', 78) + '║');
+                parts.push('╚' + '═'.repeat(78) + '╝');
+                parts.push('');
+
+                const sortedTokens = Array.from(tokenDict.entries()).sort((a, b) => {
+                    const aNum = parseInt(a[1].substring(1));
+                    const bNum = parseInt(b[1].substring(1));
+                    return aNum - bNum;
+                });
+
+                sortedTokens.forEach(([original, token]) => {
+                    parts.push(`${token}=${original}`);
+                });
+
+                parts.push('');
+                parts.push('');
+
+                // Token Content Section
+                parts.push('╔' + '═'.repeat(78) + '╗');
+                parts.push('║' + this.centerText('TOKEN CONTENT', 78) + '║');
+                parts.push('╚' + '═'.repeat(78) + '╝');
+                parts.push('');
+
+                tokenData.forEach(({ path, content }) => {
+                    parts.push('┌' + '─'.repeat(78) + '┐');
+                    parts.push('│ FILE: ' + this.padRight(path, 71) + '│');
+                    parts.push('├' + '─'.repeat(78) + '┤');
+                    parts.push(content);
+                    parts.push('└' + '─'.repeat(78) + '┘');
+                    parts.push('');
+                });
+
+                this.updateLoadingDetail('Complete! 100%');
+                this.ptamContent = parts.join('\n');
+                
+                // Cleanup
+                candidateFreq.clear();
+                allContents.length = 0;
+            },
+
+            async collectContent(tree, contents, path) {
+                const entries = Object.entries(tree).sort(([a], [b]) => {
+                    const aIsFolder = typeof tree[a] === 'object' && !tree[a].type;
+                    const bIsFolder = typeof tree[b] === 'object' && !tree[b].type;
+                    if (aIsFolder && !bIsFolder) return -1;
+                    if (!aIsFolder && bIsFolder) return 1;
+                    return a.localeCompare(b);
+                });
+
+                for (const [name, value] of entries) {
+                    const currentPath = path ? `${path}/${name}` : name;
+
+                    if (typeof value === 'object' && !value.type) {
+                        await this.collectContent(value, contents, currentPath);
+                    } else if (value.type === 'text') {
+                        contents.push({ path: currentPath, content: value.content });
+                    }
+                }
+            },
+
+            setMode(mode) {
+                this.mode = mode;
+                document.querySelectorAll('.mode-option').forEach(btn => {
+                    btn.classList.toggle('active', btn.textContent.trim().toLowerCase() === mode);
+                });
+                this.ptamContent = null; // Reset content when mode changes
+            },
+
+            async convertTree(tree, parts, path, totalFiles = 0) {
+                const entries = Object.entries(tree).sort(([a], [b]) => {
+                    const aIsFolder = typeof tree[a] === 'object' && !tree[a].type;
+                    const bIsFolder = typeof tree[b] === 'object' && !tree[b].type;
+                    if (aIsFolder && !bIsFolder) return -1;
+                    if (!aIsFolder && bIsFolder) return 1;
+                    return a.localeCompare(b);
+                });
+
+                for (const [name, value] of entries) {
+                    const currentPath = path ? `${path}/${name}` : name;
+
+                    if (typeof value === 'object' && !value.type) {
+                        // It's a folder
+                        await this.convertTree(value, parts, currentPath, totalFiles);
+                    } else if (value.type === 'text') {
+                        // Text file with content
+                        parts.push('┌' + '─'.repeat(78) + '┐');
+                        parts.push('│ FILE: ' + this.padRight(currentPath, 71) + '│');
+                        parts.push('│ SIZE: ' + this.padRight(this.formatSize(value.size), 71) + '│');
+                        parts.push('├' + '─'.repeat(78) + '┤');
+                        parts.push(value.content);
+                        parts.push('└' + '─'.repeat(78) + '┘');
+                        parts.push('');
+
+                        if (totalFiles > 0) {
+                            this._processedFiles++;
+                            if (this._processedFiles % 3 === 0 || this._processedFiles === totalFiles) {
+                                const percent = 10 + Math.round((this._processedFiles / totalFiles) * 90);
+                                this.updateLoadingDetail(`Converting files... ${percent}%`);
+                                await new Promise(resolve => setTimeout(resolve, 0));
+                            }
+                        }
+                    } else if (value.type === 'empty') {
+                        // Empty file - just list name
+                        parts.push('┌' + '─'.repeat(78) + '┐');
+                        parts.push('│ FILE: ' + this.padRight(currentPath, 71) + '│');
+                        parts.push('│ [EMPTY FILE]' + ' '.repeat(65) + '│');
+                        parts.push('└' + '─'.repeat(78) + '┘');
+                        parts.push('');
+                    }
+                    // Skip files are not included in output
+                }
+            },
+
+            centerText(text, width) {
+                const spaces = Math.floor((width - text.length) / 2);
+                return ' '.repeat(spaces) + text + ' '.repeat(width - spaces - text.length);
+            },
+
+            padRight(text, width) {
+                return text.length > width ? text.substring(0, width) : text + ' '.repeat(width - text.length);
+            },
+
+            updateUI() {
+                document.getElementById('statZips').textContent = this.zipFiles.length;
+                document.getElementById('statFiles').textContent = this.stats.total;
+                document.getElementById('statText').textContent = this.stats.text;
+                document.getElementById('statSkip').textContent = this.stats.skip + this.stats.empty;
+
+                const container = document.getElementById('fileInfoContainer');
+                
+                if (this.zipFiles.length > 0) {
+                    const zipList = this.zipFiles.map((z, idx) => `
+                        <div class="file-info-card">
+                            <div class="file-header">
+                                <div class="file-name-display">${this.escapeHtml(z.name)}</div>
+                                <button class="remove-file-btn" onclick="app.removeZipByIndex(${idx})" title="Remove">×</button>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    container.innerHTML = `
+                        ${zipList}
+                        <div class="file-info-card">
+                            <div class="file-header" style="border-bottom: none;">
+                                <div class="file-name-display">Combined File Tree</div>
+                            </div>
+                            <div class="tree-container">
+                                ${this.renderTree(this.fileTree)}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = '';
+                }
+
+                document.getElementById('convertBtn').disabled = this.zipFiles.length === 0;
+            },
+
+            removeZipByIndex(index) {
+                const removed = this.zipFiles[index];
+                this.zipFiles.splice(index, 1);
+                
+                if (this.zipFiles.length > 0) {
+                    this.showLoading('Re-analyzing...');
+                    this.analyzeAllZips().then(() => {
+                        this.hideLoading();
+                        this.updateUI();
+                        this.showAlert(`Removed ${removed.name}`, 'success');
+                    });
+                } else {
+                    this.fileTree = null;
+                    this.stats = { total: 0, text: 0, empty: 0, skip: 0 };
+                    this.updateUI();
+                    this.showAlert(`Removed ${removed.name}`, 'success');
+                }
+            },
+
+            removeZip() {
+                this.zipFiles = [];
+                this.fileTree = null;
+                this.ptamContent = null;
+                this.stats = { total: 0, text: 0, empty: 0, skip: 0 };
+                this.updateUI();
+                this.showAlert('All ZIPs removed', 'success');
+            },
+
+            showPreview() {
+                const previewContent = document.getElementById('previewContent');
+                const preview = this.ptamContent.substring(0, 2000);
+                const remaining = this.ptamContent.length - 2000;
+                
+                previewContent.textContent = preview + (remaining > 0 ? `\n\n... (${this.formatSize(remaining)} more)` : '');
+                this.openModal('previewModal');
+            },
+
+            downloadPTAM() {
+                if (!this.ptamContent) return;
+
+                const filename = this.getFilename();
+                const blob = new Blob([this.ptamContent], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                this.showAlert(`Downloaded ${filename}`, 'success');
+            },
+
+            async copyPTAM() {
+                if (!this.ptamContent) return;
+
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(this.ptamContent);
+                    } else {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = this.ptamContent;
+                        textarea.style.position = 'fixed';
+                        textarea.style.opacity = '0';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                    }
+                    this.showAlert('Copied to clipboard!', 'success');
+                } catch (error) {
+                    this.showAlert('Failed to copy', 'error');
+                }
+            },
+
+            getFilename() {
+                const input = document.getElementById('filenameInput').value.trim();
+                const sanitized = (input || 'merged').replace(/[<>:"/\\|?*]/g, '_').substring(0, 100);
+                return `${sanitized}.ptam.txt`;
+            },
+
+            formatSize(bytes) {
+                if (bytes === 0) return '0B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return (bytes / Math.pow(k, i)).toFixed(1) + sizes[i];
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            toggleTheme() {
+                const body = document.body;
+                const btn = document.getElementById('themeBtn');
+                
+                body.classList.toggle('light-mode');
+                btn.textContent = body.classList.contains('light-mode') ? '☀️' : '🌙';
+                
+                localStorage.setItem('ptam_theme', body.classList.contains('light-mode') ? 'light' : 'dark');
+            },
+
+            loadTheme() {
+                const theme = localStorage.getItem('ptam_theme');
+                if (theme === 'light') {
+                    document.body.classList.add('light-mode');
+                    document.getElementById('themeBtn').textContent = '☀️';
+                }
+            },
+
+            saveState() {
+                try {
+                    const state = {
+                        filename: document.getElementById('filenameInput').value,
+                        hasZips: this.zipFiles.length > 0,
+                        zipCount: this.zipFiles.length,
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('ptam_state', JSON.stringify(state));
+                    this.showAlert('State saved', 'success');
+                } catch (error) {
+                    console.error('Failed to save state:', error);
+                }
+            },
+
+            loadState() {
+                try {
+                    this.loadTheme();
+                    
+                    const state = localStorage.getItem('ptam_state');
+                    if (state) {
+                        const data = JSON.parse(state);
+                        if (data.filename) {
+                            document.getElementById('filenameInput').value = data.filename;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to load state:', error);
+                }
+            },
+
+            showRefreshConfirm() {
+                if (this.zipFiles.length > 0) {
+                    this.openModal('refreshModal');
+                } else {
+                    this.showAlert('Nothing to clear', 'warning');
+                }
+            },
+
+            confirmRefresh() {
+                this.removeZip();
+                document.getElementById('filenameInput').value = 'merged';
+                this.closeModal('refreshModal');
+            },
+
+            openModal(id) {
+                document.getElementById(id).classList.add('active');
+            },
+
+            closeModal(id) {
+                document.getElementById(id).classList.remove('active');
+            },
+
+            startETA() {
+                this.etaStartTime = Date.now();
+                this.etaShown = false;
+                document.getElementById('loadingETA').style.display = 'none';
+                
+                // Check every second if we should show ETA
+                this.etaTimer = setInterval(() => {
+                    const elapsed = Date.now() - this.etaStartTime;
+                    if (elapsed >= 45000 && !this.etaShown) {
+                        this.etaShown = true;
+                        this.updateETA();
+                    } else if (this.etaShown) {
+                        this.updateETA();
+                    }
+                }, 1000);
+            },
+
+            updateETA() {
+                const elapsed = Math.floor((Date.now() - this.etaStartTime) / 1000);
+                const etaEl = document.getElementById('loadingETA');
+                etaEl.style.display = 'block';
+                etaEl.textContent = `Elapsed: ${this.formatTime(elapsed)}`;
+            },
+
+            stopETA() {
+                if (this.etaTimer) {
+                    clearInterval(this.etaTimer);
+                    this.etaTimer = null;
+                }
+                this.etaShown = false;
+                document.getElementById('loadingETA').style.display = 'none';
+            },
+
+            formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                if (mins > 0) {
+                    return `${mins}m ${secs}s`;
+                }
+                return `${secs}s`;
+            },
+
+            showLoading(text) {
+                document.getElementById('loadingDetail').textContent = text;
+                document.getElementById('loading').classList.add('active');
+            },
+
+            updateLoadingDetail(text) {
+                document.getElementById('loadingDetail').textContent = text;
+            },
+
+            hideLoading() {
+                document.getElementById('loading').classList.remove('active');
+            },
+
+            showAlert(message, type = 'success') {
+                const container = document.getElementById('alertContainer');
+                
+                const icons = {
+                    success: '✓',
+                    error: '✗',
+                    warning: '⚠'
+                };
+
+                const alert = document.createElement('div');
+                alert.className = `alert ${type}`;
+                alert.innerHTML = `
+                    <div class="alert-icon">${icons[type] || 'ℹ'}</div>
+                    <div class="alert-text">${this.escapeHtml(message)}</div>
+                    <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+                `;
+
+                container.appendChild(alert);
+
+                setTimeout(() => {
+                    if (alert.parentElement) {
+                        alert.style.opacity = '0';
+                        alert.style.transform = 'translateY(-20px)';
+                        setTimeout(() => alert.remove(), 300);
+                    }
+                }, 5000);
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => app.init());
+    </script>
+</body>
+</html>
