@@ -28,6 +28,7 @@ body{font-family:'Roboto',sans-serif;background:linear-gradient(135deg,#667eea 0
 .list-item-text{flex:1;overflow:hidden}
 .list-item-title{font-weight:500;color:#333;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .list-item-path{font-size:12px;color:#666;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.list-item-url{font-size:11px;color:#999;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .empty{text-align:center;padding:40px;color:#999;font-size:14px}
 .loading{display:none;justify-content:center;padding:40px}
 .spinner{width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #667eea;border-radius:50%;animation:spin 1s linear infinite}
@@ -52,7 +53,7 @@ body{font-family:'Roboto',sans-serif;background:linear-gradient(135deg,#667eea 0
 <body>
 <div class="container">
 <div class="header">
-<h1>🗂️ HTML Engine Index <span id="debugBadge" style="display:none;background:#ff9800;color:#fff;font-size:11px;padding:4px 8px;border-radius:4px;font-weight:700;margin-left:8px">DEBUG</span></h1>
+<h1>🗂️ HTML Engine Index v2 <span id="debugBadge" style="display:none;background:#ff9800;color:#fff;font-size:11px;padding:4px 8px;border-radius:4px;font-weight:700;margin-left:8px">DEBUG</span></h1>
 <div class="controls">
 <div class="input-group">
 <input type="text" id="repoInput" placeholder="owner/repo or leave empty for auto-detect">
@@ -112,12 +113,19 @@ body{font-family:'Roboto',sans-serif;background:linear-gradient(135deg,#667eea 0
 </div>
 
 <div class="modal-section">
+<h3>Cross-Repo Scanning</h3>
+<p><strong>NEW:</strong> Scan ANY repository and open files from their actual location.</p>
+<p>Example: Hosted on <code>user1.github.io/repo1</code> → Scan <code>user2/repo2</code> → Files open from <code>user2.github.io/repo2</code></p>
+<p>URLs are now ABSOLUTE and properly route to external repos.</p>
+</div>
+
+<div class="modal-section">
 <h3>Features</h3>
 <p>• Scans GitHub repositories recursively for all HTML files</p>
 <p>• Caches results in localStorage for quick reload</p>
 <p>• Works in debug mode on localhost for testing</p>
-<p>• Generates proper URLs for deployed pages</p>
-<p>• Click any file to open in new tab</p>
+<p>• Generates proper ABSOLUTE URLs for deployed pages</p>
+<p>• Click any file to open in new tab (external repos work correctly)</p>
 </div>
 
 <button class="modal-close" onclick="closeHelp()">Got it!</button>
@@ -131,7 +139,6 @@ const LS_REPO='engine_index_repo';
 const LS_BASE='engine_index_base';
 let currentRepo='';
 
-// Show/hide help modal
 function showHelp(){
 $('helpModal').style.display='flex';
 }
@@ -139,32 +146,26 @@ function closeHelp(){
 $('helpModal').style.display='none';
 }
 
-// Scroll to top
 function scrollToTop(){
 $('content').scrollTo({top:0,behavior:'smooth'});
 }
 
-// Open GitHub repo
 function openRepo(){
 if(currentRepo){
 window.open(`https://github.com/${currentRepo}`,'_blank');
 }
 }
 
-// Auto-detect current repo from URL
 function autoDetect(){
 const hostname=window.location.hostname;
 const pathname=window.location.pathname;
-const protocol=window.location.protocol;
 
-// Check for debug mode (localhost/IP)
 const isDebug=hostname==='localhost'||hostname==='127.0.0.1'||/^\d+\.\d+\.\d+\.\d+$/.test(hostname)||hostname.startsWith('192.168.')||hostname.startsWith('10.');
 if(isDebug){
 showDebugMode();
 return;
 }
 
-// Pattern: username.github.io/repo-name/...
 const pattern=hostname.match(/^([^.]+)\.github\.io$/);
 if(pattern){
 const user=pattern[1];
@@ -181,7 +182,6 @@ return;
 setStatus(`Not a GitHub Pages URL • Enter repo manually`,'error');
 }
 
-// Show debug mode info
 function showDebugMode(){
 $('debugBadge').style.display='inline-block';
 const info={
@@ -232,21 +232,18 @@ $('list').appendChild(debugDiv);
 setStatus(`🔧 Debug Mode • Local environment detected (${info.hostname})`,'info');
 }
 
-// Set status message
 function setStatus(msg,type='info'){
 const s=$('status');
 s.textContent=msg;
 s.style.background=type==='error'?'rgba(255,107,107,.3)':type==='success'?'rgba(76,175,80,.3)':'rgba(255,255,255,.15)';
 }
 
-// Save to localStorage
 function save(data,repo,baseUrl){
 localStorage.setItem(LS_KEY,JSON.stringify(data));
 localStorage.setItem(LS_REPO,repo);
 if(baseUrl)localStorage.setItem(LS_BASE,baseUrl);
 }
 
-// Load from localStorage
 function load(){
 const data=localStorage.getItem(LS_KEY);
 const repo=localStorage.getItem(LS_REPO);
@@ -263,7 +260,6 @@ return true;
 return false;
 }
 
-// Clear data
 function clearData(){
 localStorage.removeItem(LS_KEY);
 localStorage.removeItem(LS_REPO);
@@ -277,14 +273,12 @@ currentRepo='';
 setStatus('Data cleared','success');
 }
 
-// Refresh current repo
 function refresh(){
 const repo=$('repoInput').value.trim();
 if(repo)scan();
 else autoDetect();
 }
 
-// Scan repository from GitHub
 async function scan(){
 const repo=$('repoInput').value.trim();
 if(!repo){
@@ -292,11 +286,7 @@ setStatus('Please enter a repository (owner/repo)','error');
 return;
 }
 
-// Get custom base URL if provided
 const customBase=$('baseUrlInput').value.trim();
-if(customBase){
-localStorage.setItem(LS_BASE,customBase);
-}
 
 currentRepo=repo;
 $('repoLink').style.display='block';
@@ -306,15 +296,14 @@ $('list').innerHTML='';
 setStatus(`🔍 Scanning github.com/${repo}...`);
 
 try{
-const htmlFiles=await fetchRepoFiles(repo);
+const htmlFiles=await fetchRepoFiles(repo,customBase);
 if(htmlFiles.length===0){
 $('empty').style.display='block';
 $('empty').textContent='No HTML files found in this GitHub repository';
 setStatus(`github.com/${repo} • No HTML files found`,'error');
 }else{
 render(htmlFiles);
-const baseUrl=customBase||localStorage.getItem(LS_BASE)||`https://${repo.split('/')[0]}.github.io/${repo.split('/')[1]}`;
-save(htmlFiles,repo,baseUrl);
+save(htmlFiles,repo,customBase);
 setStatus(`✓ Scanned github.com/${repo} • Found ${htmlFiles.length} HTML files`,'success');
 }
 }catch(e){
@@ -326,16 +315,13 @@ $('loading').style.display='none';
 }
 }
 
-// Fetch files from GitHub API
-async function fetchRepoFiles(repo){
+async function fetchRepoFiles(repo,customBase){
 const [owner,repoName]=repo.split('/');
 if(!owner||!repoName)throw new Error('Invalid format. Use: owner/repo');
 
-// Try main branch
 let apiUrl=`https://api.github.com/repos/${owner}/${repoName}/git/trees/main?recursive=1`;
 let res=await fetch(apiUrl);
 
-// Fallback to master branch
 if(!res.ok){
 apiUrl=`https://api.github.com/repos/${owner}/${repoName}/git/trees/master?recursive=1`;
 res=await fetch(apiUrl);
@@ -343,38 +329,49 @@ if(!res.ok)throw new Error('Repository not found or not accessible');
 }
 
 const data=await res.json();
-return parseFiles(data.tree,owner,repoName);
+return parseFiles(data.tree,owner,repoName,customBase);
 }
 
-// Parse and filter HTML files
-function parseFiles(tree,owner,repo){
-// Use stored base URL or construct default
-const baseUrl=localStorage.getItem(LS_BASE)||`https://${owner}.github.io/${repo}`;
+function parseFiles(tree,owner,repo,customBase){
+// CRITICAL FIX: Always generate ABSOLUTE URLs based on the SCANNED repo, not current location
+const baseUrl=customBase||`https://${owner}.github.io/${repo}`;
 
 return tree
 .filter(f=>f.type==='blob'&&f.path.endsWith('.html'))
-.map(f=>({
+.map(f=>{
+// Ensure URL is ABSOLUTE with proper protocol
+const absUrl=baseUrl.startsWith('http')?`${baseUrl}/${f.path}`:`https://${baseUrl}/${f.path}`;
+return{
 path:f.path,
 name:f.path.split('/').pop(),
-url:`${baseUrl}/${f.path}`,
+url:absUrl,
 githubUrl:`https://github.com/${owner}/${repo}/blob/main/${f.path}`
-}))
+};
+})
 .sort((a,b)=>a.path.localeCompare(b.path));
 }
 
-// Render list
 function render(files){
 const list=$('list');
 list.innerHTML='';
 files.forEach((f,i)=>{
 const div=document.createElement('div');
 div.className='list-item';
-div.onclick=()=>window.open(f.url,'_blank');
+// CRITICAL FIX: Store URL as data attribute and use it explicitly
+div.setAttribute('data-url',f.url);
+div.onclick=function(e){
+e.preventDefault();
+e.stopPropagation();
+const targetUrl=this.getAttribute('data-url');
+console.log('Opening:',targetUrl); // Debug log
+window.open(targetUrl,'_blank','noopener,noreferrer');
+};
 div.innerHTML=`
 <div class="list-item-icon">${i+1}</div>
 <div class="list-item-text">
 <div class="list-item-title">${f.name}</div>
 <div class="list-item-path">${f.path}</div>
+<div class="list-item-url">${f.url}</div>
 </div>
 `;
 list.appendChild(div);
@@ -382,10 +379,8 @@ list.appendChild(div);
 $('empty').style.display='none';
 }
 
-// Init
 window.onload=()=>{
 if(!load()){
-// Try auto-detect on first load if on GitHub Pages
 if(window.location.hostname.includes('.github.io')){
 setTimeout(autoDetect,300);
 }
