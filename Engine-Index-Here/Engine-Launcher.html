@@ -73,7 +73,7 @@ body{font-family:'Roboto',sans-serif;background:linear-gradient(135deg,#667eea 0
 <div class="header">
 <div class="header-top">
 <div class="header-title">
-📱 App Launcher
+📱 App Launcher v2
 <span id="editBadge" class="badge" style="display:none">EDIT</span>
 </div>
 <div class="header-actions">
@@ -486,17 +486,9 @@ function closeConfirm(){
 $('confirmModal').style.display='none';
 }
 
-function refresh(){
-const stored=localStorage.getItem(LS_APPS);
-if(stored){
-apps=JSON.parse(stored);
-loadCustomData();
-renderApps();
-updateHiddenFab();
-setStatus('✓ Refreshed from cache');
-}else{
-autoDetect();
-}
+async function refresh(){
+setStatus('🔄 Force scanning repository...');
+await autoDetect();
 }
 
 window.onload=()=>{
