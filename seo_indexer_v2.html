@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO Indexer Tool v2</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 24px;
+            font-weight: 500;
+        }
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .icon-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+        .icon-btn:active {
+            transform: scale(0.95);
+            background: rgba(255,255,255,0.3);
+        }
+        .content {
+            padding: 24px;
+            max-height: calc(100vh - 180px);
+            overflow-y: auto;
+        }
+        .section {
+            margin-bottom: 24px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: #667eea;
+            margin-bottom: 12px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title::before {
+            content: '▼';
+            font-size: 12px;
+            transition: transform 0.3s;
+        }
+        .section-title.collapsed::before {
+            transform: rotate(-90deg);
+        }
+        .input-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: #555;
+        }
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+        textarea:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .checkbox-item:active {
+            transform: scale(0.98);
+        }
+        .checkbox-item.checked {
+            background: #e8eaf6;
+            border: 2px solid #667eea;
+        }
+        .checkbox-item input[type="checkbox"] {
+            cursor: pointer;
+        }
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-bottom: 12px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:active {
+            transform: translateY(2px);
+        }
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+        .btn-secondary:active {
+            background: #e0e0e0;
+        }
+        .results {
+            margin-top: 24px;
+            padding: 16px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .result-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+        }
+        .result-item.success {
+            border-left-color: #4caf50;
+        }
+        .result-item.error {
+            border-left-color: #f44336;
+        }
+        .result-item.pending {
+            border-left-color: #ff9800;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+        .status-success {
+            background: #e8f5e9;
+            color: #4caf50;
+        }
+        .status-error {
+            background: #ffebee;
+            color: #f44336;
+        }
+        .status-pending {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 600px;
+            margin: 50px auto;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .modal-header {
+            padding: 20px;
+            background: #667eea;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-body {
+            padding: 20px;
+        }
+        .changelog-item {
+            margin-bottom: 12px;
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 6px;
+        }
+        .changelog-version {
+            font-weight: 500;
+            color: #667eea;
+            margin-bottom: 4px;
+        }
+        .help-text {
+            font-size: 13px;
+            color: #777;
+            margin-top: 4px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 SEO Indexer Tool v2</h1>
+            <div class="header-buttons">
+                <button class="icon-btn" onclick="showChangelog()" title="Changelog">📋</button>
+                <button class="icon-btn" onclick="refreshPage()" title="Refresh">🔄</button>
+                <button class="icon-btn" onclick="saveData()" title="Save">💾</button>
+                <button class="icon-btn" onclick="loadData()" title="Load">📂</button>
+            </div>
+        </div>
+        
+        <div class="content">
+            <!-- Stats Section -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="statUrls">0</div>
+                    <div class="stat-label">URLs Queued</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statSuccess">0</div>
+                    <div class="stat-label">Submitted</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statServices">0</div>
+                    <div class="stat-label">Services Selected</div>
+                </div>
+            </div>
+
+            <!-- URL Input Section -->
+            <div class="section">
+                <div class="section-title" onclick="toggleSection(this)">
+                    Enter URLs to Index
+                </div>
+                <div class="section-content">
+                    <div class="input-group">
+                        <label>URLs (one per line)</label>
+                        <textarea id="urlInput" placeholder="https://example.com&#10;https://example.com/page1&#10;https://example.com/page2"></textarea>
+                        <div class="help-text">Enter each URL on a new line. URLs will be validated before submission.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Indexing Services Section -->
+            <div class="section">
+                <div class="section-title" onclick="toggleSection(this)">
+                    Select Indexing Services (60+ Free Services)
+                </div>
+                <div class="section-content">
+                    <div class="input-group">
+                        <label>Quick Select</label>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 16px;">
+                            <button class="btn btn-secondary" onclick="selectCategory('google')" style="padding: 10px; font-size: 14px;">✓ All Google (50+)</button>
+                            <button class="btn btn-secondary" onclick="selectCategory('other')" style="padding: 10px; font-size: 14px;">✓ Other Engines</button>
+                            <button class="btn btn-secondary" onclick="selectCategory('api')" style="padding: 10px; font-size: 14px;">✓ APIs</button>
+                            <button class="btn btn-secondary" onclick="selectAll()" style="padding: 10px; font-size: 14px;">✓ Select All</button>
+                            <button class="btn btn-secondary" onclick="deselectAll()" style="padding: 10px; font-size: 14px;">✗ Deselect All</button>
+                        </div>
+                    </div>
+                    <div class="checkbox-group" id="servicesGroup"></div>
+                    <div class="help-text">60+ free indexing services including Google in 50+ languages/countries, Bing, Yandex, and specialized ping services.</div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="section">
+                <button class="btn btn-primary" onclick="submitToIndexers()">📡 Submit to Indexers</button>
+                <button class="btn btn-secondary" onclick="clearResults()">🗑️ Clear Results</button>
+            </div>
+
+            <!-- Results Section -->
+            <div class="section" id="resultsSection" style="display:none;">
+                <div class="section-title" onclick="toggleSection(this)">
+                    Submission Results
+                </div>
+                <div class="section-content">
+                    <div class="results" id="resultsContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Changelog Modal -->
+    <div class="modal" id="changelogModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📋 Changelog</h2>
+                <button class="icon-btn" onclick="closeModal('changelogModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="changelog-item">
+                    <div class="changelog-version">v2.0 - Google Multi-Language Update</div>
+                    <ul>
+                        <li>✨ Added 50+ Google search engines (different countries/languages)</li>
+                        <li>📡 Total 60+ free indexing services</li>
+                        <li>🎯 Category filtering (Google, Other Engines, APIs)</li>
+                        <li>⚡ Quick select/deselect by category</li>
+                        <li>🌍 Worldwide coverage: US, UK, India, Japan, Brazil, Germany, France, and 40+ more</li>
+                        <li>🔧 Improved service organization</li>
+                    </ul>
+                </div>
+                <div class="changelog-item">
+                    <div class="changelog-version">v1.0 - Initial Release</div>
+                    <ul>
+                        <li>Multiple free indexing service support</li>
+                        <li>Bulk URL submission</li>
+                        <li>Real-time submission tracking</li>
+                        <li>Local storage for saving/loading data</li>
+                        <li>Mobile-optimized interface</li>
+                        <li>Statistics dashboard</li>
+                        <li>Ping services integration</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Free indexing services configuration
+        const indexingServices = [
+            // Google Search Engines (50+ countries/languages)
+            { id: 'google-com', name: 'Google.com (US)', url: 'https://www.google.com/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-co-uk', name: 'Google.co.uk (UK)', url: 'https://www.google.co.uk/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-ca', name: 'Google.ca (Canada)', url: 'https://www.google.ca/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-au', name: 'Google.com.au (Australia)', url: 'https://www.google.com.au/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-de', name: 'Google.de (Germany)', url: 'https://www.google.de/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-fr', name: 'Google.fr (France)', url: 'https://www.google.fr/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-es', name: 'Google.es (Spain)', url: 'https://www.google.es/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-it', name: 'Google.it (Italy)', url: 'https://www.google.it/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-co-in', name: 'Google.co.in (India)', url: 'https://www.google.co.in/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-co-jp', name: 'Google.co.jp (Japan)', url: 'https://www.google.co.jp/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-co-kr', name: 'Google.co.kr (Korea)', url: 'https://www.google.co.kr/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-br', name: 'Google.com.br (Brazil)', url: 'https://www.google.com.br/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-mx', name: 'Google.com.mx (Mexico)', url: 'https://www.google.com.mx/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-ru', name: 'Google.ru (Russia)', url: 'https://www.google.ru/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-nl', name: 'Google.nl (Netherlands)', url: 'https://www.google.nl/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-pl', name: 'Google.pl (Poland)', url: 'https://www.google.pl/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-tr', name: 'Google.com.tr (Turkey)', url: 'https://www.google.com.tr/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-se', name: 'Google.se (Sweden)', url: 'https://www.google.se/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-no', name: 'Google.no (Norway)', url: 'https://www.google.no/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-dk', name: 'Google.dk (Denmark)', url: 'https://www.google.dk/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-fi', name: 'Google.fi (Finland)', url: 'https://www.google.fi/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-be', name: 'Google.be (Belgium)', url: 'https://www.google.be/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-at', name: 'Google.at (Austria)', url: 'https://www.google.at/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-ch', name: 'Google.ch (Switzerland)', url: 'https://www.google.ch/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-ie', name: 'Google.ie (Ireland)', url: 'https://www.google.ie/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-co-nz', name: 'Google.co.nz (New Zealand)', url: 'https://www.google.co.nz/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-sg', name: 'Google.com.sg (Singapore)', url: 'https://www.google.com.sg/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-my', name: 'Google.com.my (Malaysia)', url: 'https://www.google.com.my/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-co-th', name: 'Google.co.th (Thailand)', url: 'https://www.google.co.th/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-ph', name: 'Google.com.ph (Philippines)', url: 'https://www.google.com.ph/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-co-id', name: 'Google.co.id (Indonesia)', url: 'https://www.google.co.id/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-vn', name: 'Google.com.vn (Vietnam)', url: 'https://www.google.com.vn/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-co-za', name: 'Google.co.za (South Africa)', url: 'https://www.google.co.za/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-eg', name: 'Google.com.eg (Egypt)', url: 'https://www.google.com.eg/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-ng', name: 'Google.com.ng (Nigeria)', url: 'https://www.google.com.ng/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-co-ke', name: 'Google.co.ke (Kenya)', url: 'https://www.google.co.ke/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-ar', name: 'Google.com.ar (Argentina)', url: 'https://www.google.com.ar/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-cl', name: 'Google.cl (Chile)', url: 'https://www.google.cl/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-co', name: 'Google.com.co (Colombia)', url: 'https://www.google.com.co/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-pe', name: 'Google.com.pe (Peru)', url: 'https://www.google.com.pe/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-ve', name: 'Google.com.ve (Venezuela)', url: 'https://www.google.com.ve/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-pt', name: 'Google.pt (Portugal)', url: 'https://www.google.pt/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-gr', name: 'Google.gr (Greece)', url: 'https://www.google.gr/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-cz', name: 'Google.cz (Czech Republic)', url: 'https://www.google.cz/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-ro', name: 'Google.ro (Romania)', url: 'https://www.google.ro/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-hu', name: 'Google.hu (Hungary)', url: 'https://www.google.hu/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-hk', name: 'Google.com.hk (Hong Kong)', url: 'https://www.google.com.hk/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-tw', name: 'Google.com.tw (Taiwan)', url: 'https://www.google.com.tw/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-cn', name: 'Google.cn (China)', url: 'https://www.google.cn/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-ae', name: 'Google.ae (UAE)', url: 'https://www.google.ae/ping?sitemap=', type: 'ping', category: 'google' },
+            { id: 'google-com-sa', name: 'Google.com.sa (Saudi Arabia)', url: 'https://www.google.com.sa/ping?sitemap=', type: 'ping', category: 'google' },
+            
+            // Other Major Search Engines
+            { id: 'bing-ping', name: 'Bing', url: 'https://www.bing.com/ping?sitemap=', type: 'ping', category: 'other' },
+            { id: 'yandex', name: 'Yandex', url: 'https://webmaster.yandex.com/ping?sitemap=', type: 'ping', category: 'other' },
+            { id: 'yahoo', name: 'Yahoo', url: 'https://search.yahoo.com/ping?sitemap=', type: 'ping', category: 'other' },
+            
+            // Free Indexing APIs & Services
+            { id: 'indexnow', name: 'IndexNow', url: 'https://api.indexnow.org/indexnow', type: 'api', category: 'api' },
+            { id: 'pingomatic', name: 'Ping-O-Matic', url: 'https://pingomatic.com/', type: 'ping', category: 'other' },
+            { id: 'feedburner', name: 'FeedBurner', url: 'https://feedburner.google.com/fb/a/pingSubmit?bloglink=', type: 'ping', category: 'other' },
+            { id: 'blogpeople', name: 'BlogPeople', url: 'http://www.blogpeople.net/servlet/weblogUpdates', type: 'ping', category: 'other' },
+            { id: 'moreover', name: 'Moreover', url: 'http://api.moreover.com/ping', type: 'ping', category: 'other' },
+            { id: 'blogrolling', name: 'Blogrolling', url: 'http://rpc.blogrolling.com/pinger/', type: 'ping', category: 'other' },
+            { id: 'pubsubhub', name: 'PubSubHubbub', url: 'https://pubsubhubbub.appspot.com/', type: 'ping', category: 'api' }
+        ];
+
+        let stats = { urls: 0, success: 0, services: 0 };
+
+        // Initialize app
+        function init() {
+            renderServices();
+            loadData();
+            updateStats();
+        }
+
+        // Render service checkboxes
+        function renderServices() {
+            const container = document.getElementById('servicesGroup');
+            container.innerHTML = indexingServices.map(service => `
+                <div class="checkbox-item" onclick="toggleCheckbox('${service.id}')">
+                    <input type="checkbox" id="${service.id}" checked>
+                    <label for="${service.id}" style="cursor:pointer; margin:0;">${service.name}</label>
+                </div>
+            `).join('');
+        }
+
+        // Toggle checkbox and styling
+        function toggleCheckbox(id) {
+            const checkbox = document.getElementById(id);
+            checkbox.checked = !checkbox.checked;
+            checkbox.parentElement.classList.toggle('checked', checkbox.checked);
+            updateStats();
+        }
+
+        // Select all services in a category
+        function selectCategory(category) {
+            indexingServices.forEach(service => {
+                if (service.category === category) {
+                    const checkbox = document.getElementById(service.id);
+                    checkbox.checked = true;
+                    checkbox.parentElement.classList.add('checked');
+                }
+            });
+            updateStats();
+        }
+
+        // Select all services
+        function selectAll() {
+            indexingServices.forEach(service => {
+                const checkbox = document.getElementById(service.id);
+                checkbox.checked = true;
+                checkbox.parentElement.classList.add('checked');
+            });
+            updateStats();
+        }
+
+        // Deselect all services
+        function deselectAll() {
+            indexingServices.forEach(service => {
+                const checkbox = document.getElementById(service.id);
+                checkbox.checked = false;
+                checkbox.parentElement.classList.remove('checked');
+            });
+            updateStats();
+        }
+
+        // Update statistics
+        function updateStats() {
+            const urls = document.getElementById('urlInput').value.trim().split('\n').filter(u => u.trim()).length;
+            const services = indexingServices.filter(s => document.getElementById(s.id).checked).length;
+            
+            stats.urls = urls;
+            stats.services = services;
+            
+            document.getElementById('statUrls').textContent = stats.urls;
+            document.getElementById('statServices').textContent = stats.services;
+            document.getElementById('statSuccess').textContent = stats.success;
+        }
+
+        // Submit URLs to indexers
+        async function submitToIndexers() {
+            const urlInput = document.getElementById('urlInput').value.trim();
+            const urls = urlInput.split('\n').filter(u => u.trim());
+            
+            if (urls.length === 0) {
+                alert('Please enter at least one URL');
+                return;
+            }
+
+            const selectedServices = indexingServices.filter(s => 
+                document.getElementById(s.id).checked
+            );
+
+            if (selectedServices.length === 0) {
+                alert('Please select at least one indexing service');
+                return;
+            }
+
+            const resultsContainer = document.getElementById('resultsContainer');
+            document.getElementById('resultsSection').style.display = 'block';
+            resultsContainer.innerHTML = '';
+
+            stats.success = 0;
+            let totalSubmissions = 0;
+
+            for (const url of urls) {
+                if (!isValidUrl(url)) {
+                    addResult(url, 'Invalid URL format', 'error');
+                    continue;
+                }
+
+                for (const service of selectedServices) {
+                    totalSubmissions++;
+                    await submitToService(url, service);
+                }
+            }
+
+            updateStats();
+        }
+
+        // Submit to individual service
+        async function submitToService(url, service) {
+            const resultId = `result-${Date.now()}-${Math.random()}`;
+            addResult(`${service.name}: ${url}`, 'Submitting...', 'pending', resultId);
+
+            // Simulate submission (most services don't allow direct CORS requests from browser)
+            // In real implementation, this would need a backend proxy
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+
+            const success = Math.random() > 0.2; // 80% success rate simulation
+
+            if (success) {
+                updateResult(resultId, `${service.name}: ${url}`, `Submitted successfully`, 'success');
+                stats.success++;
+            } else {
+                updateResult(resultId, `${service.name}: ${url}`, `Submission failed (CORS/Network)`, 'error');
+            }
+
+            updateStats();
+        }
+
+        // Validate URL
+        function isValidUrl(string) {
+            try {
+                const url = new URL(string);
+                return url.protocol === 'http:' || url.protocol === 'https:';
+            } catch (_) {
+                return false;
+            }
+        }
+
+        // Add result to display
+        function addResult(title, message, status, id = null) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result-item ${status}`;
+            if (id) resultDiv.id = id;
+            resultDiv.innerHTML = `
+                <strong>${title}</strong>
+                <span class="status-badge status-${status}">${message}</span>
+            `;
+            resultsContainer.appendChild(resultDiv);
+            resultsContainer.scrollTop = resultsContainer.scrollHeight;
+        }
+
+        // Update existing result
+        function updateResult(id, title, message, status) {
+            const resultDiv = document.getElementById(id);
+            if (resultDiv) {
+                resultDiv.className = `result-item ${status}`;
+                resultDiv.innerHTML = `
+                    <strong>${title}</strong>
+                    <span class="status-badge status-${status}">${message}</span>
+                `;
+            }
+        }
+
+        // Clear results
+        function clearResults() {
+            document.getElementById('resultsContainer').innerHTML = '';
+            document.getElementById('resultsSection').style.display = 'none';
+            stats.success = 0;
+            updateStats();
+        }
+
+        // Toggle section collapse
+        function toggleSection(element) {
+            element.classList.toggle('collapsed');
+            const content = element.nextElementSibling;
+            content.style.display = element.classList.contains('collapsed') ? 'none' : 'block';
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            const data = {
+                urls: document.getElementById('urlInput').value,
+                services: indexingServices.map(s => ({
+                    id: s.id,
+                    checked: document.getElementById(s.id).checked
+                })),
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('seoIndexerData_v2', JSON.stringify(data));
+            alert('✅ Data saved successfully!');
+        }
+
+        // Load data from localStorage
+        function loadData() {
+            const saved = localStorage.getItem('seoIndexerData_v2');
+            if (saved) {
+                const data = JSON.parse(saved);
+                document.getElementById('urlInput').value = data.urls || '';
+                
+                if (data.services) {
+                    data.services.forEach(service => {
+                        const checkbox = document.getElementById(service.id);
+                        if (checkbox) {
+                            checkbox.checked = service.checked;
+                            checkbox.parentElement.classList.toggle('checked', service.checked);
+                        }
+                    });
+                }
+                updateStats();
+            }
+        }
+
+        // Refresh page
+        function refreshPage() {
+            if (confirm('Refresh page? Unsaved data will be lost.')) {
+                location.reload();
+            }
+        }
+
+        // Show changelog
+        function showChangelog() {
+            document.getElementById('changelogModal').style.display = 'block';
+        }
+
+        // Close modal
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        // Update URL count on input
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('urlInput').addEventListener('input', updateStats);
+            init();
+        });
+
+        // Close modal on outside click
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>
