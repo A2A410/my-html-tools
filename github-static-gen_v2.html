@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GitHub Static Site Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #282a36;
+            --bg-light: #44475a;
+            --fg: #f8f8f2;
+            --comment: #6272a4;
+            --cyan: #8be9fd;
+            --green: #50fa7b;
+            --orange: #ffb86c;
+            --pink: #ff79c6;
+            --purple: #bd93f9;
+            --red: #ff5555;
+            --yellow: #f1fa8c;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            padding: 12px;
+        }
+
+        header {
+            background: var(--bg-light);
+            padding: 16px 12px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 2px solid var(--comment);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        h1 {
+            font-size: 18px;
+            color: var(--pink);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+
+        .btn {
+            background: var(--purple);
+            color: var(--bg);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn:active {
+            opacity: 0.8;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-sm {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .btn-success {
+            background: var(--green);
+        }
+
+        .btn-danger {
+            background: var(--red);
+        }
+
+        .input-section {
+            background: var(--bg-light);
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg);
+            border: 2px solid var(--comment);
+            color: var(--fg);
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        input::placeholder {
+            color: var(--comment);
+        }
+
+        .progress-bar {
+            background: var(--bg);
+            height: 24px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 8px 0;
+            position: relative;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, var(--purple), var(--pink));
+            height: 100%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-box {
+            background: var(--bg-light);
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+        }
+
+        .status-label {
+            color: var(--comment);
+        }
+
+        .status-value {
+            color: var(--cyan);
+            font-weight: 600;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+            background: var(--bg-light);
+            padding: 8px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .tab {
+            padding: 10px 16px;
+            background: var(--bg);
+            color: var(--comment);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-size: 14px;
+        }
+
+        .tab.active {
+            background: var(--purple);
+            color: var(--bg);
+            font-weight: 600;
+        }
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        .file-item {
+            background: var(--bg-light);
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border-left: 3px solid var(--comment);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--cyan);
+            margin-bottom: 4px;
+        }
+
+        .file-meta {
+            color: var(--comment);
+            font-size: 11px;
+        }
+
+        .file-status {
+            font-size: 20px;
+        }
+
+        .commit-item {
+            background: var(--bg-light);
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border-left: 3px solid var(--green);
+        }
+
+        .commit-sha {
+            font-family: monospace;
+            color: var(--yellow);
+            font-size: 12px;
+        }
+
+        .commit-msg {
+            margin: 8px 0;
+            color: var(--fg);
+        }
+
+        .commit-meta {
+            font-size: 12px;
+            color: var(--comment);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 32px;
+            color: var(--comment);
+        }
+
+        .spinner {
+            border: 3px solid var(--comment);
+            border-top: 3px solid var(--purple);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: var(--red);
+            color: var(--bg);
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
+
+        .success {
+            background: var(--green);
+            color: var(--bg);
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
+
+        .settings {
+            background: var(--bg-light);
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .settings label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+
+        .settings input[type="checkbox"] {
+            width: auto;
+        }
+
+        .settings input[type="number"] {
+            width: 80px;
+            margin: 0;
+        }
+
+        .changelog {
+            background: var(--bg-light);
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 1.8;
+        }
+
+        .changelog h3 {
+            color: var(--pink);
+            margin-bottom: 8px;
+        }
+
+        .debug-log {
+            background: #000;
+            color: var(--green);
+            padding: 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .debug-log div {
+            margin-bottom: 4px;
+            padding-left: 8px;
+            border-left: 2px solid var(--comment);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .action-buttons .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1 id="repoTitle">Static Site Gen</h1>
+            <button class="btn btn-sm" onclick="showSettings()">⚙️</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="input-section" id="inputSection">
+            <input type="text" id="repoInput" placeholder="owner/repo (e.g., torvalds/linux)" />
+            <button class="btn" onclick="startScraping()">🔄 Start Scraping</button>
+        </div>
+
+        <div id="errorContainer"></div>
+        <div id="successContainer"></div>
+
+        <div id="statusSection" style="display:none">
+            <div class="status-box">
+                <div class="status-item">
+                    <span class="status-label">Status:</span>
+                    <span class="status-value" id="statusText">Idle</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Files:</span>
+                    <span class="status-value" id="filesCount">0/0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Commits:</span>
+                    <span class="status-value" id="commitsCount">0/0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Data Size:</span>
+                    <span class="status-value" id="dataSize">0 KB</span>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar" style="width:0%">0%</div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-success" id="downloadBtn" onclick="downloadStatic()" disabled>💾 Download Static Site</button>
+                <button class="btn btn-danger" id="clearBtn" onclick="clearBuildData()">🗑️ Clear Build</button>
+                <button class="btn" id="pauseBtn" onclick="togglePause()" disabled>⏸️ Pause</button>
+            </div>
+        </div>
+
+        <div id="mainContent" style="display:none">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('files')">📁 Files (<span id="tabFilesCount">0</span>)</button>
+                <button class="tab" onclick="switchTab('commits')">📝 Commits (<span id="tabCommitsCount">0</span>)</button>
+                <button class="tab" onclick="switchTab('preview')">👁️ Preview</button>
+            </div>
+
+            <div id="filesView" class="view active"></div>
+            <div id="commitsView" class="view"></div>
+            <div id="previewView" class="view"></div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:200; overflow-y:auto; -webkit-overflow-scrolling:touch;">
+        <div class="container" style="padding-top:60px;">
+            <div class="settings">
+                <h2 style="color:var(--pink); margin-bottom:16px;">Settings</h2>
+                
+                <label>
+                    <input type="checkbox" id="debugMode" onchange="toggleDebug()">
+                    <span>Debug View</span>
+                </label>
+
+                <label>
+                    <input type="checkbox" id="fetchFullContent" checked>
+                    <span>Fetch Full File Content</span>
+                </label>
+
+                <label style="justify-content: space-between;">
+                    <span>Max Commits:</span>
+                    <input type="number" id="maxCommits" value="50" min="10" max="200">
+                </label>
+
+                <label style="justify-content: space-between;">
+                    <span>Max Files:</span>
+                    <input type="number" id="maxFiles" value="500" min="10" max="2000">
+                </label>
+
+                <div id="debugContainer" style="display:none; margin-top:16px;">
+                    <h3 style="color:var(--cyan); margin-bottom:8px;">Debug Log</h3>
+                    <div class="debug-log" id="debugLog"></div>
+                </div>
+
+                <div style="margin-top:16px;">
+                    <button class="btn" onclick="showChangelog()">📋 Changelog</button>
+                    <button class="btn" onclick="closeSettings()" style="margin-left:8px;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Changelog Modal -->
+    <div id="changelogModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.9); z-index:200; overflow-y:auto; -webkit-overflow-scrolling:touch;">
+        <div class="container" style="padding-top:60px;">
+            <div class="changelog">
+                <h2 style="color:var(--pink); margin-bottom:16px;">Changelog</h2>
+                <h3>v2.0.0 (2026-01-12)</h3>
+                <ul style="margin-left:20px; margin-bottom:16px;">
+                    <li>Added progressive data scraping</li>
+                    <li>Build static site with file content</li>
+                    <li>Download complete standalone HTML</li>
+                    <li>Pause/resume functionality</li>
+                    <li>Real-time progress tracking</li>
+                    <li>File status indicators</li>
+                    <li>Incomplete build support</li>
+                    <li>Mobile-optimized download</li>
+                    <li>Clear build data option</li>
+                </ul>
+                <h3>v1.0.0 (2026-01-12)</h3>
+                <ul style="margin-left:20px; margin-bottom:16px;">
+                    <li>Initial release</li>
+                    <li>Basic GitHub viewing</li>
+                </ul>
+                <button class="btn" onclick="closeChangelog()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Debug logger
+        const debugLog = [];
+        function log(msg, level = 'info') {
+            const timestamp = new Date().toISOString();
+            const entry = `[${timestamp}] [${level.toUpperCase()}] ${msg}`;
+            debugLog.push(entry);
+            console.log(entry);
+            updateDebugView();
+        }
+
+        function updateDebugView() {
+            const debugEl = document.getElementById('debugLog');
+            if (debugEl && document.getElementById('debugMode').checked) {
+                debugEl.innerHTML = debugLog.slice(-100).map(l => `<div>${l}</div>`).join('');
+                debugEl.scrollTop = debugEl.scrollHeight;
+            }
+        }
+
+        // State
+        let buildData = {
+            repo: null,
+            info: {},
+            commits: [],
+            files: [],
+            fileContents: {},
+            readme: '',
+            progress: {
+                filesScraped: 0,
+                commitsScraped: 0,
+                totalFiles: 0,
+                totalCommits: 0
+            }
+        };
+
+        let isPaused = false;
+        let isScrapingActive = false;
+
+        const GITHUB_API = 'https://api.github.com';
+        const STORAGE_KEY = 'gh_static_build';
+
+        // GitHub API with rate limit handling
+        async function githubFetch(url, retryCount = 0) {
+            log(`Fetching: ${url}`);
+            
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (response.status === 403) {
+                    const remaining = response.headers.get('X-RateLimit-Remaining');
+                    if (remaining === '0') {
+                        const resetTime = response.headers.get('X-RateLimit-Reset');
+                        const resetDate = new Date(resetTime * 1000);
+                        throw new Error(`Rate limit exceeded. Resets at ${resetDate.toLocaleTimeString()}`);
+                    }
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                log(`Received ${JSON.stringify(data).length} bytes`);
+                return data;
+            } catch (error) {
+                if (retryCount < 3) {
+                    log(`Retry ${retryCount + 1}/3 for ${url}`, 'warn');
+                    await sleep(2000 * (retryCount + 1));
+                    return githubFetch(url, retryCount + 1);
+                }
+                throw error;
+            }
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function startScraping() {
+            const input = document.getElementById('repoInput').value.trim();
+            if (!input) {
+                showError('Please enter a repository');
+                return;
+            }
+
+            const [owner, repo] = input.split('/');
+            if (!owner || !repo) {
+                showError('Invalid format. Use: owner/repo');
+                return;
+            }
+
+            // Check if we have existing build
+            const existing = loadBuildData();
+            if (existing && existing.repo === input) {
+                if (confirm('Resume existing build?')) {
+                    buildData = existing;
+                    log('Resuming existing build');
+                } else {
+                    buildData = initBuildData(owner, repo);
+                }
+            } else {
+                buildData = initBuildData(owner, repo);
+            }
+
+            document.getElementById('repoTitle').textContent = input;
+            document.getElementById('inputSection').style.display = 'none';
+            document.getElementById('statusSection').style.display = 'block';
+            document.getElementById('mainContent').style.display = 'block';
+
+            isScrapingActive = true;
+            document.getElementById('pauseBtn').disabled = false;
+
+            try {
+                await scrapeRepository(owner, repo);
+                showSuccess('✅ Scraping complete! You can now download the static site.');
+                document.getElementById('downloadBtn').disabled = false;
+            } catch (error) {
+                log(error.message, 'error');
+                showError(error.message);
+            } finally {
+                isScrapingActive = false;
+                updateUI();
+            }
+        }
+
+        function initBuildData(owner, repo) {
+            return {
+                repo: `${owner}/${repo}`,
+                info: {},
+                commits: [],
+                files: [],
+                fileContents: {},
+                readme: '',
+                progress: {
+                    filesScraped: 0,
+                    commitsScraped: 0,
+                    totalFiles: 0,
+                    totalCommits: 0
+                }
+            };
+        }
+
+        async function scrapeRepository(owner, repo) {
+            updateStatus('Fetching repository info...');
+            
+            // Get repo info
+            if (!buildData.info.id) {
+                buildData.info = await githubFetch(`${GITHUB_API}/repos/${owner}/${repo}`);
+                saveBuildData();
+            }
+
+            // Get commits
+            const maxCommits = parseInt(document.getElementById('maxCommits').value);
+            if (buildData.commits.length === 0) {
+                updateStatus('Fetching commits...');
+                buildData.commits = await githubFetch(`${GITHUB_API}/repos/${owner}/${repo}/commits?per_page=${maxCommits}`);
+                buildData.progress.totalCommits = buildData.commits.length;
+                buildData.progress.commitsScraped = buildData.commits.length;
+                saveBuildData();
+                updateUI();
+            }
+
+            // Get file tree
+            if (buildData.files.length === 0) {
+                updateStatus('Fetching file tree...');
+                const defaultBranch = buildData.info.default_branch || 'main';
+                const tree = await githubFetch(`${GITHUB_API}/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`);
+                
+                const maxFiles = parseInt(document.getElementById('maxFiles').value);
+                buildData.files = tree.tree.filter(f => f.type === 'blob').slice(0, maxFiles);
+                buildData.progress.totalFiles = buildData.files.length;
+                saveBuildData();
+                updateUI();
+            }
+
+            // Get README
+            if (!buildData.readme) {
+                try {
+                    updateStatus('Fetching README...');
+                    const readme = await githubFetch(`${GITHUB_API}/repos/${owner}/${repo}/readme`);
+                    buildData.readme = atob(readme.content);
+                    saveBuildData();
+                } catch (e) {
+                    log('No README found', 'warn');
+                    buildData.readme = 'No README available';
+                }
+            }
+
+            // Fetch file contents
+            if (document.getElementById('fetchFullContent').checked) {
+                updateStatus('Fetching file contents...');
+                await fetchFileContents(owner, repo);
+            }
+
+            updateStatus('✅ Complete');
+            saveBuildData();
+        }
+
+        async function fetchFileContents(owner, repo) {
+            for (let i = buildData.progress.filesScraped; i < buildData.files.length; i++) {
+                if (isPaused) {
+                    log('Paused by user');
+                    updateStatus('⏸️ Paused');
+                    return;
+                }
+
+                const file = buildData.files[i];
+                
+                // Skip large files
+                if (file.size > 1048576) { // 1MB
+                    log(`Skipping large file: ${file.path} (${formatBytes(file.size)})`, 'warn');
+                    buildData.progress.filesScraped++;
+                    continue;
+                }
+
+                try {
+                    updateStatus(`Fetching: ${file.path}`);
+                    const content = await githubFetch(file.url);
+                    
+                    if (content.content) {
+                        buildData.fileContents[file.path] = {
+                            content: atob(content.content),
+                            encoding: content.encoding,
+                            size: file.size
+                        };
+                    }
+                    
+                    buildData.progress.filesScraped++;
+                    updateProgress();
+                    saveBuildData();
+                    
+                    // Rate limiting: pause between requests
+                    await sleep(100);
+                } catch (error) {
+                    log(`Error fetching ${file.path}: ${error.message}`, 'error');
+                    // Continue with next file
+                }
+                
+                updateUI();
+            }
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            document.getElementById('pauseBtn').textContent = isPaused ? '▶️ Resume' : '⏸️ Pause';
+            
+            if (!isPaused && isScrapingActive) {
+                const [owner, repo] = buildData.repo.split('/');
+                fetchFileContents(owner, repo);
+            }
+        }
+
+        function downloadStatic() {
+            log('Generating static site HTML...');
+            updateStatus('Generating static site...');
+
+            const html = generateStaticHTML();
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${buildData.repo.replace('/', '_')}_static.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            log('Download initiated');
+            showSuccess('Static site downloaded!');
+        }
+
+        function generateStaticHTML() {
+            const repoName = buildData.repo;
+            const info = buildData.info;
+            
+            // Generate file tree HTML
+            let filesHTML = '';
+            buildData.files.forEach(file => {
+                const hasContent = buildData.fileContents[file.path];
+                const status = hasContent ? '✅' : '⏳';
+                filesHTML += `
+                <div class="file-item" onclick="viewStaticFile('${escapeHtml(file.path)}')">
+                    <div class="file-info">
+                        <div class="file-name">📄 ${escapeHtml(file.path)}</div>
+                        <div class="file-meta">${formatBytes(file.size)}</div>
+                    </div>
+                    <div class="file-status">${status}</div>
+                </div>`;
+            });
+
+            // Generate commits HTML
+            let commitsHTML = '';
+            buildData.commits.forEach(commit => {
+                const sha = commit.sha.substring(0, 7);
+                const msg = commit.commit.message.split('\n')[0];
+                const author = commit.commit.author.name;
+                const date = new Date(commit.commit.author.date).toLocaleDateString();
+                
+                commitsHTML += `
+                <div class="commit-item">
+                    <div class="commit-sha">${sha}</div>
+                    <div class="commit-msg">${escapeHtml(msg)}</div>
+                    <div class="commit-meta">${author} • ${date}</div>
+                </div>`;
+            });
+
+            // Embed file contents as data
+            const fileContentsJSON = JSON.stringify(buildData.fileContents);
+            
+            return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>${escapeHtml(repoName)} - Static Site</title>
+    <style>
+        ${getStaticCSS()}
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>${escapeHtml(repoName)}</h1>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="info-box">
+            <h2>Repository Info</h2>
+            <p>${escapeHtml(info.description || 'No description')}</p>
+            <div class="stats">
+                <div>⭐ ${info.stargazers_count} stars</div>
+                <div>🍴 ${info.forks_count} forks</div>
+                <div>📝 ${info.language || 'N/A'}</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchStaticTab('files')">📁 Files (${buildData.files.length})</button>
+            <button class="tab" onclick="switchStaticTab('commits')">📝 Commits (${buildData.commits.length})</button>
+            <button class="tab" onclick="switchStaticTab('readme')">📄 README</button>
+        </div>
+
+        <div id="filesView" class="view active">${filesHTML}</div>
+        <div id="commitsView" class="view">${commitsHTML}</div>
+        <div id="readmeView" class="view">
+            <pre style="white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(buildData.readme)}</pre>
+        </div>
+    </div>
+
+    <script>
+        const fileContents = ${fileContentsJSON};
+        
+        function switchStaticTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tab + 'View').classList.add('active');
+        }
+
+        function viewStaticFile(path) {
+            const content = fileContents[path];
+            if (!content) {
+                alert('File content not available in this build');
+                return;
+            }
+
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:300; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:60px 12px 12px;';
+            modal.innerHTML = \`
+                <div style="background:#44475a; padding:16px; border-radius:8px;">
+                    <h2 style="color:#ff79c6; margin-bottom:16px; word-break:break-all;">\${path}</h2>
+                    <pre style="background:#282a36; padding:12px; border-radius:4px; overflow-x:auto; white-space:pre; font-size:12px; max-height:70vh;"><code>\${escapeHtml(content.content)}</code></pre>
+                    <button style="margin-top:12px; background:#bd93f9; color:#282a36; border:none; padding:8px 16px; border-radius:4px; font-weight:600;" onclick="this.closest('div[style*=fixed]').remove()">Close</button>
+                </div>
+            \`;
+            document.body.appendChild(modal);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>`;
+        }
+
+        function getStaticCSS() {
+            return `
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #282a36; color: #f8f8f2; line-height: 1.6; }
+                .container { max-width: 100%; padding: 12px; }
+                header { background: #44475a; padding: 16px 12px; position: sticky; top: 0; z-index: 100; border-bottom: 2px solid #6272a4; }
+                h1 { font-size: 18px; color: #ff79c6; }
+                .info-box { background: #44475a; padding: 16px; margin-bottom: 12px; border-radius: 8px; }
+                .info-box h2 { color: #ff79c6; margin-bottom: 8px; }
+                .stats { display: flex; gap: 16px; margin-top: 12px; font-size: 14px; color: #8be9fd; }
+                .tabs { display: flex; gap: 4px; overflow-x: auto; background: #44475a; padding: 8px; margin-bottom: 12px; border-radius: 8px; }
+                .tab { padding: 10px 16px; background: #282a36; color: #6272a4; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap; font-size: 14px; }
+                .tab.active { background: #bd93f9; color: #282a36; font-weight: 600; }
+                .view { display: none; }
+                .view.active { display: block; }
+                .file-item { background: #44475a; padding: 12px; margin-bottom: 8px; border-radius: 4px; border-left: 3px solid #6272a4; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+                .file-item:active { background: #6272a4; }
+                .file-info { flex: 1; }
+                .file-name { font-weight: 600; color: #8be9fd; margin-bottom: 4px; }
+                .file-meta { color: #6272a4; font-size: 11px; }
+                .file-status { font-size: 20px; }
+                .commit-item { background: #44475a; padding: 12px; margin-bottom: 8px; border-radius: 4px; border-left: 3px solid #50fa7b; }
+                .commit-sha { font-family: monospace; color: #f1fa8c; font-size: 12px; }
+                .commit-msg { margin: 8px 0; color: #f8f8f2; }
+                .commit-meta { font-size: 12px; color: #6272a4; }
+            `;
+        }
+
+        function clearBuildData() {
+            if (confirm('Clear all build data?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                buildData = {
+                    repo: null,
+                    info: {},
+                    commits: [],
+                    files: [],
+                    fileContents: {},
+                    readme: '',
+                    progress: { filesScraped: 0, commitsScraped: 0, totalFiles: 0, totalCommits: 0 }
+                };
+                location.reload();
+            }
+        }
+
+        function saveBuildData() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(buildData));
+                log('Build data saved');
+            } catch (e) {
+                log(`Storage error: ${e.message}`, 'error');
+                if (e.name === 'QuotaExceededError') {
+                    showError('Storage quota exceeded. Consider reducing max files/commits.');
+                }
+            }
+        }
+
+        function loadBuildData() {
+            try {
+                const data = localStorage.getItem(STORAGE_KEY);
+                return data ? JSON.parse(data) : null;
+            } catch (e) {
+                log(`Load error: ${e.message}`, 'error');
+                return null;
+            }
+        }
+
+        function updateUI() {
+            // Update counters
+            document.getElementById('filesCount').textContent = 
+                `${buildData.progress.filesScraped}/${buildData.progress.totalFiles}`;
+            document.getElementById('commitsCount').textContent = 
+                `${buildData.progress.commitsScraped}/${buildData.progress.totalCommits}`;
+            document.getElementById('tabFilesCount').textContent = buildData.files.length;
+            document.getElementById('tabCommitsCount').textContent = buildData.commits.length;
+            
+            // Update data size
+            const dataStr = JSON.stringify(buildData);
+            document.getElementById('dataSize').textContent = formatBytes(dataStr.length);
+            
+            // Render views
+            renderFiles();
+            renderCommits();
+            
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const total = buildData.progress.totalFiles + buildData.progress.totalCommits;
+            const done = buildData.progress.filesScraped + buildData.progress.commitsScraped;
+            const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+            
+            const bar = document.getElementById('progressBar');
+            bar.style.width = percent + '%';
+            bar.textContent = percent + '%';
+        }
+
+        function updateStatus(text) {
+            document.getElementById('statusText').textContent = text;
+            log(text);
+        }
+
+        function renderFiles() {
+            const container = document.getElementById('filesView');
+            let html = '';
+            
+            buildData.files.forEach(file => {
+                const hasContent = buildData.fileContents[file.path];
+                const status = hasContent ? '✅' : '⏳';
+                
+                html += `
+                <div class="file-item">
+                    <div class="file-info">
+                        <div class="file-name">📄 ${escapeHtml(file.path)}</div>
+                        <div class="file-meta">${formatBytes(file.size)}</div>
+                    </div>
+                    <div class="file-status">${status}</div>
+                </div>`;
+            });
+            
+            container.innerHTML = html || '<div class="loading">No files</div>';
+        }
+
+        function renderCommits() {
+            const container = document.getElementById('commitsView');
+            let html = '';
+            
+            buildData.commits.forEach(commit => {
+                const sha = commit.sha.substring(0, 7);
+                const msg = commit.commit.message.split('\n')[0];
+                const author = commit.commit.author.name;
+                const date = new Date(commit.commit.author.date).toLocaleDateString();
+                
+                html += `
+                <div class="commit-item">
+                    <div class="commit-sha">${sha}</div>
+                    <div class="commit-msg">${escapeHtml(msg)}</div>
+                    <div class="commit-meta">${author} • ${date}</div>
+                </div>`;
+            });
+            
+            container.innerHTML = html || '<div class="loading">No commits</div>';
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`${tab}View`).classList.add('active');
+        }
+
+        function showError(msg) {
+            document.getElementById('errorContainer').innerHTML = `<div class="error">${msg}</div>`;
+            setTimeout(() => document.getElementById('errorContainer').innerHTML = '', 5000);
+        }
+
+        function showSuccess(msg) {
+            document.getElementById('successContainer').innerHTML = `<div class="success">${msg}</div>`;
+            setTimeout(() => document.getElementById('successContainer').innerHTML = '', 5000);
+        }
+
+        function showSettings() {
+            document.getElementById('settingsModal').style.display = 'block';
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function toggleDebug() {
+            const debugContainer = document.getElementById('debugContainer');
+            debugContainer.style.display = document.getElementById('debugMode').checked ? 'block' : 'none';
+            updateDebugView();
+        }
+
+        function showChangelog() {
+            document.getElementById('changelogModal').style.display = 'block';
+        }
+
+        function closeChangelog() {
+            document.getElementById('changelogModal').style.display = 'none';
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Init
+        log('GitHub Static Site Generator v2.0 initialized');
+        
+        const existing = loadBuildData();
+        if (existing) {
+            log(`Found existing build: ${existing.repo}`);
+            if (confirm(`Resume build for ${existing.repo}?`)) {
+                buildData = existing;
+                document.getElementById('repoTitle').textContent = buildData.repo;
+                document.getElementById('inputSection').style.display = 'none';
+                document.getElementById('statusSection').style.display = 'block';
+                document.getElementById('mainContent').style.display = 'block';
+                document.getElementById('downloadBtn').disabled = false;
+                updateUI();
+            }
+        }
+
+        // Prevent double-tap zoom
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+</body>
+</html>
