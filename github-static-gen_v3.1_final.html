@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GitHub Static Site Generator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #282a36; --bg-light: #44475a; --fg: #f8f8f2; --comment: #6272a4;
+            --cyan: #8be9fd; --green: #50fa7b; --pink: #ff79c6; --purple: #bd93f9;
+            --red: #ff5555; --yellow: #f1fa8c;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; overflow-x: hidden; }
+        .container { max-width: 100%; padding: 12px; }
+        header { background: var(--bg-light); padding: 16px 12px; position: sticky; top: 0; z-index: 100; border-bottom: 2px solid var(--comment); }
+        .header-content { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        h1 { font-size: 18px; color: var(--pink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+        .btn { background: var(--purple); color: var(--bg); border: none; padding: 8px 12px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .btn:active { opacity: 0.8; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-sm { padding: 6px 10px; font-size: 12px; }
+        .btn-success { background: var(--green); }
+        .btn-danger { background: var(--red); }
+        .input-section { background: var(--bg-light); padding: 16px; margin-bottom: 12px; border-radius: 8px; }
+        input { width: 100%; padding: 12px; background: var(--bg); border: 2px solid var(--comment); color: var(--fg); border-radius: 4px; font-size: 14px; margin-bottom: 8px; }
+        input::placeholder { color: var(--comment); }
+        .progress-bar { background: var(--bg); height: 24px; border-radius: 4px; overflow: hidden; margin: 8px 0; position: relative; }
+        .progress-fill { background: linear-gradient(90deg, var(--purple), var(--pink)); height: 100%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+        .status-box { background: var(--bg-light); padding: 12px; border-radius: 4px; margin-bottom: 12px; font-size: 13px; line-height: 1.8; }
+        .status-item { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+        .status-label { color: var(--comment); }
+        .status-value { color: var(--cyan); font-weight: 600; }
+        .tabs { display: flex; gap: 4px; overflow-x: auto; background: var(--bg-light); padding: 8px; margin-bottom: 12px; border-radius: 8px; -webkit-overflow-scrolling: touch; }
+        .tab { padding: 10px 16px; background: var(--bg); color: var(--comment); border: none; border-radius: 4px; cursor: pointer; white-space: nowrap; font-size: 14px; }
+        .tab.active { background: var(--purple); color: var(--bg); font-weight: 600; }
+        .view { display: none; }
+        .view.active { display: block; }
+        .file-item { background: var(--bg-light); padding: 12px; margin-bottom: 8px; border-radius: 4px; border-left: 3px solid var(--comment); display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .file-item:active { background: var(--comment); }
+        .file-info { flex: 1; }
+        .file-name { font-weight: 600; color: var(--cyan); margin-bottom: 4px; }
+        .file-meta { color: var(--comment); font-size: 11px; }
+        .file-status { font-size: 20px; }
+        .commit-item { background: var(--bg-light); padding: 12px; margin-bottom: 8px; border-radius: 4px; border-left: 3px solid var(--green); }
+        .commit-sha { font-family: monospace; color: var(--yellow); font-size: 12px; }
+        .commit-msg { margin: 8px 0; color: var(--fg); }
+        .commit-meta { font-size: 12px; color: var(--comment); }
+        .loading { text-align: center; padding: 32px; color: var(--comment); }
+        .spinner { border: 3px solid var(--comment); border-top: 3px solid var(--purple); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .error { background: var(--red); color: var(--bg); padding: 12px; border-radius: 4px; margin-bottom: 12px; }
+        .success { background: var(--green); color: var(--bg); padding: 12px; border-radius: 4px; margin-bottom: 12px; }
+        .settings { background: var(--bg-light); padding: 16px; border-radius: 8px; }
+        .settings label { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; cursor: pointer; }
+        .settings input[type="checkbox"] { width: auto; }
+        .settings input[type="number"] { width: 80px; margin: 0; }
+        .changelog { background: var(--bg-light); padding: 16px; border-radius: 8px; font-size: 12px; line-height: 1.8; }
+        .changelog h3 { color: var(--pink); margin-bottom: 8px; }
+        .debug-log { background: #000; color: var(--green); padding: 12px; border-radius: 4px; font-family: monospace; font-size: 10px; max-height: 400px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .debug-log div { margin-bottom: 4px; padding-left: 8px; border-left: 2px solid var(--comment); }
+        .action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+        .action-buttons .btn { flex: 1; min-width: 120px; }
+        .validation-box { background: var(--bg); padding: 12px; border-radius: 4px; margin-top: 12px; border: 2px solid var(--comment); }
+        .validation-item { padding: 4px 0; font-size: 12px; }
+        .validation-item.error { color: var(--red); }
+        .validation-item.success { color: var(--green); }
+        .preview-box { background: var(--bg); padding: 8px; border-radius: 4px; margin-top: 8px; font-size: 11px; font-family: monospace; max-height: 100px; overflow: hidden; position: relative; }
+        .preview-fade { position: absolute; bottom: 0; left: 0; right: 0; height: 30px; background: linear-gradient(transparent, var(--bg)); }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1 id="repoTitle">Static Site Gen</h1>
+            <button class="btn btn-sm" onclick="App.showSettings()">⚙️</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="input-section" id="inputSection">
+            <input type="text" id="repoInput" placeholder="owner/repo (e.g., microsoft/vscode)" />
+            <button class="btn" onclick="App.start()">🔄 Start Scraping</button>
+        </div>
+
+        <div id="errorContainer"></div>
+        <div id="successContainer"></div>
+
+        <div id="statusSection" style="display:none">
+            <div class="status-box">
+                <div class="status-item">
+                    <span class="status-label">Status:</span>
+                    <span class="status-value" id="statusText">Idle</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Files:</span>
+                    <span class="status-value" id="filesCount">0/0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Commits:</span>
+                    <span class="status-value" id="commitsCount">0/0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Data Size:</span>
+                    <span class="status-value" id="dataSize">0 KB</span>
+                </div>
+                <div class="status-item" id="rateLimitInfo" style="display:none">
+                    <span class="status-label">Rate Limit:</span>
+                    <span class="status-value" id="rateLimitText">-</span>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar" style="width:0%">0%</div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-success" id="downloadBtn" onclick="App.download()" disabled>💾 Download</button>
+                <button class="btn" id="previewBtn" onclick="App.preview()" disabled>👁️ Preview</button>
+                <button class="btn btn-danger" id="clearBtn" onclick="App.clear()">🗑️ Clear</button>
+                <button class="btn" id="pauseBtn" onclick="App.togglePause()" disabled>⏸️ Pause</button>
+            </div>
+        </div>
+
+        <div id="mainContent" style="display:none">
+            <div class="tabs">
+                <button class="tab active" onclick="App.switchTab('files')">📁 Files (<span id="tabFilesCount">0</span>)</button>
+                <button class="tab" onclick="App.switchTab('commits')">📝 Commits (<span id="tabCommitsCount">0</span>)</button>
+            </div>
+
+            <div id="filesView" class="view active"></div>
+            <div id="commitsView" class="view"></div>
+        </div>
+    </div>
+
+    <div id="settingsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:200; overflow-y:auto; -webkit-overflow-scrolling:touch;">
+        <div class="container" style="padding-top:60px;">
+            <div class="settings">
+                <h2 style="color:var(--pink); margin-bottom:16px;">Settings</h2>
+                
+                <label>
+                    <input type="checkbox" id="debugMode" onchange="App.toggleDebug()">
+                    <span>Debug View</span>
+                </label>
+
+                <label>
+                    <input type="checkbox" id="fetchFullContent" checked>
+                    <span>Fetch Full File Content</span>
+                </label>
+
+                <label>
+                    <input type="checkbox" id="validateHTML" checked>
+                    <span>Validate HTML Before Download</span>
+                </label>
+
+                <label>
+                    <input type="checkbox" id="allowIncomplete" checked>
+                    <span>Allow Incomplete Generation</span>
+                </label>
+
+                <label>
+                    <input type="checkbox" id="useToken">
+                    <span>Use GitHub Token (60→5000/hr)</span>
+                </label>
+
+                <div id="tokenInput" style="display:none; margin-left:28px; margin-bottom:12px;">
+                    <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="width:100%; margin:0;">
+                    <div style="font-size:11px; color:var(--comment); margin-top:4px;">
+                        Get token: <a href="https://github.com/settings/tokens" target="_blank" style="color:var(--cyan);">github.com/settings/tokens</a>
+                    </div>
+                </div>
+
+                <div style="margin:16px 0; padding:12px; background:var(--bg); border-radius:4px;">
+                    <div style="color:var(--cyan); font-weight:600; margin-bottom:8px;">Storage Info</div>
+                    <div style="font-size:12px; line-height:1.8;">
+                        <div>Build Data: <span id="buildDataSize">0 KB</span></div>
+                        <div>Settings: <span id="settingsSize">~2 KB</span></div>
+                        <div>Total: <span id="totalStorageSize">0 KB</span></div>
+                    </div>
+                    <button class="btn btn-danger" onclick="App.clearBuildData()" style="margin-top:8px; width:100%;">🗑️ Clear Build Data</button>
+                </div>
+
+                <div style="margin:16px 0; padding:12px; background:var(--bg); border-radius:4px;">
+                    <div style="color:var(--cyan); font-weight:600; margin-bottom:8px;">Rate Limit Prediction</div>
+                    <div style="font-size:12px; line-height:1.8;">
+                        <div>Predicted limit: <span id="predictedLimit">60/hr</span></div>
+                        <div>Actual spent: <span id="actualSpent">0</span></div>
+                        <div>Accuracy: <span id="predictionAccuracy">-</span></div>
+                    </div>
+                </div>
+
+                <label style="justify-content: space-between;">
+                    <span>Max Commits:</span>
+                    <input type="number" id="maxCommits" value="30" min="10" max="200">
+                </label>
+
+                <label style="justify-content: space-between;">
+                    <span>Max Files:</span>
+                    <input type="number" id="maxFiles" value="100" min="10" max="2000">
+                </label>
+
+                <label style="justify-content: space-between;">
+                    <span>Preview Lines:</span>
+                    <input type="number" id="previewLines" value="10" min="5" max="50">
+                </label>
+
+                <div id="debugContainer" style="display:none; margin-top:16px;">
+                    <h3 style="color:var(--cyan); margin-bottom:8px;">Debug Log</h3>
+                    <div class="debug-log" id="debugLog"></div>
+                </div>
+
+                <div style="margin-top:16px;">
+                    <button class="btn" onclick="App.showChangelog()">📋 Changelog</button>
+                    <button class="btn" onclick="App.closeSettings()" style="margin-left:8px;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="changelogModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.9); z-index:200; overflow-y:auto; -webkit-overflow-scrolling:touch;">
+        <div class="container" style="padding-top:60px;">
+            <div class="changelog">
+                <h2 style="color:var(--pink); margin-bottom:16px;">Changelog</h2>
+                
+                <h3>v3.1.0 (2026-01-12)</h3>
+                <ul style="margin-left:20px; margin-bottom:16px;">
+                    <li>Fixed btoa UTF-8 encoding error</li>
+                    <li>Safe base64 encoding for all characters</li>
+                    <li>Better error handling in generation</li>
+                    <li>Fallback for non-Latin1 characters</li>
+                </ul>
+                
+                <h3>v3.0.0 (2026-01-12)</h3>
+                <ul style="margin-left:20px; margin-bottom:16px;">
+                    <li>Fixed generation loading indicator</li>
+                    <li>Incomplete toggle now allows both modes</li>
+                    <li>localStorage validation & corruption detection</li>
+                    <li>Auto-clear old cache (7+ days)</li>
+                    <li>Timestamp tracking on saves</li>
+                </ul>
+                
+                <h3>v2.9.0 (2026-01-12)</h3>
+                <ul style="margin-left:20px; margin-bottom:16px;">
+                    <li>Working incomplete generation</li>
+                    <li>Skip unfetched files properly</li>
+                    <li>Red banner shows incomplete status</li>
+                    <li>Enable download on pause/error</li>
+                </ul>
+                
+                <h3>v2.8.0 (2026-01-12)</h3>
+                <ul style="margin-left:20px; margin-bottom:16px;">
+                    <li>Allow incomplete generation toggle</li>
+                    <li>Download at any completion %</li>
+                    <li>Filename shows completion (e.g. _incomplete_45)</li>
+                    <li>Validation shows completion status</li>
+                    <li>Enable download on partial scrape</li>
+                </ul>
+                
+                <h3>v2.7.0 (2026-01-12)</h3>
+                <ul style="margin-left:20px; margin-bottom:16px;">
+                    <li>Auto-detect rate limit vs network errors</li>
+                    <li>Real-time rate limit counter (X/60)</li>
+                    <li>Accurate reset time calculation</li>
+                    <li>VPN/Token suggestions on rate limit</li>
+                    <li>Auto-pause on rate limit hit</li>
+                </ul>
+                
+                <h3>v2.6.0 (2026-01-12)</h3>
+                <ul style="margin-left:20px; margin-bottom:16px;">
+                    <li>HTML validation before download</li>
+                    <li>File preview (first N lines)</li>
+                    <li>Download raw file content</li>
+                    <li>Preview generated HTML</li>
+                </ul>
+                
+                <h3>v2.5.0 (2026-01-12)</h3>
+                <ul style="margin-left:20px; margin-bottom:16px;">
+                    <li>Fixed clear button functionality</li>
+                    <li>Generated static HTML now properly minified</li>
+                    <li>Base64 encoded scripts in output</li>
+                </ul>
+                
+                <h3>v2.4.0 (2026-01-12)</h3>
+                <ul style="margin-left:20px; margin-bottom:16px;">
+                    <li>Minified static output</li>
+                    <li>Generated HTML uses minified JavaScript</li>
+                </ul>
+                
+                <h3>v2.3.0 (2026-01-12)</h3>
+                <ul style="margin-left:20px; margin-bottom:16px;">
+                    <li>Fixed async/await issues</li>
+                    <li>Proper error handling</li>
+                    <li>Working pause/resume</li>
+                    <li>Tested with real GitHub API</li>
+                </ul>
+                
+                <h3>v2.2.0 (2026-01-12)</h3>
+                <ul style="margin-left:20px; margin-bottom:16px;">
+                    <li>Cleaned UI - code not visible in interface</li>
+                    <li>Encapsulated app logic</li>
+                </ul>
+                
+                <h3>v2.1.0 (2026-01-12)</h3>
+                <ul style="margin-left:20px; margin-bottom:16px;">
+                    <li>Fixed HTML entity escaping issue</li>
+                    <li>Proper encoding for file content</li>
+                </ul>
+                
+                <h3>v2.0.0 (2026-01-12)</h3>
+                <ul style="margin-left:20px; margin-bottom:16px;">
+                    <li>Progressive data scraping</li>
+                    <li>Build static site with file content</li>
+                    <li>Download complete standalone HTML</li>
+                    <li>Pause/resume functionality</li>
+                    <li>Real-time progress tracking</li>
+                    <li>File status indicators</li>
+                    <li>Incomplete build support</li>
+                    <li>Mobile-optimized download</li>
+                    <li>Clear build data option</li>
+                </ul>
+                
+                <h3>v1.0.0 (2026-01-12)</h3>
+                <ul style="margin-left:20px; margin-bottom:16px;">
+                    <li>Initial release</li>
+                    <li>GitHub API integration</li>
+                    <li>File tree browsing</li>
+                    <li>Commit history viewing</li>
+                    <li>README rendering</li>
+                    <li>LocalStorage caching</li>
+                    <li>Mobile-optimized UI</li>
+                    <li>Debug mode</li>
+                </ul>
+                
+                <button class="btn" onclick="App.closeChangelog()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+const App = (() => {
+    const API = 'https://api.github.com';
+    const STORAGE_KEY = 'gh_static_build';
+    
+    let state = {
+        repo: null,
+        info: {},
+        commits: [],
+        files: [],
+        fileContents: {},
+        readme: '',
+        progress: {
+            filesScraped: 0,
+            commitsScraped: 0,
+            totalFiles: 0,
+            totalCommits: 0
+        },
+        savedTime: Date.now()
+    };
+    
+    let isPaused = false;
+    let isActive = false;
+    const logs = [];
+    let rateLimitStatus = {
+        remaining: null,
+        limit: null,
+        resetTime: null
+    };
+    
+    // Settings state (separate from build data)
+    const SETTINGS_KEY = 'gh_static_settings';
+    let settings = {
+        useToken: false,
+        githubToken: '',
+        predictedRateLimit: 60,
+        actualRequests: 0,
+        rateLimitAccuracy: 100
+    };
+    
+    const saveSettings = () => {
+        try {
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+            log('Settings saved');
+        } catch (e) {
+            log(`Settings save error: ${e.message}`, 'error');
+        }
+    };
+    
+    const loadSettings = () => {
+        try {
+            const data = localStorage.getItem(SETTINGS_KEY);
+            if (data) {
+                const parsed = JSON.parse(data);
+                settings = { ...settings, ...parsed };
+                log('Settings loaded');
+                
+                // Apply UI
+                if (settings.useToken) {
+                    document.getElementById('useToken').checked = true;
+                    document.getElementById('tokenInput').style.display = 'block';
+                    if (settings.githubToken) {
+                        document.getElementById('githubToken').value = settings.githubToken;
+                    }
+                }
+                
+                updateStorageInfo();
+            }
+        } catch (e) {
+            log(`Settings load error: ${e.message}`, 'error');
+        }
+    };
+    
+    const updateStorageInfo = () => {
+        try {
+            // Build data size
+            const buildData = localStorage.getItem(STORAGE_KEY);
+            const buildSize = buildData ? new Blob([buildData]).size : 0;
+            document.getElementById('buildDataSize').textContent = formatBytes(buildSize);
+            
+            // Settings size
+            const settingsData = localStorage.getItem(SETTINGS_KEY);
+            const settingsSize = settingsData ? new Blob([settingsData]).size : 0;
+            document.getElementById('settingsSize').textContent = formatBytes(settingsSize);
+            
+            // Total
+            document.getElementById('totalStorageSize').textContent = formatBytes(buildSize + settingsSize);
+            
+            // Rate limit prediction
+            document.getElementById('predictedLimit').textContent = `${settings.predictedRateLimit}/hr`;
+            document.getElementById('actualSpent').textContent = settings.actualRequests;
+            document.getElementById('predictionAccuracy').textContent = `${settings.rateLimitAccuracy}%`;
+        } catch (e) {
+            log(`Storage info error: ${e.message}`, 'error');
+        }
+    };
+    
+    const updateRateLimitDisplay = () => {
+        const infoEl = document.getElementById('rateLimitInfo');
+        const textEl = document.getElementById('rateLimitText');
+        
+        if (rateLimitStatus.remaining !== null && rateLimitStatus.limit !== null) {
+            infoEl.style.display = 'flex';
+            textEl.textContent = `${rateLimitStatus.remaining}/${rateLimitStatus.limit}`;
+            
+            // Update prediction accuracy
+            if (rateLimitStatus.limit !== settings.predictedRateLimit) {
+                settings.predictedRateLimit = rateLimitStatus.limit;
+                settings.rateLimitAccuracy = 100;
+                saveSettings();
+            }
+            
+            if (rateLimitStatus.remaining < 10) {
+                textEl.style.color = 'var(--red)';
+            } else if (rateLimitStatus.remaining < 30) {
+                textEl.style.color = 'var(--yellow)';
+            } else {
+                textEl.style.color = 'var(--cyan)';
+            }
+        }
+        
+        updateStorageInfo();
+    };
+    
+    const log = (msg, level = 'info') => {
+        const entry = `[${new Date().toISOString()}] [${level.toUpperCase()}] ${msg}`;
+        logs.push(entry);
+        console.log(entry);
+        if (document.getElementById('debugMode')?.checked) {
+            updateDebugView();
+        }
+    };
+    
+    const updateDebugView = () => {
+        const el = document.getElementById('debugLog');
+        if (el) {
+            el.innerHTML = logs.slice(-100).map(l => `<div>${escapeHtml(l)}</div>`).join('');
+            el.scrollTop = el.scrollHeight;
+        }
+    };
+    
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    
+    const escapeHtml = (text) => {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    };
+    
+    const formatBytes = (bytes) => {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+    
+    const githubFetch = async (url, retry = 0) => {
+        log(`Fetching: ${url}`);
+        
+        // Track request
+        settings.actualRequests++;
+        saveSettings();
+        
+        try {
+            const headers = { 'Accept': 'application/vnd.github.v3+json' };
+            
+            // Add token if enabled
+            if (settings.useToken && settings.githubToken) {
+                headers['Authorization'] = `Bearer ${settings.githubToken}`;
+                log('Using GitHub token');
+            }
+            
+            const response = await fetch(url, { headers });
+            
+            // Store rate limit info
+            const remaining = response.headers.get('X-RateLimit-Remaining');
+            const limit = response.headers.get('X-RateLimit-Limit');
+            const resetTime = response.headers.get('X-RateLimit-Reset');
+            
+            if (remaining !== null && limit !== null) {
+                rateLimitStatus.remaining = parseInt(remaining);
+                rateLimitStatus.limit = parseInt(limit);
+                rateLimitStatus.resetTime = resetTime ? new Date(resetTime * 1000) : null;
+                updateRateLimitDisplay();
+            }
+            
+            // Handle token errors
+            if (response.status === 401 && settings.useToken) {
+                showError('❌ <strong>Invalid GitHub Token</strong><br><br>The token is invalid or expired. Falling back to no authentication.');
+                log('Invalid token, falling back', 'error');
+                
+                // Disable token
+                settings.useToken = false;
+                settings.githubToken = '';
+                document.getElementById('useToken').checked = false;
+                document.getElementById('tokenInput').style.display = 'none';
+                saveSettings();
+                
+                // Retry without token
+                return githubFetch(url, retry);
+            }
+            
+            // Rate limit detection
+            if (response.status === 403) {
+                if (remaining === '0' && resetTime) {
+                    const resetDate = new Date(resetTime * 1000);
+                    const now = new Date();
+                    const minutesLeft = Math.ceil((resetDate - now) / 60000);
+                    const hoursLeft = Math.floor(minutesLeft / 60);
+                    const minsLeft = minutesLeft % 60;
+                    
+                    const timeStr = hoursLeft > 0 ? 
+                        `${hoursLeft}h ${minsLeft}m` : 
+                        `${minutesLeft} minutes`;
+                    
+                    const msg = `🚫 <strong>GitHub Rate Limit Reached</strong><br><br>` +
+                        `Limit: ${limit} requests/hour<br>` +
+                        `Reset in: <strong>${timeStr}</strong><br>` +
+                        `Available at: <strong>${resetDate.toLocaleTimeString()}</strong><br><br>` +
+                        `💡 <strong>Options:</strong><br>` +
+                        `• Wait ${timeStr} for reset<br>` +
+                        `• Use VPN/Proxy for new IP<br>` +
+                        `• Pause & resume later<br>` +
+                        `• Add GitHub token (60→5000/hr)`;
+                    
+                    showError(msg);
+                    log(`Rate limited. Reset: ${resetDate.toLocaleTimeString()}`, 'error');
+                    
+                    // Auto-pause if active
+                    if (isActive && !isPaused) {
+                        isPaused = true;
+                        document.getElementById('pauseBtn').textContent = '▶️ Resume';
+                        updateStatus('⏸️ Paused (Rate Limited)');
+                    }
+                    
+                    throw new Error(`Rate limited until ${resetDate.toLocaleTimeString()}`);
+                }
+            }
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            log(`Got ${JSON.stringify(data).length} bytes`);
+            return data;
+        } catch (error) {
+            // Detect network vs rate limit
+            if (error.message.includes('Rate limited')) {
+                throw error; // Don't retry rate limits
+            }
+            
+            if (error.name === 'TypeError' || error.message.includes('Failed to fetch')) {
+                log(`Network error: ${error.message}`, 'error');
+                showError(`❌ <strong>Network Error</strong><br><br>Check your internet connection and try again.`);
+                throw new Error('Network error - check connection');
+            }
+            
+            if (retry < 3) {
+                log(`Retry ${retry + 1}/3`, 'warn');
+                await sleep(2000 * (retry + 1));
+                return githubFetch(url, retry + 1);
+            }
+            throw error;
+        }
+    };
+    
+    const saveData = () => {
+        try {
+            // Add timestamp
+            state.savedTime = Date.now();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            log('Saved to localStorage');
+        } catch (e) {
+            log(`Storage error: ${e.message}`, 'error');
+            if (e.name === 'QuotaExceededError') {
+                showError('Storage full! Reduce max files/commits.');
+            }
+        }
+    };
+    
+    const loadData = () => {
+        try {
+            const data = localStorage.getItem(STORAGE_KEY);
+            if (!data) return null;
+            
+            const parsed = JSON.parse(data);
+            
+            // Validate data structure
+            if (!parsed || typeof parsed !== 'object') {
+                log('Invalid data structure', 'error');
+                return null;
+            }
+            
+            // Check required fields
+            if (!parsed.repo || !parsed.progress) {
+                log('Missing required fields', 'error');
+                return null;
+            }
+            
+            // Validate progress object
+            if (typeof parsed.progress.filesScraped !== 'number' || 
+                typeof parsed.progress.totalFiles !== 'number') {
+                log('Invalid progress data', 'error');
+                return null;
+            }
+            
+            // Check if arrays are valid
+            if (!Array.isArray(parsed.files) || !Array.isArray(parsed.commits)) {
+                log('Invalid array data', 'error');
+                return null;
+            }
+            
+            // Validate fileContents is an object
+            if (typeof parsed.fileContents !== 'object' || parsed.fileContents === null) {
+                log('Invalid fileContents', 'error');
+                return null;
+            }
+            
+            // Check if data is too old (more than 7 days)
+            const savedTime = parsed.savedTime || 0;
+            const now = Date.now();
+            const sevenDays = 7 * 24 * 60 * 60 * 1000;
+            
+            if (savedTime && (now - savedTime > sevenDays)) {
+                log('Data is older than 7 days', 'warn');
+                if (!confirm('Cached data is older than 7 days. Load anyway?')) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    return null;
+                }
+            }
+            
+            log('Data validation passed');
+            return parsed;
+        } catch (e) {
+            log(`Load error: ${e.message}`, 'error');
+            showError('Corrupted cache data detected. Clearing...');
+            localStorage.removeItem(STORAGE_KEY);
+            return null;
+        }
+    };
+    
+    const updateStatus = (text) => {
+        document.getElementById('statusText').textContent = text;
+        log(text);
+    };
+    
+    const updateProgress = () => {
+        const total = state.progress.totalFiles + state.progress.totalCommits;
+        const done = state.progress.filesScraped + state.progress.commitsScraped;
+        const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+        
+        const bar = document.getElementById('progressBar');
+        bar.style.width = percent + '%';
+        bar.textContent = percent + '%';
+    };
+    
+    const updateUI = () => {
+        document.getElementById('filesCount').textContent = 
+            `${state.progress.filesScraped}/${state.progress.totalFiles}`;
+        document.getElementById('commitsCount').textContent = 
+            `${state.progress.commitsScraped}/${state.progress.totalCommits}`;
+        document.getElementById('tabFilesCount').textContent = state.files.length;
+        document.getElementById('tabCommitsCount').textContent = state.commits.length;
+        
+        const dataStr = JSON.stringify(state);
+        document.getElementById('dataSize').textContent = formatBytes(dataStr.length);
+        
+        renderFiles();
+        renderCommits();
+        updateProgress();
+    };
+    
+    const viewFilePreview = (path) => {
+        const content = state.fileContents[path];
+        if (!content) {
+            alert('Content not available');
+            return;
+        }
+        
+        const lines = content.content.split('\n');
+        const previewLines = parseInt(document.getElementById('previewLines').value);
+        const preview = lines.slice(0, previewLines).join('\n');
+        const hasMore = lines.length > previewLines;
+        
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:300; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:60px 12px 12px;';
+        
+        modal.innerHTML = `
+            <div style="background:#44475a; padding:16px; border-radius:8px;">
+                <h2 style="color:#ff79c6; margin-bottom:16px; word-break:break-all;">${escapeHtml(path)}</h2>
+                <div style="color:#6272a4; margin-bottom:8px; font-size:12px;">
+                    ${formatBytes(content.size)} • ${lines.length} lines • Showing ${Math.min(previewLines, lines.length)} lines
+                </div>
+                <pre style="background:#282a36; padding:12px; border-radius:4px; overflow-x:auto; white-space:pre; font-size:12px; max-height:60vh;"><code>${escapeHtml(preview)}</code></pre>
+                ${hasMore ? `<div style="color:#f1fa8c; margin-top:8px; font-size:12px;">... ${lines.length - previewLines} more lines</div>` : ''}
+                <div style="margin-top:12px; display:flex; gap:8px;">
+                    <button style="flex:1; background:#50fa7b; color:#282a36; border:none; padding:8px 16px; border-radius:4px; font-weight:600; cursor:pointer;" onclick="App.downloadFile('${escapeHtml(path).replace(/'/g, "\\'")}')">💾 Download Full</button>
+                    <button style="flex:1; background:#bd93f9; color:#282a36; border:none; padding:8px 16px; border-radius:4px; font-weight:600; cursor:pointer;" onclick="this.closest('div[style*=fixed]').remove()">Close</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    };
+    
+    const renderFiles = () => {
+        const container = document.getElementById('filesView');
+        let html = '';
+        
+        state.files.forEach(file => {
+            const hasContent = state.fileContents[file.path];
+            const status = hasContent ? '✅' : '⏳';
+            
+            html += `
+            <div class="file-item" onclick="App.viewFile('${escapeHtml(file.path).replace(/'/g, "\\'")}')">
+                <div class="file-info">
+                    <div class="file-name">📄 ${escapeHtml(file.path)}</div>
+                    <div class="file-meta">${formatBytes(file.size)}</div>
+                </div>
+                <div class="file-status">${status}</div>
+            </div>`;
+        });
+        
+        container.innerHTML = html || '<div class="loading">No files</div>';
+    };
+    
+    const renderCommits = () => {
+        const container = document.getElementById('commitsView');
+        let html = '';
+        
+        state.commits.forEach(commit => {
+            const sha = commit.sha.substring(0, 7);
+            const msg = commit.commit.message.split('\n')[0];
+            const author = commit.commit.author.name;
+            const date = new Date(commit.commit.author.date).toLocaleDateString();
+            
+            html += `
+            <div class="commit-item">
+                <div class="commit-sha">${sha}</div>
+                <div class="commit-msg">${escapeHtml(msg)}</div>
+                <div class="commit-meta">${author} • ${date}</div>
+            </div>`;
+        });
+        
+        container.innerHTML = html || '<div class="loading">No commits</div>';
+    };
+    
+    const showError = (msg) => {
+        document.getElementById('errorContainer').innerHTML = `<div class="error">${msg}</div>`;
+        setTimeout(() => document.getElementById('errorContainer').innerHTML = '', 8000);
+    };
+    
+    const showSuccess = (msg) => {
+        document.getElementById('successContainer').innerHTML = `<div class="success">${msg}</div>`;
+        setTimeout(() => document.getElementById('successContainer').innerHTML = '', 5000);
+    };
+    
+    const scrapeRepo = async (owner, repo) => {
+        updateStatus('Fetching repo info...');
+        
+        if (!state.info.id) {
+            state.info = await githubFetch(`${API}/repos/${owner}/${repo}`);
+            saveData();
+        }
+        
+        const maxCommits = parseInt(document.getElementById('maxCommits').value);
+        if (state.commits.length === 0) {
+            updateStatus('Fetching commits...');
+            state.commits = await githubFetch(`${API}/repos/${owner}/${repo}/commits?per_page=${maxCommits}`);
+            state.progress.totalCommits = state.commits.length;
+            state.progress.commitsScraped = state.commits.length;
+            saveData();
+            updateUI();
+            
+            // Enable download after commits if incomplete allowed
+            if (document.getElementById('allowIncomplete').checked) {
+                document.getElementById('downloadBtn').disabled = false;
+                document.getElementById('previewBtn').disabled = false;
+            }
+        }
+        
+        if (state.files.length === 0) {
+            updateStatus('Fetching file tree...');
+            const branch = state.info.default_branch || 'main';
+            const tree = await githubFetch(`${API}/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`);
+            
+            const maxFiles = parseInt(document.getElementById('maxFiles').value);
+            state.files = tree.tree.filter(f => f.type === 'blob').slice(0, maxFiles);
+            state.progress.totalFiles = state.files.length;
+            saveData();
+            updateUI();
+        }
+        
+        if (!state.readme) {
+            try {
+                updateStatus('Fetching README...');
+                const readme = await githubFetch(`${API}/repos/${owner}/${repo}/readme`);
+                state.readme = atob(readme.content);
+                saveData();
+            } catch (e) {
+                log('No README', 'warn');
+                state.readme = 'No README available';
+            }
+        }
+        
+        if (document.getElementById('fetchFullContent').checked) {
+            updateStatus('Fetching file contents...');
+            await fetchFileContents(owner, repo);
+        }
+        
+        updateStatus('✅ Complete');
+        saveData();
+        
+        // Enable buttons
+        document.getElementById('downloadBtn').disabled = false;
+        document.getElementById('previewBtn').disabled = false;
+    };
+    
+    const fetchFileContents = async (owner, repo) => {
+        for (let i = state.progress.filesScraped; i < state.files.length; i++) {
+            if (isPaused) {
+                log('Paused');
+                updateStatus('⏸️ Paused');
+                
+                // Enable download on pause if incomplete allowed
+                if (document.getElementById('allowIncomplete').checked) {
+                    document.getElementById('downloadBtn').disabled = false;
+                    document.getElementById('previewBtn').disabled = false;
+                }
+                return;
+            }
+            
+            const file = state.files[i];
+            
+            if (file.size > 1048576) {
+                log(`Skipping large: ${file.path}`, 'warn');
+                state.progress.filesScraped++;
+                continue;
+            }
+            
+            try {
+                updateStatus(`Fetching: ${file.path}`);
+                const content = await githubFetch(file.url);
+                
+                if (content.content) {
+                    state.fileContents[file.path] = {
+                        content: atob(content.content),
+                        encoding: content.encoding,
+                        size: file.size
+                    };
+                }
+                
+                state.progress.filesScraped++;
+                updateProgress();
+                saveData();
+                
+                // Enable download after first few files if incomplete allowed
+                if (state.progress.filesScraped >= 3 && document.getElementById('allowIncomplete').checked) {
+                    document.getElementById('downloadBtn').disabled = false;
+                    document.getElementById('previewBtn').disabled = false;
+                }
+                
+                await sleep(100);
+            } catch (error) {
+                log(`Error: ${file.path}: ${error.message}`, 'error');
+                
+                // On error, mark as scraped but skip content
+                state.progress.filesScraped++;
+                saveData();
+                
+                // Enable download if rate limited and incomplete allowed
+                if (error.message.includes('Rate limited') && document.getElementById('allowIncomplete').checked) {
+                    document.getElementById('downloadBtn').disabled = false;
+                    document.getElementById('previewBtn').disabled = false;
+                    throw error; // Stop fetching
+                }
+            }
+            
+            updateUI();
+        }
+    };
+    
+    const validateHTML = (html) => {
+        const issues = [];
+        
+        // Check completion status
+        const completionPercent = state.progress.totalFiles > 0 ? 
+            Math.round((state.progress.filesScraped / state.progress.totalFiles) * 100) : 0;
+        
+        if (completionPercent < 100) {
+            issues.push({ 
+                type: 'error', 
+                msg: `⚠️ Incomplete: ${completionPercent}% (${state.progress.filesScraped}/${state.progress.totalFiles} files)` 
+            });
+        } else {
+            issues.push({ type: 'success', msg: `✅ Complete: All ${state.progress.totalFiles} files fetched` });
+        }
+        
+        // Basic checks
+        if (!html.includes('<!DOCTYPE html>')) {
+            issues.push({ type: 'error', msg: 'Missing DOCTYPE' });
+        }
+        if (!html.includes('<html')) {
+            issues.push({ type: 'error', msg: 'Missing <html> tag' });
+        }
+        if (!html.includes('</html>')) {
+            issues.push({ type: 'error', msg: 'Missing </html> closing tag' });
+        }
+        if (!html.includes('<head>')) {
+            issues.push({ type: 'error', msg: 'Missing <head> tag' });
+        }
+        if (!html.includes('<body>')) {
+            issues.push({ type: 'error', msg: 'Missing <body> tag' });
+        }
+        
+        // Check for common issues
+        const openTags = (html.match(/<[^\/][^>]*>/g) || []).length;
+        const closeTags = (html.match(/<\/[^>]*>/g) || []).length;
+        
+        if (Math.abs(openTags - closeTags) > 5) {
+            issues.push({ type: 'error', msg: `Tag mismatch: ${openTags} open vs ${closeTags} close` });
+        }
+        
+        // Check for unclosed script tags
+        const scriptOpen = (html.match(/<script[^>]*>/g) || []).length;
+        const scriptClose = (html.match(/<\/script>/g) || []).length;
+        if (scriptOpen !== scriptClose) {
+            issues.push({ type: 'error', msg: 'Unclosed <script> tag' });
+        }
+        
+        // Check file size
+        const sizeKB = (new Blob([html]).size / 1024).toFixed(2);
+        issues.push({ type: 'success', msg: `HTML size: ${sizeKB} KB` });
+        
+        // Check data embedded
+        const contentCount = Object.keys(state.fileContents).length;
+        issues.push({ type: 'success', msg: `${contentCount} files with content` });
+        
+        if (html.includes('eval(atob(')) {
+            issues.push({ type: 'success', msg: 'Script encoded' });
+        }
+        
+        return issues;
+    };
+    
+    const utf8ToBase64 = (str) => {
+        try {
+            // Convert UTF-8 string to base64 safely
+            return btoa(unescape(encodeURIComponent(str)));
+        } catch (e) {
+            log(`Base64 encoding error: ${e.message}`, 'error');
+            // Fallback: remove non-latin1 characters
+            const latin1Str = str.replace(/[^\x00-\xFF]/g, '?');
+            return btoa(latin1Str);
+        }
+    };
+    
+    const base64ToUtf8 = (str) => {
+        try {
+            return decodeURIComponent(escape(atob(str)));
+        } catch (e) {
+            log(`Base64 decoding error: ${e.message}`, 'error');
+            return atob(str);
+        }
+    };
+    
+    const generateStaticHTML = () => {
+        const repoName = state.repo;
+        const info = state.info;
+        
+        const completionPercent = state.progress.totalFiles > 0 ? 
+            Math.round((state.progress.filesScraped / state.progress.totalFiles) * 100) : 0;
+        const contentCount = Object.keys(state.fileContents).length;
+        
+        try {
+            let filesHTML = '';
+            state.files.forEach(file => {
+                const hasContent = state.fileContents[file.path];
+                const status = hasContent ? '✅' : '⏳';
+                const safePath = escapeHtml(file.path).replace(/'/g, "\\'");
+                filesHTML += `
+            <div class="file-item" onclick="V.v('${safePath}')">
+                <div class="file-info">
+                    <div class="file-name">📄 ${escapeHtml(file.path)}</div>
+                    <div class="file-meta">${formatBytes(file.size)}</div>
+                </div>
+                <div class="file-status">${status}</div>
+            </div>`;
+            });
+            
+            let commitsHTML = '';
+            state.commits.forEach(commit => {
+                const sha = commit.sha.substring(0, 7);
+                const msg = commit.commit.message.split('\n')[0];
+                const author = commit.commit.author.name;
+                const date = new Date(commit.commit.author.date).toLocaleDateString();
+                
+                commitsHTML += `
+            <div class="commit-item">
+                <div class="commit-sha">${sha}</div>
+                <div class="commit-msg">${escapeHtml(msg)}</div>
+                <div class="commit-meta">${author} • ${date}</div>
+            </div>`;
+            });
+            
+            const dataJSON = JSON.stringify(state.fileContents);
+            const previewLines = parseInt(document.getElementById('previewLines').value);
+            
+            const viewerCode = `const D=${dataJSON};const P=${previewLines};const V={t:e=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));event.target.classList.add('active');document.getElementById(e+'View').classList.add('active')},v:p=>{const c=D[p];if(!c){alert('⏳ Content not available in this build\\n\\nThis file was not fetched during generation.\\nTry re-generating with full content.');return}const l=c.content.split('\\n');const pv=l.slice(0,P).join('\\n');const more=l.length>P;const m=document.createElement('div');m.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);z-index:300;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:60px 12px 12px';const e=t=>{const d=document.createElement('div');d.textContent=t;return d.innerHTML};const fb=(b)=>{if(b===0)return'0 B';const k=1024;const s=['B','KB','MB','GB'];const i=Math.floor(Math.log(b)/Math.log(k));return parseFloat((b/Math.pow(k,i)).toFixed(2))+' '+s[i]};m.innerHTML=\`<div style="background:#44475a;padding:16px;border-radius:8px"><h2 style="color:#ff79c6;margin-bottom:16px;word-break:break-all">\${e(p)}</h2><div style="color:#6272a4;margin-bottom:8px;font-size:12px">\${fb(c.size)} • \${l.length} lines • Showing \${Math.min(P,l.length)} lines</div><pre style="background:#282a36;padding:12px;border-radius:4px;overflow-x:auto;white-space:pre;font-size:12px;max-height:60vh"><code>\${e(pv)}</code></pre>\${more?\`<div style="color:#f1fa8c;margin-top:8px;font-size:12px">... \${l.length-P} more lines</div>\`:''}<div style="margin-top:12px;display:flex;gap:8px"><button style="flex:1;background:#50fa7b;color:#282a36;border:none;padding:8px 16px;border-radius:4px;font-weight:600;cursor:pointer" onclick="V.d('\${e(p).replace(/'/g,"\\\\'")}')" >💾 Download</button><button style="flex:1;background:#bd93f9;color:#282a36;border:none;padding:8px 16px;border-radius:4px;font-weight:600;cursor:pointer" onclick="this.closest('div[style*=fixed]').remove()">Close</button></div></div>\`;document.body.appendChild(m)},d:p=>{const c=D[p];if(!c)return;const b=new Blob([c.content],{type:'text/plain'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=p.split('/').pop();document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u)}};window.switchTab=V.t;`;
+            
+            // Safe base64 encoding
+            const encodedScript = utf8ToBase64(viewerCode);
+            
+            const incompleteBanner = completionPercent < 100 ? 
+                `<div style="background:#ff5555;color:#282a36;padding:12px;border-radius:8px;margin-bottom:12px;font-weight:600;text-align:center;">⚠️ INCOMPLETE BUILD: ${completionPercent}% (${contentCount}/${state.files.length} files with content)</div>` : '';
+            
+            return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>${escapeHtml(repoName)}${completionPercent < 100 ? ` (${completionPercent}%)` : ''}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #282a36; color: #f8f8f2; line-height: 1.6; }
+        .container { max-width: 100%; padding: 12px; }
+        header { background: #44475a; padding: 16px 12px; position: sticky; top: 0; z-index: 100; border-bottom: 2px solid #6272a4; }
+        h1 { font-size: 18px; color: #ff79c6; }
+        .info-box { background: #44475a; padding: 16px; margin-bottom: 12px; border-radius: 8px; }
+        .info-box h2 { color: #ff79c6; margin-bottom: 8px; }
+        .stats { display: flex; gap: 16px; margin-top: 12px; font-size: 14px; color: #8be9fd; flex-wrap: wrap; }
+        .tabs { display: flex; gap: 4px; overflow-x: auto; background: #44475a; padding: 8px; margin-bottom: 12px; border-radius: 8px; }
+        .tab { padding: 10px 16px; background: #282a36; color: #6272a4; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap; font-size: 14px; }
+        .tab.active { background: #bd93f9; color: #282a36; font-weight: 600; }
+        .view { display: none; }
+        .view.active { display: block; }
+        .file-item { background: #44475a; padding: 12px; margin-bottom: 8px; border-radius: 4px; border-left: 3px solid #6272a4; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .file-item:active { background: #6272a4; }
+        .file-info { flex: 1; min-width: 0; }
+        .file-name { font-weight: 600; color: #8be9fd; margin-bottom: 4px; word-break: break-all; }
+        .file-meta { color: #6272a4; font-size: 11px; }
+        .file-status { font-size: 20px; margin-left: 8px; }
+        .commit-item { background: #44475a; padding: 12px; margin-bottom: 8px; border-radius: 4px; border-left: 3px solid #50fa7b; }
+        .commit-sha { font-family: monospace; color: #f1fa8c; font-size: 12px; }
+        .commit-msg { margin: 8px 0; color: #f8f8f2; word-break: break-word; }
+        .commit-meta { font-size: 12px; color: #6272a4; }
+    </style>
+</head>
+<body>
+    <header><h1>${escapeHtml(repoName)}${completionPercent < 100 ? ` (${completionPercent}%)` : ''}</h1></header>
+    <div class="container">
+        ${incompleteBanner}
+        <div class="info-box">
+            <h2>Repository</h2>
+            <p>${escapeHtml(info.description || 'No description')}</p>
+            <div class="stats">
+                <div>⭐ ${info.stargazers_count}</div>
+                <div>🍴 ${info.forks_count}</div>
+                <div>📝 ${info.language || 'N/A'}</div>
+                <div>📦 ${contentCount}/${state.files.length} files</div>
+            </div>
+        </div>
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('files')">📁 Files (${state.files.length})</button>
+            <button class="tab" onclick="switchTab('commits')">📝 Commits (${state.commits.length})</button>
+            <button class="tab" onclick="switchTab('readme')">📄 README</button>
+        </div>
+        <div id="filesView" class="view active">${filesHTML}</div>
+        <div id="commitsView" class="view">${commitsHTML}</div>
+        <div id="readmeView" class="view">
+            <pre style="white-space: pre-wrap; word-wrap: break-word; background: #44475a; padding: 12px; border-radius: 4px;">${escapeHtml(state.readme)}</pre>
+        </div>
+    </div>
+    <script>eval(atob('${encodedScript}'))<\/script>
+</body>
+</html>`;
+        } catch (error) {
+            log(`HTML generation error: ${error.message}`, 'error');
+            throw new Error(`Generation failed: ${error.message}`);
+        }
+    };
+    
+    return {
+        start: async function() {
+            const input = document.getElementById('repoInput').value.trim();
+            if (!input) {
+                showError('Enter a repository');
+                return;
+            }
+            
+            const [owner, repo] = input.split('/');
+            if (!owner || !repo) {
+                showError('Invalid format. Use: owner/repo');
+                return;
+            }
+            
+            const existing = loadData();
+            if (existing && existing.repo === input) {
+                if (confirm('Resume existing build?')) {
+                    state = existing;
+                    log('Resuming build');
+                } else {
+                    state = {
+                        repo: input,
+                        info: {},
+                        commits: [],
+                        files: [],
+                        fileContents: {},
+                        readme: '',
+                        progress: { filesScraped: 0, commitsScraped: 0, totalFiles: 0, totalCommits: 0 },
+                        savedTime: Date.now()
+                    };
+                }
+            } else {
+                state = {
+                    repo: input,
+                    info: {},
+                    commits: [],
+                    files: [],
+                    fileContents: {},
+                    readme: '',
+                    progress: { filesScraped: 0, commitsScraped: 0, totalFiles: 0, totalCommits: 0 }
+                };
+            }
+            
+            document.getElementById('repoTitle').textContent = input;
+            document.getElementById('inputSection').style.display = 'none';
+            document.getElementById('statusSection').style.display = 'block';
+            document.getElementById('mainContent').style.display = 'block';
+            
+            isActive = true;
+            document.getElementById('pauseBtn').disabled = false;
+            
+            try {
+                await scrapeRepo(owner, repo);
+                showSuccess('✅ Scraping complete! Download ready.');
+            } catch (error) {
+                log(error.message, 'error');
+                showError(error.message);
+                
+                // Enable incomplete download if allowed
+                if (document.getElementById('allowIncomplete').checked && 
+                    (state.files.length > 0 || state.commits.length > 0)) {
+                    document.getElementById('downloadBtn').disabled = false;
+                    document.getElementById('previewBtn').disabled = false;
+                    showSuccess('⚠️ Partial data available. You can download incomplete build.');
+                }
+            } finally {
+                isActive = false;
+                updateUI();
+            }
+        },
+        
+        togglePause: function() {
+            isPaused = !isPaused;
+            document.getElementById('pauseBtn').textContent = isPaused ? '▶️ Resume' : '⏸️ Pause';
+            
+            if (!isPaused && isActive) {
+                const [owner, repo] = state.repo.split('/');
+                fetchFileContents(owner, repo);
+            }
+        },
+        
+        preview: function() {
+            log('Generating preview...');
+            updateStatus('Generating preview...');
+            
+            const html = generateStaticHTML();
+            
+            if (document.getElementById('validateHTML').checked) {
+                const issues = validateHTML(html);
+                
+                const modal = document.createElement('div');
+                modal.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:300; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:60px 12px 12px;';
+                
+                const issuesHTML = issues.map(i => 
+                    `<div class="validation-item ${i.type}">${i.type === 'error' ? '❌' : '✅'} ${i.msg}</div>`
+                ).join('');
+                
+                const preview = html.substring(0, 500);
+                
+                modal.innerHTML = `
+                    <div style="background:#44475a; padding:16px; border-radius:8px;">
+                        <h2 style="color:#ff79c6; margin-bottom:16px;">HTML Preview & Validation</h2>
+                        <div class="validation-box">
+                            <h3 style="color:#8be9fd; margin-bottom:8px;">Validation Results</h3>
+                            ${issuesHTML}
+                        </div>
+                        <div class="validation-box" style="margin-top:12px;">
+                            <h3 style="color:#8be9fd; margin-bottom:8px;">HTML Preview (first 500 chars)</h3>
+                            <pre style="font-size:10px; overflow-x:auto;">${escapeHtml(preview)}...</pre>
+                        </div>
+                        <button style="margin-top:12px; background:#bd93f9; color:#282a36; border:none; padding:8px 16px; border-radius:4px; font-weight:600; cursor:pointer; width:100%;" onclick="this.closest('div[style*=fixed]').remove()">Close</button>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            
+            updateStatus('Preview ready');
+        },
+        
+        download: function() {
+            // Check if we have any data
+            const hasFiles = state.files.length > 0;
+            const hasCommits = state.commits.length > 0;
+            const hasAnyContent = Object.keys(state.fileContents).length > 0;
+            
+            if (!hasFiles && !hasCommits) {
+                showError('No data to generate. Start scraping first.');
+                return;
+            }
+            
+            const allowIncomplete = document.getElementById('allowIncomplete').checked;
+            const completionPercent = state.progress.totalFiles > 0 ? 
+                Math.round((state.progress.filesScraped / state.progress.totalFiles) * 100) : 0;
+            
+            // Check if incomplete (only warn if toggle is OFF and incomplete)
+            if (state.progress.filesScraped < state.progress.totalFiles && !allowIncomplete) {
+                if (!confirm(`⚠️ Build incomplete (${completionPercent}% files fetched)\n\nEnable "Allow Incomplete Generation" in settings to download anyway.`)) {
+                    return;
+                }
+            }
+            
+            // Show confirmation for incomplete builds (even when toggle is ON)
+            if (state.progress.filesScraped < state.progress.totalFiles && allowIncomplete) {
+                if (!confirm(`📦 Generate incomplete build?\n\n${completionPercent}% complete\n${state.progress.filesScraped}/${state.progress.totalFiles} files fetched\n\nFiles without content will show ⏳ status.`)) {
+                    return;
+                }
+            }
+            
+            // Show loading state
+            updateStatus(`🔄 Generating HTML... (${completionPercent}% complete)`);
+            showSuccess('⏳ Generating static HTML... This may take a moment.');
+            
+            // Use setTimeout to allow UI to update
+            setTimeout(() => {
+                try {
+                    log('Generating static HTML...');
+                    
+                    const html = generateStaticHTML();
+                    
+                    if (document.getElementById('validateHTML').checked) {
+                        const issues = validateHTML(html);
+                        const errors = issues.filter(i => i.type === 'error');
+                        
+                        if (errors.length > 0) {
+                            if (!confirm(`Found ${errors.length} validation errors. Download anyway?`)) {
+                                updateStatus('❌ Generation cancelled');
+                                return;
+                            }
+                        }
+                    }
+                    
+                    const blob = new Blob([html], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const suffix = completionPercent < 100 ? `_incomplete_${completionPercent}` : '';
+                    a.download = `${state.repo.replace('/', '_')}${suffix}_static.html`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    log(`Downloaded (${completionPercent}% complete)`);
+                    updateStatus(`✅ Generated (${completionPercent}%)`);
+                    showSuccess(`✅ Downloaded! (${completionPercent}% complete)`);
+                } catch (error) {
+                    log(`Generation error: ${error.message}`, 'error');
+                    showError(`❌ Generation failed: ${error.message}`);
+                    updateStatus('❌ Generation failed');
+                }
+            }, 100);
+        },
+        
+        viewFile: function(path) {
+            viewFilePreview(path);
+        },
+        
+        downloadFile: function(path) {
+            const content = state.fileContents[path];
+            if (!content) return;
+            
+            const blob = new Blob([content.content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = path.split('/').pop();
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        },
+        
+        clear: function() {
+            if (confirm('Clear all data and reload?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                state = {
+                    repo: null,
+                    info: {},
+                    commits: [],
+                    files: [],
+                    fileContents: {},
+                    readme: '',
+                    progress: { filesScraped: 0, commitsScraped: 0, totalFiles: 0, totalCommits: 0 },
+                    savedTime: Date.now()
+                };
+                document.getElementById('inputSection').style.display = 'block';
+                document.getElementById('statusSection').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'none';
+                document.getElementById('repoInput').value = '';
+                document.getElementById('repoTitle').textContent = 'Static Site Gen';
+                log('Cleared all data');
+                showSuccess('Build data cleared!');
+            }
+        },
+        
+        switchTab: function(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`${tab}View`).classList.add('active');
+        },
+        
+        showSettings: function() {
+            document.getElementById('settingsModal').style.display = 'block';
+        },
+        
+        closeSettings: function() {
+            document.getElementById('settingsModal').style.display = 'none';
+        },
+        
+        toggleDebug: function() {
+            const el = document.getElementById('debugContainer');
+            el.style.display = document.getElementById('debugMode').checked ? 'block' : 'none';
+            updateDebugView();
+        },
+        
+        showChangelog: function() {
+            document.getElementById('changelogModal').style.display = 'block';
+        },
+        
+        closeChangelog: function() {
+            document.getElementById('changelogModal').style.display = 'none';
+        }
+    };
+})();
+
+console.log('GitHub Static Site Generator v2.6 ready');
+
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function(e) {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) {
+        e.preventDefault();
+    }
+    lastTouchEnd = now;
+}, false);
+    </script>
+</body>
+</html>
