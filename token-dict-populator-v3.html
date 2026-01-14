@@ -1,0 +1,2418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="Token Dictionary Populator - Create, sync, merge & optimize PTAM tokens">
+    <meta name="theme-color" content="#6366f1">
+    <title>Token Dictionary Populator v1</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #252538;
+            --text-primary: #e8e8f0;
+            --text-secondary: #a8a8b8;
+            --text-tertiary: #707080;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --accent-dim: rgba(99, 102, 241, 0.15);
+            --success: #10b981;
+            --success-dim: rgba(16, 185, 129, 0.15);
+            --danger: #ef4444;
+            --danger-dim: rgba(239, 68, 68, 0.15);
+            --warning: #f59e0b;
+            --warning-dim: rgba(245, 158, 11, 0.15);
+            --info: #06b6d4;
+            --info-dim: rgba(6, 182, 212, 0.15);
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 8px 48px rgba(0, 0, 0, 0.5);
+        }
+
+        body.light-mode {
+            --bg-primary: #fafafa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f5f5f5;
+            --text-primary: #0f0f1a;
+            --text-secondary: #404050;
+            --text-tertiary: #808090;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(0, 0, 0, 0.08);
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 8px 48px rgba(0, 0, 0, 0.12);
+        }
+
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: 'Syne', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .version {
+            font-size: 10px;
+            color: var(--text-tertiary);
+            margin-top: 2px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .icon-btn:active {
+            transform: scale(0.92);
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .stat-card {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        .container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        .section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .action-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .action-card:active {
+            transform: scale(0.97);
+            background: var(--accent-dim);
+            border-color: var(--accent);
+        }
+
+        .action-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .action-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .action-hint {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        .dict-status {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .status-row:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .status-value {
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .token-list {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .token-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .token-item:last-child {
+            border-bottom: none;
+        }
+
+        .token-original {
+            flex: 1;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+
+        .token-id {
+            color: var(--accent);
+            font-weight: 600;
+            margin-left: 12px;
+        }
+
+        .token-actions {
+            display: flex;
+            gap: 4px;
+            margin-left: 8px;
+        }
+
+        .token-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: none;
+            background: var(--danger-dim);
+            color: var(--danger);
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .token-btn:active {
+            transform: scale(0.9);
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+            box-shadow: 0 4px 16px var(--accent-dim);
+        }
+
+        .btn-success {
+            background: var(--success-dim);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .btn-warning {
+            background: var(--warning-dim);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+
+        .btn-danger {
+            background: var(--danger-dim);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            animation: modalSlide 0.3s ease;
+        }
+
+        @keyframes modalSlide {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:active {
+            transform: scale(0.9);
+            background: var(--danger);
+            color: white;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.2s ease;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+
+        .textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .alert {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            animation: alertSlide 0.3s ease;
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(20px);
+        }
+
+        @keyframes alertSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert.success {
+            background: var(--success-dim);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .alert.error {
+            background: var(--danger-dim);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .alert.warning {
+            background: var(--warning-dim);
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        .alert.info {
+            background: var(--info-dim);
+            border-color: var(--info);
+            color: var(--info);
+        }
+
+        .alert-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .alert-text {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .alert-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: inherit;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .alert-close:active {
+            opacity: 1;
+        }
+
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .loading.active {
+            display: flex;
+        }
+
+        .loading-content {
+            text-align: center;
+            padding: 32px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .loading-detail {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .debug-console {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-top: 16px;
+            max-height: 250px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .debug-header {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .debug-log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            max-height: 200px;
+        }
+
+        .debug-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .debug-entry:last-child {
+            border-bottom: none;
+        }
+
+        .debug-entry.error {
+            color: var(--danger);
+        }
+
+        .debug-entry.warning {
+            color: var(--warning);
+        }
+
+        .debug-entry.success {
+            color: var(--success);
+        }
+
+        .debug-entry.info {
+            color: var(--info);
+        }
+
+        .changelog {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .changelog-entry {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .changelog-entry:last-child {
+            border-bottom: none;
+        }
+
+        .changelog-time {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .changelog-action {
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .changelog-detail {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+
+        .optimize-result {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .optimize-header {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--accent);
+        }
+
+        .optimize-item {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .optimize-item:last-child {
+            border-bottom: none;
+        }
+
+        .optimize-before {
+            color: var(--danger);
+            text-decoration: line-through;
+        }
+
+        .optimize-after {
+            color: var(--success);
+            margin-left: 8px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-top">
+            <div>
+                <div class="logo">TOKEN DICT POPULATOR</div>
+                <div class="version">v1 • Modified: Just Now</div>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="app.openModal('settingsModal')" title="Settings">⚙️</button>
+                <button class="icon-btn" onclick="app.openModal('changelogModal')" title="Changelog">📋</button>
+                <button class="icon-btn" onclick="app.refreshClean()" title="Refresh & Clean">🔄</button>
+                <button class="icon-btn" onclick="app.saveToLocalStorage()" title="Save">💾</button>
+            </div>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="statTokens">0</div>
+                <div class="stat-label">Tokens</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statOptimized">0</div>
+                <div class="stat-label">Optimized</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statRedundant">0</div>
+                <div class="stat-label">Redundant</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statSize">0KB</div>
+                <div class="stat-label">Size</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statDicts">0</div>
+                <div class="stat-label">Dicts</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Dictionary Status -->
+        <div class="section">
+            <div class="section-title">📊 Current Dictionary</div>
+            <div class="dict-status">
+                <div class="status-row">
+                    <span class="status-label">Status</span>
+                    <span class="status-value" id="dictStatus" style="color: var(--warning);">No dictionary loaded</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Filename</span>
+                    <span class="status-value" id="dictFilename">—</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Token Count</span>
+                    <span class="status-value" id="dictTokenCount">0</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Changes</span>
+                    <span class="status-value" id="dictChanges">+0 / -0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions Grid -->
+        <div class="section">
+            <div class="section-title">🎯 Actions</div>
+            <div class="action-grid">
+                <div class="action-card" onclick="app.newDictionary()">
+                    <div class="action-icon">➕</div>
+                    <div class="action-label">New Dictionary</div>
+                    <div class="action-hint">Create from scratch</div>
+                </div>
+                <div class="action-card" onclick="document.getElementById('importInput').click()">
+                    <div class="action-icon">📥</div>
+                    <div class="action-label">Import Dictionary</div>
+                    <div class="action-hint">Load existing JSON</div>
+                </div>
+                <div class="action-card" onclick="document.getElementById('uploadFilesInput').click()">
+                    <div class="action-icon">📂</div>
+                    <div class="action-label">Upload Files</div>
+                    <div class="action-hint">Extract tokens</div>
+                </div>
+                <div class="action-card" onclick="app.openModal('mergeModal')">
+                    <div class="action-icon">🔀</div>
+                    <div class="action-label">Merge Dictionaries</div>
+                    <div class="action-hint">Combine two dicts</div>
+                </div>
+                <div class="action-card" onclick="app.syncTokens()">
+                    <div class="action-icon">🔄</div>
+                    <div class="action-label">Sync Tokens</div>
+                    <div class="action-hint">Re-index & clean</div>
+                </div>
+                <div class="action-card" onclick="app.optimizeTokens()">
+                    <div class="action-icon">⚡</div>
+                    <div class="action-label">Optimize Tokens</div>
+                    <div class="action-hint">Break down long tokens</div>
+                </div>
+                <div class="action-card" onclick="app.removeRedundancy()">
+                    <div class="action-icon">🗑️</div>
+                    <div class="action-label">Remove Redundancy</div>
+                    <div class="action-hint">Clean random IDs</div>
+                </div>
+                <div class="action-card" onclick="app.exportDictionary()">
+                    <div class="action-icon">💾</div>
+                    <div class="action-label">Export Dictionary</div>
+                    <div class="action-hint">Save as JSON</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Token List -->
+        <div class="section">
+            <div class="section-title">
+                📝 Token List
+                <span style="margin-left: auto; font-size: 12px; font-weight: 400; color: var(--text-tertiary);" id="tokenListCount">0 tokens</span>
+            </div>
+            <div class="token-list" id="tokenList">
+                <div style="padding: 40px; text-align: center; color: var(--text-tertiary);">
+                    <div style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;">📭</div>
+                    <div style="font-size: 14px; font-weight: 600;">No tokens yet</div>
+                    <div style="font-size: 12px; margin-top: 4px;">Create or import a dictionary to start</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file inputs -->
+    <input type="file" id="importInput" accept=".json" onchange="app.importDictionary(event)">
+    <input type="file" id="uploadFilesInput" multiple accept=".zip,.txt,.js,.css,.html,.json,.xml,.md,.log,.csv,.ts,.jsx,.tsx,.py,.java,.c,.cpp" onchange="app.uploadFiles(event)">
+    <input type="file" id="mergeDictInput" accept=".json">
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+
+    <!-- Modals -->
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Settings</div>
+                <button class="modal-close" onclick="app.closeModal('settingsModal')">×</button>
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">Theme</label>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-primary" id="themeDark" onclick="app.setTheme('dark')" style="flex: 1;">Dark</button>
+                    <button class="btn" id="themeLight" onclick="app.setTheme('light')" style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary);">Light</button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">
+                    <input type="checkbox" id="debugToggle" onchange="app.toggleDebug()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                    Enable Debug View
+                </label>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">
+                    <input type="checkbox" id="autoOptimizeToggle" onchange="app.toggleAutoOptimize()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                    Auto-optimize on upload
+                </label>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Minimum Token Length</label>
+                <input type="number" class="input" id="minTokenLength" value="6" min="3" max="50" onchange="app.saveSettings()">
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Minimum Frequency</label>
+                <input type="number" class="input" id="minFrequency" value="3" min="1" max="100" onchange="app.saveSettings()">
+            </div>
+
+            <div id="debugConsole" class="debug-console hidden">
+                <div class="debug-header">
+                    <span style="font-weight: 600;">Debug Console</span>
+                    <button onclick="app.clearDebug()" style="background: var(--danger-dim); color: var(--danger); border: none; padding: 4px 8px; border-radius: 6px; font-size: 11px; cursor: pointer;">Clear</button>
+                </div>
+                <div id="debugLog" class="debug-log"></div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; gap: 8px;">
+                <button class="btn btn-warning" onclick="app.clearLocalStorage()" style="flex: 1;">Clear Storage</button>
+                <button class="btn btn-primary" onclick="app.closeModal('settingsModal')" style="flex: 1;">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Changelog Modal -->
+    <div class="modal" id="changelogModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Changelog</div>
+                <button class="modal-close" onclick="app.closeModal('changelogModal')">×</button>
+            </div>
+            
+            <div class="changelog" id="changelogList">
+                <div style="padding: 40px; text-align: center; color: var(--text-tertiary);">
+                    <div style="font-size: 14px; font-weight: 600;">No changes yet</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button class="btn btn-primary" onclick="app.closeModal('changelogModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Merge Modal -->
+    <div class="modal" id="mergeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Merge Dictionaries</div>
+                <button class="modal-close" onclick="app.closeModal('mergeModal')">×</button>
+            </div>
+            
+            <p style="margin-bottom: 16px; color: var(--text-secondary); font-size: 13px;">
+                Select a second dictionary to merge with the current one. Conflicts will be resolved by keeping higher frequency tokens.
+            </p>
+
+            <button class="btn btn-primary" onclick="document.getElementById('mergeDictInput').click()">
+                📂 Select Dictionary to Merge
+            </button>
+
+            <div id="mergePreview" class="hidden" style="margin-top: 16px;">
+                <div style="background: var(--bg-tertiary); border-radius: 12px; padding: 16px;">
+                    <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Merge Preview</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">
+                        <div>Current: <span id="mergeCurrent">0</span> tokens</div>
+                        <div>Merging: <span id="mergeIncoming">0</span> tokens</div>
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">
+                            Result: <span id="mergeResult" style="color: var(--accent); font-weight: 600;">0</span> tokens
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 16px; display: flex; gap: 8px;">
+                    <button class="btn" onclick="app.closeModal('mergeModal')" style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary);">Cancel</button>
+                    <button class="btn btn-success" onclick="app.confirmMerge()" style="flex: 1;">✓ Merge</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optimize Results Modal -->
+    <div class="modal" id="optimizeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Optimization Results</div>
+                <button class="modal-close" onclick="app.closeModal('optimizeModal')">×</button>
+            </div>
+            
+            <div id="optimizeResults"></div>
+
+            <div style="margin-top: 20px; display: flex; gap: 8px;">
+                <button class="btn" onclick="app.closeModal('optimizeModal')" style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary);">Cancel</button>
+                <button class="btn btn-success" onclick="app.applyOptimizations()" style="flex: 1;">✓ Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remove Redundancy Modal -->
+    <div class="modal" id="redundancyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Remove Redundancy</div>
+                <button class="modal-close" onclick="app.closeModal('redundancyModal')">×</button>
+            </div>
+            
+            <div style="background: var(--warning-dim); border: 1px solid var(--warning); border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+                <div style="font-size: 13px; font-weight: 600; color: var(--warning);">
+                    ⚠️ This will scan and remove tokens that appear to be random IDs or garbage data
+                </div>
+            </div>
+
+            <div id="redundancyResults"></div>
+
+            <div style="margin-top: 20px; display: flex; gap: 8px;">
+                <button class="btn" onclick="app.closeModal('redundancyModal')" style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary);">Cancel</button>
+                <button class="btn btn-danger" onclick="app.applyRedundancyRemoval()" style="flex: 1;">🗑️ Remove All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Export Dictionary</div>
+                <button class="modal-close" onclick="app.closeModal('exportModal')">×</button>
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">Filename</label>
+                <input type="text" class="input" id="exportFilename" value="token-dictionary-v1.json">
+            </div>
+
+            <div style="background: var(--bg-tertiary); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Export Info</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">
+                    <div>Tokens: <span id="exportTokenCount">0</span></div>
+                    <div>Estimated Size: <span id="exportSize">0 KB</span></div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+                <button class="btn" onclick="app.closeModal('exportModal')" style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary);">Cancel</button>
+                <button class="btn btn-success" onclick="app.confirmExport()" style="flex: 1;">💾 Export</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div class="loading-text">Processing</div>
+            <div class="loading-detail" id="loadingDetail">Please wait...</div>
+        </div>
+    </div>
+
+    <script>
+        const app = {
+            dictionary: new Map(),
+            originalDictionary: new Map(),
+            filename: null,
+            added: new Set(),
+            removed: new Set(),
+            changelog: [],
+            settings: {
+                theme: 'dark',
+                debug: false,
+                autoOptimize: false,
+                minTokenLength: 6,
+                minFrequency: 3
+            },
+            optimizeSuggestions: [],
+            redundantTokens: [],
+            redundantCount: 0,
+            mergeData: null,
+            version: 1,
+
+            textExtensions: [
+                'txt', 'text', 'log', 'md', 'markdown',
+                'js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs',
+                'css', 'scss', 'sass', 'less',
+                'html', 'htm', 'xml', 'svg',
+                'json', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf',
+                'py', 'pyw', 'java', 'c', 'cpp', 'h', 'hpp',
+                'rs', 'go', 'rb', 'php', 'pl', 'sh', 'bash',
+                'sql', 'csv', 'tsv'
+            ],
+
+            init() {
+                this.loadFromLocalStorage();
+                this.updateUI();
+                this.log('App initialized', 'info');
+                this.addToChangelog('App started', 'Session initialized');
+            },
+
+            log(message, type = 'info') {
+                if (!this.settings.debug) return;
+                
+                const debugLog = document.getElementById('debugLog');
+                if (!debugLog) return;
+
+                const entry = document.createElement('div');
+                entry.className = `debug-entry ${type}`;
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                debugLog.appendChild(entry);
+                debugLog.scrollTop = debugLog.scrollHeight;
+
+                console.log(`[${type.toUpperCase()}] ${message}`);
+            },
+
+            clearDebug() {
+                const debugLog = document.getElementById('debugLog');
+                if (debugLog) debugLog.innerHTML = '';
+            },
+
+            toggleDebug() {
+                this.settings.debug = document.getElementById('debugToggle').checked;
+                const debugConsole = document.getElementById('debugConsole');
+                if (this.settings.debug) {
+                    debugConsole.classList.remove('hidden');
+                    this.log('Debug view enabled', 'success');
+                } else {
+                    debugConsole.classList.add('hidden');
+                }
+                this.saveSettings();
+            },
+
+            toggleAutoOptimize() {
+                this.settings.autoOptimize = document.getElementById('autoOptimizeToggle').checked;
+                this.saveSettings();
+                this.log(`Auto-optimize: ${this.settings.autoOptimize ? 'ON' : 'OFF'}`, 'info');
+            },
+
+            setTheme(theme) {
+                this.settings.theme = theme;
+                const body = document.body;
+                
+                if (theme === 'light') {
+                    body.classList.add('light-mode');
+                    document.getElementById('themeDark').style.background = 'var(--bg-tertiary)';
+                    document.getElementById('themeDark').style.color = 'var(--text-primary)';
+                    document.getElementById('themeLight').style.background = 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)';
+                    document.getElementById('themeLight').style.color = 'white';
+                } else {
+                    body.classList.remove('light-mode');
+                    document.getElementById('themeDark').style.background = 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)';
+                    document.getElementById('themeDark').style.color = 'white';
+                    document.getElementById('themeLight').style.background = 'var(--bg-tertiary)';
+                    document.getElementById('themeLight').style.color = 'var(--text-primary)';
+                }
+                
+                this.saveSettings();
+                this.log(`Theme: ${theme}`, 'info');
+            },
+
+            saveSettings() {
+                this.settings.minTokenLength = parseInt(document.getElementById('minTokenLength').value);
+                this.settings.minFrequency = parseInt(document.getElementById('minFrequency').value);
+                localStorage.setItem('tdp_settings', JSON.stringify(this.settings));
+                this.log('Settings saved', 'success');
+            },
+
+            newDictionary() {
+                if (this.dictionary.size > 0) {
+                    if (!confirm('Create new dictionary? Current dictionary will be cleared (unless saved).')) {
+                        return;
+                    }
+                }
+
+                this.dictionary.clear();
+                this.originalDictionary.clear();
+                this.added.clear();
+                this.removed.clear();
+                this.filename = `token-dict-v${this.version}-${Date.now()}.json`;
+                
+                this.updateUI();
+                this.showAlert('New dictionary created', 'success');
+                this.log('Created new dictionary', 'success');
+                this.addToChangelog('Created', 'New dictionary initialized');
+            },
+
+            async importDictionary(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                try {
+                    this.showLoading('Importing dictionary...');
+                    
+                    const text = await this.readFileAsText(file);
+                    const data = JSON.parse(text);
+
+                    if (!data.version || !data.tokens) {
+                        throw new Error('Invalid dictionary format');
+                    }
+
+                    this.dictionary = new Map(Object.entries(data.tokens));
+                    this.originalDictionary = new Map(this.dictionary);
+                    this.filename = file.name;
+                    this.added.clear();
+                    this.removed.clear();
+
+                    this.hideLoading();
+                    this.updateUI();
+                    this.showAlert(`Imported ${this.dictionary.size} tokens`, 'success');
+                    this.log(`Imported: ${file.name} (${this.dictionary.size} tokens)`, 'success');
+                    this.addToChangelog('Imported', `${file.name} with ${this.dictionary.size} tokens`);
+                } catch (error) {
+                    this.hideLoading();
+                    this.showAlert('Import failed: ' + error.message, 'error');
+                    this.log(`Import failed: ${error.message}`, 'error');
+                }
+
+                event.target.value = '';
+            },
+
+            async uploadFiles(event) {
+                const files = Array.from(event.target.files);
+                if (files.length === 0) return;
+
+                this.showLoading('Processing files...');
+                this.log(`Uploading ${files.length} file(s)`, 'info');
+
+                const contents = [];
+                let processed = 0;
+
+                for (const file of files) {
+                    const ext = file.name.split('.').pop().toLowerCase();
+
+                    if (ext === 'zip') {
+                        try {
+                            const zip = await JSZip.loadAsync(file);
+                            for (const [path, entry] of Object.entries(zip.files)) {
+                                if (!entry.dir) {
+                                    const content = await entry.async('text');
+                                    if (this.isTextReadable(content)) {
+                                        contents.push(content);
+                                    }
+                                }
+                            }
+                        } catch (error) {
+                            this.log(`Failed to read ZIP: ${file.name}`, 'error');
+                        }
+                    } else if (this.textExtensions.includes(ext)) {
+                        try {
+                            const content = await this.readFileAsText(file);
+                            if (this.isTextReadable(content)) {
+                                contents.push(content);
+                            }
+                        } catch (error) {
+                            this.log(`Failed to read file: ${file.name}`, 'error');
+                        }
+                    }
+
+                    processed++;
+                    this.updateLoadingDetail(`Processing... ${Math.round((processed / files.length) * 100)}%`);
+                }
+
+                if (contents.length > 0) {
+                    await this.extractTokens(contents);
+                    
+                    if (this.settings.autoOptimize) {
+                        this.log('Auto-optimize enabled, optimizing...', 'info');
+                        await this.optimizeTokens();
+                    }
+                }
+
+                this.hideLoading();
+                this.updateUI();
+                this.showAlert(`Processed ${files.length} files, extracted tokens`, 'success');
+                this.log(`Extraction complete: ${contents.length} files processed`, 'success');
+                this.addToChangelog('Files uploaded', `${files.length} files processed`);
+
+                event.target.value = '';
+            },
+
+            async extractTokens(contents) {
+                const candidateFreq = new Map();
+                const minLen = this.settings.minTokenLength;
+                const minFreq = this.settings.minFrequency;
+
+                this.log(`Extracting tokens (min length: ${minLen}, min freq: ${minFreq})`, 'info');
+
+                // Pattern extraction
+                const patterns = [
+                    /https?:\/\/[^\s]+/g,
+                    /[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+                    /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g,
+                    /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/g,
+                    /\b0x[a-fA-F0-9]+\b/g,
+                ];
+
+                for (const content of contents) {
+                    // Pattern matching
+                    patterns.forEach(pattern => {
+                        const matches = content.match(pattern) || [];
+                        matches.forEach(match => {
+                            if (match.length >= minLen) {
+                                candidateFreq.set(match, (candidateFreq.get(match) || 0) + 1);
+                            }
+                        });
+                    });
+
+                    // Word extraction
+                    const words = content.match(/\b[a-zA-Z_][a-zA-Z0-9_]{4,}\b/g) || [];
+                    words.forEach(word => {
+                        if (word.length >= minLen) {
+                            candidateFreq.set(word, (candidateFreq.get(word) || 0) + 1);
+                        }
+                    });
+
+                    // Number extraction
+                    const numbers = content.match(/\b\d{5,}\.?\d*\b/g) || [];
+                    numbers.forEach(num => {
+                        if (num.length >= minLen) {
+                            candidateFreq.set(`#${num}`, (candidateFreq.get(`#${num}`) || 0) + 1);
+                        }
+                    });
+                }
+
+                // Filter by frequency and add to dictionary
+                let newTokens = 0;
+                let nextId = this.dictionary.size;
+
+                for (const [token, freq] of candidateFreq.entries()) {
+                    if (freq >= minFreq && !this.dictionary.has(token)) {
+                        this.dictionary.set(token, `T${nextId++}`);
+                        this.added.add(token);
+                        newTokens++;
+                    }
+                }
+
+                this.log(`Extracted ${newTokens} new tokens`, 'success');
+            },
+
+            syncTokens() {
+                if (this.dictionary.size === 0) {
+                    this.showAlert('No tokens to sync', 'warning');
+                    return;
+                }
+
+                this.showLoading('Syncing tokens...');
+                this.log('Starting token sync', 'info');
+
+                this.syncTokensInternal();
+
+                this.hideLoading();
+                this.updateUI();
+                this.showAlert('Tokens synchronized and re-indexed', 'success');
+                this.log(`Sync complete: ${this.dictionary.size} tokens re-indexed`, 'success');
+                this.addToChangelog('Synchronized', 'Tokens re-indexed and cleaned');
+            },
+
+            syncTokensInternal() {
+                // Internal sync without UI updates - used by other functions
+                const sortedTokens = Array.from(this.dictionary.entries())
+                    .sort((a, b) => a[0].localeCompare(b[0]));
+
+                this.dictionary.clear();
+                sortedTokens.forEach(([token, _], idx) => {
+                    this.dictionary.set(token, `T${idx}`);
+                });
+
+                // Reset change tracking
+                this.originalDictionary = new Map(this.dictionary);
+                this.added.clear();
+                this.removed.clear();
+            },
+
+            optimizeTokens() {
+                if (this.dictionary.size === 0) {
+                    this.showAlert('No tokens to optimize', 'warning');
+                    return;
+                }
+
+                this.showLoading('Analyzing tokens for optimization...');
+                this.log('Starting token optimization', 'info');
+
+                this.optimizeSuggestions = [];
+                const tokens = Array.from(this.dictionary.keys());
+
+                // Find tokens that can be broken down
+                for (const token of tokens) {
+                    if (token.length < 20) continue; // Only optimize long tokens
+
+                    // Check if token contains repeating patterns
+                    const patterns = this.findRepeatingPatterns(token);
+                    if (patterns.length > 0) {
+                        this.optimizeSuggestions.push({
+                            original: token,
+                            patterns: patterns,
+                            type: 'repeating'
+                        });
+                    }
+
+                    // Check if token can be split into meaningful parts
+                    const parts = this.findMeaningfulParts(token);
+                    if (parts.length > 1) {
+                        this.optimizeSuggestions.push({
+                            original: token,
+                            parts: parts,
+                            type: 'split'
+                        });
+                    }
+                }
+
+                if (this.optimizeSuggestions.length === 0) {
+                    this.hideLoading();
+                    this.showAlert('No optimization opportunities found', 'info');
+                    this.log('No optimization needed', 'info');
+                    return;
+                }
+
+                // Auto-apply optimizations
+                this.updateLoadingDetail('Applying optimizations...');
+                let optimized = 0;
+
+                for (const suggestion of this.optimizeSuggestions) {
+                    const originalToken = suggestion.original;
+                    
+                    if (!this.dictionary.has(originalToken)) continue;
+
+                    // Remove original long token
+                    this.dictionary.delete(originalToken);
+                    this.removed.add(originalToken);
+
+                    if (suggestion.type === 'repeating') {
+                        // Add the repeating pattern as a new token
+                        const pattern = suggestion.patterns[0].pattern;
+                        if (!this.dictionary.has(pattern) && pattern.length >= this.settings.minTokenLength) {
+                            this.dictionary.set(pattern, `T${this.dictionary.size}`);
+                            this.added.add(pattern);
+                        }
+                    } else if (suggestion.type === 'split') {
+                        // Add each meaningful part as a new token
+                        for (const part of suggestion.parts) {
+                            if (!this.dictionary.has(part) && part.length >= this.settings.minTokenLength) {
+                                this.dictionary.set(part, `T${this.dictionary.size}`);
+                                this.added.add(part);
+                            }
+                        }
+                    }
+
+                    optimized++;
+                }
+
+                // Auto-sync after optimization
+                this.updateLoadingDetail('Syncing tokens...');
+                this.syncTokensInternal();
+
+                this.hideLoading();
+                this.updateUI();
+                this.showAlert(`Optimized ${optimized} tokens and synced`, 'success');
+                this.log(`Applied ${optimized} optimizations and synced`, 'success');
+                this.addToChangelog('Optimized & Synced', `${optimized} tokens optimized and re-indexed`);
+                
+                this.optimizeSuggestions = [];
+            },
+
+            findRepeatingPatterns(token) {
+                const patterns = [];
+                
+                // Find repeating substrings (min 3 chars, must repeat at least 2x)
+                for (let len = 3; len <= token.length / 2; len++) {
+                    for (let i = 0; i <= token.length - len; i++) {
+                        const pattern = token.substring(i, i + len);
+                        const regex = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                        const matches = token.match(regex);
+                        
+                        if (matches && matches.length >= 2) {
+                            patterns.push({
+                                pattern: pattern,
+                                count: matches.length,
+                                savings: pattern.length * (matches.length - 1)
+                            });
+                        }
+                    }
+                }
+
+                // Return top 3 patterns by savings
+                return patterns
+                    .sort((a, b) => b.savings - a.savings)
+                    .slice(0, 3);
+            },
+
+            findMeaningfulParts(token) {
+                const parts = [];
+                
+                // Split by common delimiters
+                const delimiters = ['-', '_', '.', '/', ':', '\\'];
+                for (const delim of delimiters) {
+                    if (token.includes(delim)) {
+                        const split = token.split(delim);
+                        if (split.every(part => part.length >= this.settings.minTokenLength)) {
+                            return split;
+                        }
+                    }
+                }
+
+                // Split by camelCase or PascalCase
+                const camelSplit = token.split(/(?=[A-Z])/);
+                if (camelSplit.length > 1 && camelSplit.every(part => part.length >= 3)) {
+                    return camelSplit;
+                }
+
+                return [];
+            },
+
+            showOptimizationResults() {
+                const resultsContainer = document.getElementById('optimizeResults');
+                
+                let html = `
+                    <div style="background: var(--info-dim); border: 1px solid var(--info); border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+                        <div style="font-size: 13px; font-weight: 600; color: var(--info);">
+                            Found ${this.optimizeSuggestions.length} optimization opportunities
+                        </div>
+                    </div>
+                    <div class="optimize-result">
+                `;
+
+                this.optimizeSuggestions.forEach((suggestion, idx) => {
+                    html += `<div class="optimize-item">`;
+                    html += `<div class="optimize-before">Original: ${this.escapeHtml(suggestion.original)}</div>`;
+                    
+                    if (suggestion.type === 'repeating') {
+                        html += `<div class="optimize-after">→ Extract pattern: "${suggestion.patterns[0].pattern}" (appears ${suggestion.patterns[0].count}x)</div>`;
+                    } else if (suggestion.type === 'split') {
+                        html += `<div class="optimize-after">→ Split into: ${suggestion.parts.map(p => `"${p}"`).join(', ')}</div>`;
+                    }
+                    
+                    html += `</div>`;
+                });
+
+                html += `</div>`;
+                resultsContainer.innerHTML = html;
+                
+                this.openModal('optimizeModal');
+            },
+
+            applyOptimizations() {
+                if (this.optimizeSuggestions.length === 0) return;
+
+                this.showLoading('Applying optimizations...');
+                let optimized = 0;
+
+                for (const suggestion of this.optimizeSuggestions) {
+                    const originalToken = suggestion.original;
+                    
+                    if (!this.dictionary.has(originalToken)) continue;
+
+                    // Remove original long token
+                    this.dictionary.delete(originalToken);
+                    this.removed.add(originalToken);
+
+                    if (suggestion.type === 'repeating') {
+                        // Add the repeating pattern as a new token
+                        const pattern = suggestion.patterns[0].pattern;
+                        if (!this.dictionary.has(pattern) && pattern.length >= this.settings.minTokenLength) {
+                            this.dictionary.set(pattern, `T${this.dictionary.size}`);
+                            this.added.add(pattern);
+                        }
+                    } else if (suggestion.type === 'split') {
+                        // Add each meaningful part as a new token
+                        for (const part of suggestion.parts) {
+                            if (!this.dictionary.has(part) && part.length >= this.settings.minTokenLength) {
+                                this.dictionary.set(part, `T${this.dictionary.size}`);
+                                this.added.add(part);
+                            }
+                        }
+                    }
+
+                    optimized++;
+                }
+
+                this.hideLoading();
+                this.closeModal('optimizeModal');
+                this.updateUI();
+                this.showAlert(`Optimized ${optimized} tokens`, 'success');
+                this.log(`Applied ${optimized} optimizations`, 'success');
+                this.addToChangelog('Optimized', `${optimized} tokens optimized`);
+                
+                this.optimizeSuggestions = [];
+            },
+
+            removeRedundancy() {
+                if (this.dictionary.size === 0) {
+                    this.showAlert('No tokens to analyze', 'warning');
+                    return;
+                }
+
+                this.showLoading('Scanning for redundant tokens...');
+                this.log('Starting redundancy analysis', 'info');
+
+                this.redundantTokens = [];
+                const tokens = Array.from(this.dictionary.keys());
+
+                for (const token of tokens) {
+                    let action = null; // 'remove', 'slice', or null
+                    let reason = '';
+                    let slicedToken = null;
+
+                    // Check for random hex strings (common in IDs)
+                    if (/^[a-fA-F0-9]{8,}$/.test(token)) {
+                        action = 'remove';
+                        reason = 'Random hex string (likely ID)';
+                    }
+                    
+                    // Check for UUID patterns - remove entirely
+                    else if (/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/.test(token)) {
+                        action = 'remove';
+                        reason = 'UUID format';
+                    }
+                    
+                    // Check for tokens with hex/random ID suffixes (e.g., "user_a1b2c3d4", "config-x8f9e2a1")
+                    else if (token.length >= 12) {
+                        // Pattern: word/text followed by delimiter and hex/random ID
+                        const idSuffixMatch = token.match(/^([a-zA-Z_][a-zA-Z0-9_-]{2,}?)[_\-.]([a-fA-F0-9]{6,}|[A-Z0-9]{6,})$/);
+                        if (idSuffixMatch) {
+                            const base = idSuffixMatch[1];
+                            if (base.length >= this.settings.minTokenLength && !this.dictionary.has(base)) {
+                                slicedToken = base;
+                                action = 'slice';
+                                reason = `ID suffix detected, slice to "${base}"`;
+                            } else if (base.length >= this.settings.minTokenLength) {
+                                action = 'remove';
+                                reason = `ID suffix detected, but "${base}" already exists`;
+                            } else {
+                                action = 'remove';
+                                reason = `ID suffix detected, base too short`;
+                            }
+                        }
+                        
+                        // Pattern: hex/random ID prefix followed by word (e.g., "a1b2c3d4_user", "x8f9e2a1-config")
+                        const idPrefixMatch = token.match(/^([a-fA-F0-9]{6,}|[A-Z0-9]{6,})[_\-.]([a-zA-Z_][a-zA-Z0-9_-]{2,})$/);
+                        if (idPrefixMatch) {
+                            const base = idPrefixMatch[2];
+                            if (base.length >= this.settings.minTokenLength && !this.dictionary.has(base)) {
+                                slicedToken = base;
+                                action = 'slice';
+                                reason = `ID prefix detected, slice to "${base}"`;
+                            } else if (base.length >= this.settings.minTokenLength) {
+                                action = 'remove';
+                                reason = `ID prefix detected, but "${base}" already exists`;
+                            } else {
+                                action = 'remove';
+                                reason = `ID prefix detected, base too short`;
+                            }
+                        }
+                    }
+                    
+                    // Check for tokens with random alphanumeric segments
+                    if (!action && token.length >= 10) {
+                        // Pattern: word_randomAlphaNum or randomAlphaNum_word
+                        const mixedMatch = token.match(/^([a-zA-Z_][a-zA-Z0-9_]{2,}?)[_\-.]([a-zA-Z0-9]{6,})$/);
+                        if (mixedMatch) {
+                            const base = mixedMatch[1];
+                            const suffix = mixedMatch[2];
+                            
+                            // Check if suffix looks random (mixed case, has digits)
+                            const suffixHasUpper = /[A-Z]/.test(suffix);
+                            const suffixHasLower = /[a-z]/.test(suffix);
+                            const suffixHasDigit = /[0-9]/.test(suffix);
+                            const suffixEntropy = this.calculateEntropy(suffix);
+                            
+                            if ((suffixHasUpper && suffixHasLower && suffixHasDigit) || suffixEntropy > 4.0) {
+                                if (base.length >= this.settings.minTokenLength && !this.dictionary.has(base)) {
+                                    slicedToken = base;
+                                    action = 'slice';
+                                    reason = `Random suffix detected, slice to "${base}"`;
+                                } else if (base.length >= this.settings.minTokenLength) {
+                                    action = 'remove';
+                                    reason = `Random suffix detected, but "${base}" already exists`;
+                                } else {
+                                    action = 'remove';
+                                    reason = `Random suffix detected, base too short`;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Check for random alphanumeric strings (no slicing possible)
+                    if (!action && token.length >= 8 && /^[a-zA-Z0-9]+$/.test(token)) {
+                        const hasUpper = /[A-Z]/.test(token);
+                        const hasLower = /[a-z]/.test(token);
+                        const hasDigit = /[0-9]/.test(token);
+                        
+                        if (hasUpper && hasLower && hasDigit) {
+                            const hasPattern = /(.{3,})\1/.test(token);
+                            const hasCommonWord = /^(user|data|config|test|temp|file|auth|session|token|key|api)/i.test(token);
+                            
+                            if (!hasPattern && !hasCommonWord) {
+                                action = 'remove';
+                                reason = 'Random alphanumeric (likely hash/ID)';
+                            }
+                        }
+                    }
+                    
+                    // Check for very long numbers (timestamps, IDs)
+                    if (!action && /^#?\d{10,}$/.test(token)) {
+                        action = 'remove';
+                        reason = 'Long number (likely timestamp/ID)';
+                    }
+                    
+                    // Check for base64-like strings
+                    if (!action && token.length >= 16 && /^[A-Za-z0-9+/]+=*$/.test(token)) {
+                        const hasEquals = token.includes('=');
+                        const validBase64 = hasEquals || token.length % 4 === 0;
+                        
+                        if (validBase64) {
+                            action = 'remove';
+                            reason = 'Base64 encoded data';
+                        }
+                    }
+                    
+                    // Check for tokens with excessive symbols - slice them out
+                    if (!action && token.length >= 6) {
+                        // Find sequences of symbols and try to extract clean word parts
+                        const symbolPattern = /[^a-zA-Z0-9]+/g;
+                        const parts = token.split(symbolPattern).filter(p => p.length >= this.settings.minTokenLength);
+                        
+                        if (parts.length === 1 && parts[0] !== token) {
+                            // Single word buried in symbols
+                            const cleaned = parts[0];
+                            if (!this.dictionary.has(cleaned)) {
+                                slicedToken = cleaned;
+                                action = 'slice';
+                                reason = `Symbols removed, slice to "${cleaned}"`;
+                            } else {
+                                action = 'remove';
+                                reason = `Symbols detected, but "${cleaned}" already exists`;
+                            }
+                        } else if (parts.length > 1) {
+                            // Multiple words with symbols - check if we can extract the longest meaningful part
+                            const longest = parts.reduce((a, b) => a.length >= b.length ? a : b);
+                            if (longest.length >= this.settings.minTokenLength && !this.dictionary.has(longest)) {
+                                slicedToken = longest;
+                                action = 'slice';
+                                reason = `Symbols detected, extract longest part "${longest}"`;
+                            } else if (longest.length >= this.settings.minTokenLength) {
+                                action = 'remove';
+                                reason = `Symbols detected, but "${longest}" already exists`;
+                            }
+                        }
+                        
+                        // Check for leading/trailing symbols only
+                        if (!action) {
+                            const trimmed = token.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
+                            if (trimmed !== token && trimmed.length >= this.settings.minTokenLength) {
+                                if (!this.dictionary.has(trimmed)) {
+                                    slicedToken = trimmed;
+                                    action = 'slice';
+                                    reason = `Leading/trailing symbols removed, slice to "${trimmed}"`;
+                                } else {
+                                    action = 'remove';
+                                    reason = `Leading/trailing symbols, but "${trimmed}" already exists`;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Check for very high entropy strings (random garbage)
+                    if (!action && token.length >= 12) {
+                        const entropy = this.calculateEntropy(token);
+                        if (entropy > 4.5) {
+                            action = 'remove';
+                            reason = `High entropy (${entropy.toFixed(2)}) - likely random`;
+                        }
+                    }
+
+                    if (action) {
+                        this.redundantTokens.push({
+                            token: token,
+                            action: action,
+                            slicedToken: slicedToken,
+                            reason: reason
+                        });
+                    }
+                }
+
+                this.hideLoading();
+
+                if (this.redundantTokens.length === 0) {
+                    this.showAlert('No redundant tokens found', 'info');
+                    this.log('No redundancy detected', 'info');
+                } else {
+                    this.showRedundancyResults();
+                    this.log(`Found ${this.redundantTokens.length} redundant tokens`, 'warning');
+                }
+            },
+
+            calculateEntropy(str) {
+                // Calculate Shannon entropy to detect randomness
+                const freq = {};
+                for (const char of str) {
+                    freq[char] = (freq[char] || 0) + 1;
+                }
+                
+                let entropy = 0;
+                const len = str.length;
+                
+                for (const char in freq) {
+                    const p = freq[char] / len;
+                    entropy -= p * Math.log2(p);
+                }
+                
+                return entropy;
+            },
+
+            showRedundancyResults() {
+                const resultsContainer = document.getElementById('redundancyResults');
+                
+                const removeCount = this.redundantTokens.filter(t => t.action === 'remove').length;
+                const sliceCount = this.redundantTokens.filter(t => t.action === 'slice').length;
+                
+                let html = `
+                    <div style="background: var(--danger-dim); border: 1px solid var(--danger); border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+                        <div style="font-size: 13px; font-weight: 600; color: var(--danger);">
+                            Found ${this.redundantTokens.length} redundant tokens
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+                            ${removeCount} to remove, ${sliceCount} to slice
+                        </div>
+                    </div>
+                    <div class="optimize-result" style="max-height: 300px; overflow-y: auto;">
+                `;
+
+                this.redundantTokens.forEach((item, idx) => {
+                    html += `<div class="optimize-item">`;
+                    
+                    if (item.action === 'slice') {
+                        html += `<div style="color: var(--warning); font-weight: 600;">
+                            ✂️ ${this.escapeHtml(item.token)} → ${this.escapeHtml(item.slicedToken)}
+                        </div>`;
+                    } else {
+                        html += `<div style="color: var(--danger); font-weight: 600;">
+                            🗑️ ${this.escapeHtml(item.token)}
+                        </div>`;
+                    }
+                    
+                    html += `<div style="color: var(--text-tertiary); font-size: 11px; margin-top: 2px;">${item.reason}</div>`;
+                    html += `</div>`;
+                });
+
+                html += `</div>`;
+                resultsContainer.innerHTML = html;
+                
+                this.openModal('redundancyModal');
+            },
+
+            applyRedundancyRemoval() {
+                if (this.redundantTokens.length === 0) return;
+
+                this.showLoading('Removing redundant tokens...');
+                let removed = 0;
+                let sliced = 0;
+
+                for (const item of this.redundantTokens) {
+                    if (!this.dictionary.has(item.token)) continue;
+
+                    if (item.action === 'slice' && item.slicedToken) {
+                        // Remove original token
+                        this.dictionary.delete(item.token);
+                        this.removed.add(item.token);
+                        
+                        // Add sliced token
+                        this.dictionary.set(item.slicedToken, `T${this.dictionary.size}`);
+                        this.added.add(item.slicedToken);
+                        
+                        sliced++;
+                        this.log(`Sliced: "${item.token}" → "${item.slicedToken}"`, 'info');
+                    } else if (item.action === 'remove') {
+                        // Just remove the token
+                        this.dictionary.delete(item.token);
+                        this.removed.add(item.token);
+                        removed++;
+                        this.log(`Removed: "${item.token}"`, 'warning');
+                    }
+                }
+
+                // Auto-sync after removal
+                this.updateLoadingDetail('Syncing tokens...');
+                this.syncTokensInternal();
+
+                this.redundantCount += (removed + sliced);
+
+                this.hideLoading();
+                this.closeModal('redundancyModal');
+                this.updateUI();
+                
+                const msg = sliced > 0 
+                    ? `Removed ${removed}, sliced ${sliced} tokens and synced`
+                    : `Removed ${removed} redundant tokens and synced`;
+                    
+                this.showAlert(msg, 'success');
+                this.log(`Removed ${removed}, sliced ${sliced}, synced`, 'success');
+                this.addToChangelog('Redundancy Cleaned', `${removed} removed, ${sliced} sliced, re-indexed`);
+
+                this.redundantTokens = [];
+            },
+
+            async mergeDictionaries() {
+                document.getElementById('mergeDictInput').onchange = async (event) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    try {
+                        const text = await this.readFileAsText(file);
+                        const data = JSON.parse(text);
+
+                        if (!data.version || !data.tokens) {
+                            throw new Error('Invalid dictionary format');
+                        }
+
+                        this.mergeData = {
+                            filename: file.name,
+                            tokens: new Map(Object.entries(data.tokens))
+                        };
+
+                        // Show preview
+                        document.getElementById('mergeCurrent').textContent = this.dictionary.size;
+                        document.getElementById('mergeIncoming').textContent = this.mergeData.tokens.size;
+                        
+                        // Calculate result size (union of both)
+                        const combined = new Set([...this.dictionary.keys(), ...this.mergeData.tokens.keys()]);
+                        document.getElementById('mergeResult').textContent = combined.size;
+
+                        document.getElementById('mergePreview').classList.remove('hidden');
+                        this.log(`Merge preview: ${file.name}`, 'info');
+                    } catch (error) {
+                        this.showAlert('Invalid dictionary file', 'error');
+                        this.log(`Merge failed: ${error.message}`, 'error');
+                    }
+
+                    event.target.value = '';
+                };
+            },
+
+            confirmMerge() {
+                if (!this.mergeData) return;
+
+                this.showLoading('Merging dictionaries...');
+                let added = 0;
+                let conflicts = 0;
+
+                // Add all tokens from incoming dictionary
+                for (const [token, tokenId] of this.mergeData.tokens.entries()) {
+                    if (this.dictionary.has(token)) {
+                        conflicts++;
+                        // Keep existing token (current dict has priority)
+                    } else {
+                        this.dictionary.set(token, `T${this.dictionary.size}`);
+                        this.added.add(token);
+                        added++;
+                    }
+                }
+
+                this.hideLoading();
+                this.closeModal('mergeModal');
+                this.updateUI();
+                this.showAlert(`Merged: +${added} tokens, ${conflicts} conflicts`, 'success');
+                this.log(`Merge complete: ${added} added, ${conflicts} conflicts`, 'success');
+                this.addToChangelog('Merged', `${this.mergeData.filename}: +${added} tokens`);
+
+                this.mergeData = null;
+                document.getElementById('mergePreview').classList.add('hidden');
+            },
+
+            exportDictionary() {
+                if (this.dictionary.size === 0) {
+                    this.showAlert('No tokens to export', 'warning');
+                    return;
+                }
+
+                // Set default filename
+                const defaultName = this.filename || `token-dict-v${this.version}-${Date.now()}.json`;
+                document.getElementById('exportFilename').value = defaultName;
+                
+                // Show export info
+                document.getElementById('exportTokenCount').textContent = this.dictionary.size;
+                const estimatedSize = JSON.stringify({
+                    version: '1.0',
+                    tokens: Object.fromEntries(this.dictionary)
+                }).length;
+                document.getElementById('exportSize').textContent = (estimatedSize / 1024).toFixed(1) + ' KB';
+
+                this.openModal('exportModal');
+            },
+
+            confirmExport() {
+                const filename = document.getElementById('exportFilename').value.trim() || 'token-dictionary.json';
+                
+                const data = {
+                    version: '1.0',
+                    type: 'ptam-plugplay-dictionary',
+                    created: new Date().toISOString(),
+                    tokens: Object.fromEntries(this.dictionary),
+                    metadata: {
+                        tokenCount: this.dictionary.size,
+                        added: this.added.size,
+                        removed: this.removed.size,
+                        appVersion: this.version
+                    }
+                };
+
+                const json = JSON.stringify(data, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+                this.closeModal('exportModal');
+                this.showAlert(`Exported: ${filename}`, 'success');
+                this.log(`Exported: ${filename} (${this.dictionary.size} tokens)`, 'success');
+                this.addToChangelog('Exported', `${filename} with ${this.dictionary.size} tokens`);
+
+                // Update version after export
+                this.version++;
+                this.updateVersionDisplay();
+            },
+
+            updateUI() {
+                // Update stats
+                document.getElementById('statTokens').textContent = this.dictionary.size;
+                document.getElementById('statOptimized').textContent = this.removed.size;
+                document.getElementById('statRedundant').textContent = this.redundantCount;
+                
+                const size = JSON.stringify(Object.fromEntries(this.dictionary)).length;
+                document.getElementById('statSize').textContent = (size / 1024).toFixed(1) + 'KB';
+                
+                const dictCount = this.dictionary.size > 0 ? 1 : 0;
+                document.getElementById('statDicts').textContent = dictCount;
+
+                // Update dictionary status
+                if (this.dictionary.size === 0) {
+                    document.getElementById('dictStatus').textContent = 'No dictionary loaded';
+                    document.getElementById('dictStatus').style.color = 'var(--warning)';
+                    document.getElementById('dictFilename').textContent = '—';
+                    document.getElementById('dictTokenCount').textContent = '0';
+                    document.getElementById('dictChanges').textContent = '+0 / -0';
+                } else {
+                    document.getElementById('dictStatus').textContent = 'Active';
+                    document.getElementById('dictStatus').style.color = 'var(--success)';
+                    document.getElementById('dictFilename').textContent = this.filename || 'Untitled';
+                    document.getElementById('dictTokenCount').textContent = this.dictionary.size;
+                    document.getElementById('dictChanges').textContent = `+${this.added.size} / -${this.removed.size}`;
+                }
+
+                // Update token list
+                this.updateTokenList();
+                this.updateVersionDisplay();
+            },
+
+            updateTokenList() {
+                const tokenList = document.getElementById('tokenList');
+                document.getElementById('tokenListCount').textContent = `${this.dictionary.size} tokens`;
+
+                if (this.dictionary.size === 0) {
+                    tokenList.innerHTML = `
+                        <div style="padding: 40px; text-align: center; color: var(--text-tertiary);">
+                            <div style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;">📭</div>
+                            <div style="font-size: 14px; font-weight: 600;">No tokens yet</div>
+                            <div style="font-size: 12px; margin-top: 4px;">Create or import a dictionary to start</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const sortedTokens = Array.from(this.dictionary.entries())
+                    .sort((a, b) => {
+                        const aNum = parseInt(a[1].substring(1));
+                        const bNum = parseInt(b[1].substring(1));
+                        return aNum - bNum;
+                    });
+
+                let html = '';
+                sortedTokens.forEach(([token, tokenId]) => {
+                    html += `
+                        <div class="token-item">
+                            <div class="token-original">${this.escapeHtml(token)}</div>
+                            <div class="token-id">${tokenId}</div>
+                            <div class="token-actions">
+                                <button class="token-btn" onclick="app.deleteToken('${this.escapeHtml(token)}')" title="Delete">×</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                tokenList.innerHTML = html;
+            },
+
+            deleteToken(token) {
+                const unescaped = this.unescapeHtml(token);
+                if (!this.dictionary.has(unescaped)) return;
+
+                this.dictionary.delete(unescaped);
+                this.removed.add(unescaped);
+                this.added.delete(unescaped);
+
+                this.updateUI();
+                this.log(`Deleted token: ${unescaped}`, 'warning');
+                this.addToChangelog('Token deleted', unescaped);
+            },
+
+            updateVersionDisplay() {
+                const versionEl = document.querySelector('.version');
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                versionEl.textContent = `v${this.version} • Modified: ${timeStr}`;
+            },
+
+            addToChangelog(action, detail) {
+                const entry = {
+                    timestamp: new Date().toISOString(),
+                    action: action,
+                    detail: detail
+                };
+
+                this.changelog.unshift(entry);
+                
+                // Keep only last 50 entries
+                if (this.changelog.length > 50) {
+                    this.changelog = this.changelog.slice(0, 50);
+                }
+
+                this.updateChangelogUI();
+            },
+
+            updateChangelogUI() {
+                const changelogList = document.getElementById('changelogList');
+                
+                if (this.changelog.length === 0) {
+                    changelogList.innerHTML = `
+                        <div style="padding: 40px; text-align: center; color: var(--text-tertiary);">
+                            <div style="font-size: 14px; font-weight: 600;">No changes yet</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                this.changelog.forEach(entry => {
+                    const time = new Date(entry.timestamp).toLocaleTimeString();
+                    html += `
+                        <div class="changelog-entry">
+                            <div class="changelog-time">${time}</div>
+                            <div class="changelog-action">${entry.action}</div>
+                            <div class="changelog-detail">${this.escapeHtml(entry.detail)}</div>
+                        </div>
+                    `;
+                });
+
+                changelogList.innerHTML = html;
+            },
+
+            refreshClean() {
+                if (this.dictionary.size === 0) {
+                    this.showAlert('Nothing to clean', 'info');
+                    return;
+                }
+
+                if (!confirm('Refresh and clean? This will clear the current dictionary. Continue?')) {
+                    return;
+                }
+
+                this.dictionary.clear();
+                this.originalDictionary.clear();
+                this.added.clear();
+                this.removed.clear();
+                this.filename = null;
+                this.redundantCount = 0;
+                this.redundantTokens = [];
+                this.optimizeSuggestions = [];
+
+                this.updateUI();
+                this.showAlert('Dictionary cleared and refreshed', 'success');
+                this.log('Dictionary refreshed and cleaned', 'info');
+                this.addToChangelog('Refreshed', 'Dictionary cleared and reset');
+            },
+
+            saveToLocalStorage() {
+                try {
+                    const data = {
+                        version: this.version,
+                        dictionary: Array.from(this.dictionary.entries()),
+                        originalDictionary: Array.from(this.originalDictionary.entries()),
+                        filename: this.filename,
+                        added: Array.from(this.added),
+                        removed: Array.from(this.removed),
+                        redundantCount: this.redundantCount,
+                        changelog: this.changelog,
+                        timestamp: Date.now()
+                    };
+
+                    localStorage.setItem('tdp_data', JSON.stringify(data));
+                    this.showAlert('Saved to browser storage', 'success');
+                    this.log('Data saved to localStorage', 'success');
+                } catch (error) {
+                    this.showAlert('Save failed: ' + error.message, 'error');
+                    this.log('Save failed: ' + error.message, 'error');
+                }
+            },
+
+            loadFromLocalStorage() {
+                try {
+                    // Load settings
+                    const settingsData = localStorage.getItem('tdp_settings');
+                    if (settingsData) {
+                        this.settings = JSON.parse(settingsData);
+                        
+                        // Apply settings to UI
+                        document.getElementById('debugToggle').checked = this.settings.debug;
+                        document.getElementById('autoOptimizeToggle').checked = this.settings.autoOptimize;
+                        document.getElementById('minTokenLength').value = this.settings.minTokenLength;
+                        document.getElementById('minFrequency').value = this.settings.minFrequency;
+                        
+                        this.setTheme(this.settings.theme);
+                        
+                        if (this.settings.debug) {
+                            document.getElementById('debugConsole').classList.remove('hidden');
+                        }
+                    }
+
+                    // Load data
+                    const data = localStorage.getItem('tdp_data');
+                    if (data) {
+                        const parsed = JSON.parse(data);
+                        
+                        this.version = parsed.version || 1;
+                        this.dictionary = new Map(parsed.dictionary || []);
+                        this.originalDictionary = new Map(parsed.originalDictionary || []);
+                        this.filename = parsed.filename;
+                        this.added = new Set(parsed.added || []);
+                        this.removed = new Set(parsed.removed || []);
+                        this.redundantCount = parsed.redundantCount || 0;
+                        this.changelog = parsed.changelog || [];
+
+                        this.log('Data loaded from localStorage', 'success');
+                        this.updateChangelogUI();
+                    }
+                } catch (error) {
+                    this.log('Load failed: ' + error.message, 'error');
+                }
+            },
+
+            clearLocalStorage() {
+                if (!confirm('Clear all saved data? This cannot be undone.')) {
+                    return;
+                }
+
+                localStorage.removeItem('tdp_data');
+                localStorage.removeItem('tdp_settings');
+                
+                this.showAlert('Storage cleared', 'success');
+                this.log('localStorage cleared', 'warning');
+                
+                setTimeout(() => location.reload(), 1000);
+            },
+
+            isTextReadable(content) {
+                if (!content || content.length === 0) return false;
+                const sample = content.substring(0, 1000);
+                const printable = sample.match(/[\x20-\x7E\n\r\t]/g);
+                const printableRatio = printable ? printable.length / sample.length : 0;
+                return printableRatio > 0.8;
+            },
+
+            readFileAsText(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsText(file, 'UTF-8');
+                });
+            },
+
+            openModal(id) {
+                document.getElementById(id).classList.add('active');
+                
+                if (id === 'mergeModal') {
+                    this.mergeDictionaries();
+                } else if (id === 'exportModal') {
+                    // Already set up in exportDictionary()
+                }
+            },
+
+            closeModal(id) {
+                document.getElementById(id).classList.remove('active');
+            },
+
+            showLoading(text) {
+                document.getElementById('loadingDetail').textContent = text;
+                document.getElementById('loading').classList.add('active');
+            },
+
+            updateLoadingDetail(text) {
+                document.getElementById('loadingDetail').textContent = text;
+            },
+
+            hideLoading() {
+                document.getElementById('loading').classList.remove('active');
+            },
+
+            showAlert(message, type = 'success') {
+                const container = document.getElementById('alertContainer');
+                
+                const icons = {
+                    success: '✓',
+                    error: '✗',
+                    warning: '⚠',
+                    info: 'ℹ'
+                };
+
+                const alert = document.createElement('div');
+                alert.className = `alert ${type}`;
+                alert.innerHTML = `
+                    <div class="alert-icon">${icons[type] || 'ℹ'}</div>
+                    <div class="alert-text">${this.escapeHtml(message)}</div>
+                    <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+                `;
+
+                container.appendChild(alert);
+
+                setTimeout(() => {
+                    if (alert.parentElement) {
+                        alert.style.opacity = '0';
+                        alert.style.transform = 'translateY(-20px)';
+                        setTimeout(() => alert.remove(), 300);
+                    }
+                }, 5000);
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            unescapeHtml(text) {
+                const div = document.createElement('div');
+                div.innerHTML = text;
+                return div.textContent;
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+            
+            // Add export button to header actions
+            const headerActions = document.querySelector('.header-actions');
+            const exportBtn = document.createElement('button');
+            exportBtn.className = 'icon-btn';
+            exportBtn.title = 'Export';
+            exportBtn.innerHTML = '💾';
+            exportBtn.onclick = () => app.exportDictionary();
+            headerActions.insertBefore(exportBtn, headerActions.lastChild);
+        });
+
+        // Close modals on outside click
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('active');
+            }
+        });
+
+        // Close modals on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal.active').forEach(modal => {
+                    modal.classList.remove('active');
+                });
+            }
+        });
+    </script>
+</body>
+</html>
