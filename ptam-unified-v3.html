@@ -918,6 +918,41 @@
                 </div>
 
                 <div class="setting-item">
+                    <label class="setting-label">
+                        <input type="checkbox" id="ppModeToggle" onchange="app.togglePPMode()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                        PlugPlay Token Dictionary Mode
+                    </label>
+                    <div class="setting-hint">Import/export portable token dictionaries (50k-100k tokens)</div>
+                    
+                    <div id="ppModeControls" class="hidden" style="margin-top: 12px;">
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <button onclick="document.getElementById('ppImportInput').click()" style="flex: 1; padding: 10px; background: var(--accent-dim); color: var(--accent); border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                                📥 Import Dictionary
+                            </button>
+                            <button id="ppExportBtn" onclick="app.exportPPDictionary()" class="hidden" style="flex: 1; padding: 10px; background: var(--success-dim); color: var(--success); border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                                📤 Export Dictionary
+                            </button>
+                        </div>
+                        <input type="file" id="ppImportInput" accept=".json" style="display: none;" onchange="app.importPPDictionary(event)">
+                        
+                        <div id="ppStatus" style="background: var(--bg-primary); border-radius: 8px; padding: 10px; font-size: 12px; margin-top: 8px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <span>Status:</span>
+                                <span id="ppStatusText" style="color: var(--text-tertiary); font-weight: 600;">No dictionary loaded</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <span>PP Tokens:</span>
+                                <span id="ppTokenCount" style="color: var(--accent); font-weight: 600;">0</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>Changes:</span>
+                                <span id="ppChanges" style="color: var(--warning); font-weight: 600;">+0 / -0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-item">
                     <label class="setting-label">Cache Statistics</label>
                     <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px;">
                         <div style="font-weight: 600; color: var(--accent); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border);">Persistent (Cold Start)</div>
@@ -992,6 +1027,12 @@
             heatmapCache: new Map(), // Persistent frequency heatmap (5000 limit)
             sessionTokenCache: new Map(), // Session-only tokens (15000 limit)
             sessionHeatmapCache: new Map(), // Session-only heatmap (15000 limit)
+            ppMode: false, // PlugPlay mode enabled
+            ppDictionary: new Map(), // PlugPlay token dictionary (50k-100k limit)
+            ppDictionaryOriginal: new Map(), // Original state for change tracking
+            ppFilename: null, // Current PP dictionary filename
+            ppAdded: new Set(), // Tokens added since import
+            ppRemoved: new Set(), // Tokens removed since import
 
             // Comprehensive text file extensions
             textExtensions: [
@@ -1047,6 +1088,163 @@
                 this.allowNoExt = document.getElementById('allowNoExtToggle').checked;
                 localStorage.setItem('ptam_allow_no_ext', this.allowNoExt);
                 this.log(`Files without extension: ${this.allowNoExt ? 'ALLOWED' : 'BLOCKED'}`, 'info');
+            },
+
+            togglePPMode() {
+                this.ppMode = document.getElementById('ppModeToggle').checked;
+                const controls = document.getElementById('ppModeControls');
+                
+                if (this.ppMode) {
+                    controls.classList.remove('hidden');
+                    
+                    // Check if dictionary needs to be created
+                    if (this.ppDictionary.size === 0) {
+                        this.createPPDictionary();
+                    }
+                    
+                    this.log('PlugPlay mode ENABLED', 'success');
+                } else {
+                    controls.classList.add('hidden');
+                    this.log('PlugPlay mode DISABLED', 'warning');
+                }
+                
+                localStorage.setItem('ptam_pp_mode', this.ppMode);
+                this.updatePPStatus();
+            },
+
+            createPPDictionary() {
+                // Auto-create dictionary from current session + persistent caches
+                this.ppDictionary.clear();
+                this.ppAdded.clear();
+                this.ppRemoved.clear();
+                
+                // Merge all existing caches
+                for (const [token, id] of this.tokenCache.entries()) {
+                    this.ppDictionary.set(token, id);
+                }
+                for (const [token, id] of this.sessionTokenCache.entries()) {
+                    if (!this.ppDictionary.has(token)) {
+                        this.ppDictionary.set(token, id);
+                    }
+                }
+                
+                // Clone as original for change tracking
+                this.ppDictionaryOriginal = new Map(this.ppDictionary);
+                this.ppFilename = `ptam-dictionary-${Date.now()}.json`;
+                
+                this.log(`Created PP dictionary with ${this.ppDictionary.size} tokens`, 'success');
+                this.showAlert('Created new PlugPlay dictionary', 'success');
+                this.updatePPStatus();
+                
+                // Show export button
+                document.getElementById('ppExportBtn').classList.remove('hidden');
+            },
+
+            async importPPDictionary(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                try {
+                    const text = await this.readFileAsText(file);
+                    const data = JSON.parse(text);
+                    
+                    // Validate format
+                    if (!data.version || !data.tokens) {
+                        throw new Error('Invalid dictionary format');
+                    }
+                    
+                    // Load tokens
+                    this.ppDictionary = new Map(Object.entries(data.tokens));
+                    this.ppDictionaryOriginal = new Map(this.ppDictionary);
+                    this.ppFilename = file.name;
+                    this.ppAdded.clear();
+                    this.ppRemoved.clear();
+                    
+                    this.log(`Imported ${this.ppDictionary.size} tokens from ${file.name}`, 'success');
+                    this.showAlert(`Imported ${this.ppDictionary.size} tokens`, 'success');
+                    
+                    // Show export button
+                    document.getElementById('ppExportBtn').classList.remove('hidden');
+                    this.updatePPStatus();
+                } catch (error) {
+                    this.log(`Import failed: ${error.message}`, 'error');
+                    this.showAlert('Failed to import dictionary', 'error');
+                }
+                
+                // Reset input
+                event.target.value = '';
+            },
+
+            exportPPDictionary() {
+                if (this.ppDictionary.size === 0) {
+                    this.showAlert('No dictionary to export', 'warning');
+                    return;
+                }
+                
+                const data = {
+                    version: '1.0',
+                    type: 'ptam-plugplay-dictionary',
+                    created: new Date().toISOString(),
+                    tokens: Object.fromEntries(this.ppDictionary),
+                    metadata: {
+                        tokenCount: this.ppDictionary.size,
+                        added: this.ppAdded.size,
+                        removed: this.ppRemoved.size,
+                        changes: Array.from(this.ppAdded).slice(0, 100) // Sample of changes
+                    }
+                };
+                
+                const json = JSON.stringify(data, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = this.ppFilename || 'ptam-dictionary.json';
+                link.click();
+                
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                
+                // Reset change tracking after export
+                this.ppDictionaryOriginal = new Map(this.ppDictionary);
+                this.ppAdded.clear();
+                this.ppRemoved.clear();
+                
+                this.log(`Exported ${this.ppDictionary.size} tokens`, 'success');
+                this.showAlert('Dictionary exported', 'success');
+                this.updatePPStatus();
+            },
+
+            updatePPStatus() {
+                const statusText = document.getElementById('ppStatusText');
+                const tokenCount = document.getElementById('ppTokenCount');
+                const changes = document.getElementById('ppChanges');
+                const exportBtn = document.getElementById('ppExportBtn');
+                
+                if (!this.ppMode) {
+                    statusText.textContent = 'Mode disabled';
+                    statusText.style.color = 'var(--text-tertiary)';
+                    tokenCount.textContent = '0';
+                    changes.textContent = '+0 / -0';
+                    return;
+                }
+                
+                if (this.ppDictionary.size === 0) {
+                    statusText.textContent = 'No dictionary';
+                    statusText.style.color = 'var(--warning)';
+                    tokenCount.textContent = '0';
+                    changes.textContent = '+0 / -0';
+                    exportBtn.classList.add('hidden');
+                } else {
+                    statusText.textContent = this.ppFilename ? `Loaded: ${this.ppFilename}` : 'Auto-created';
+                    statusText.style.color = 'var(--success)';
+                    tokenCount.textContent = `${this.ppDictionary.size}`;
+                    changes.textContent = `+${this.ppAdded.size} / -${this.ppRemoved.size}`;
+                    
+                    // Show export button if there are changes
+                    if (this.ppAdded.size > 0 || this.ppRemoved.size > 0) {
+                        exportBtn.classList.remove('hidden');
+                    }
+                }
             },
 
             setTheme(theme) {
@@ -1467,14 +1665,16 @@
                 const totalFiles = allContents.length;
                 let processed = 0;
 
-                // Check both caches
+                // Check all caches including PP dictionary
                 const persistentSize = this.tokenCache.size + this.heatmapCache.size;
                 const sessionSize = this.sessionTokenCache.size + this.sessionHeatmapCache.size;
-                this.log(`Cache check: ${persistentSize} persistent, ${sessionSize} session`, 'info');
+                const ppSize = this.ppMode ? this.ppDictionary.size : 0;
+                this.log(`Cache: ${persistentSize} persistent, ${sessionSize} session, ${ppSize} PP`, 'info');
                 
                 let cacheHits = 0;
+                let ppHits = 0;
 
-                // Build frequency map - check both caches
+                // Build frequency map - check all caches
                 this.updateLoadingDetail('Building frequency map... 0%');
                 
                 const strictPatterns = [
@@ -1488,21 +1688,36 @@
                 for (let i = 0; i < allContents.length; i++) {
                     const { content } = allContents[i];
                     
-                    // Check persistent cache first
+                    // Check PP dictionary first (if enabled)
+                    if (this.ppMode && this.ppDictionary.size > 0) {
+                        for (const [cachedToken, tokenId] of this.ppDictionary.entries()) {
+                            const matches = content.match(new RegExp(cachedToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'));
+                            if (matches && matches.length > 0) {
+                                candidateFreq.set(cachedToken, (candidateFreq.get(cachedToken) || 0) + matches.length);
+                                ppHits++;
+                            }
+                        }
+                    }
+                    
+                    // Check persistent cache
                     for (const [cachedToken, tokenId] of this.tokenCache.entries()) {
-                        const matches = content.match(new RegExp(cachedToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'));
-                        if (matches && matches.length > 0) {
-                            candidateFreq.set(cachedToken, (candidateFreq.get(cachedToken) || 0) + matches.length);
-                            cacheHits++;
+                        if (!candidateFreq.has(cachedToken)) {
+                            const matches = content.match(new RegExp(cachedToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'));
+                            if (matches && matches.length > 0) {
+                                candidateFreq.set(cachedToken, (candidateFreq.get(cachedToken) || 0) + matches.length);
+                                cacheHits++;
+                            }
                         }
                     }
 
                     // Check session cache
                     for (const [cachedToken, tokenId] of this.sessionTokenCache.entries()) {
-                        const matches = content.match(new RegExp(cachedToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'));
-                        if (matches && matches.length > 0) {
-                            candidateFreq.set(cachedToken, (candidateFreq.get(cachedToken) || 0) + matches.length);
-                            cacheHits++;
+                        if (!candidateFreq.has(cachedToken)) {
+                            const matches = content.match(new RegExp(cachedToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'));
+                            if (matches && matches.length > 0) {
+                                candidateFreq.set(cachedToken, (candidateFreq.get(cachedToken) || 0) + matches.length);
+                                cacheHits++;
+                            }
                         }
                     }
 
@@ -1529,23 +1744,38 @@
                     processed++;
                     if (processed % 5 === 0 || processed === totalFiles) {
                         const percent = Math.round((processed / totalFiles) * 50);
-                        this.updateLoadingDetail(`Building frequency map... ${percent}% (${cacheHits} hits)`);
+                        const hitMsg = ppHits > 0 ? ` (PP: ${ppHits}, cache: ${cacheHits})` : ` (${cacheHits} hits)`;
+                        this.updateLoadingDetail(`Building frequency map... ${percent}%${hitMsg}`);
                         await new Promise(resolve => setTimeout(resolve, 0));
                     }
                 }
 
+                if (ppHits > 0) {
+                    this.log(`PP dictionary: ${ppHits} hits`, 'success');
+                }
                 this.log(`Total cache hits: ${cacheHits}`, 'success');
 
-                // Filter tokens - prioritize cached tokens with combined heatmap
+                // Filter tokens - prioritize PP dictionary, then other caches
                 this.updateLoadingDetail('Filtering tokens... 50%');
                 const tokenDict = new Map();
                 let tokenId = 0;
+                let ppReused = 0;
                 let persistentReused = 0;
                 let sessionReused = 0;
 
-                // First, add persistent cached tokens that have good frequency
+                // First, add PP dictionary tokens (highest priority)
+                if (this.ppMode && this.ppDictionary.size > 0) {
+                    for (const [token, freq] of candidateFreq.entries()) {
+                        if (this.ppDictionary.has(token) && freq >= 2) { // Very low threshold for PP
+                            tokenDict.set(token, this.ppDictionary.get(token));
+                            ppReused++;
+                        }
+                    }
+                }
+
+                // Then, add persistent cached tokens
                 for (const [token, freq] of candidateFreq.entries()) {
-                    if (this.tokenCache.has(token) && freq >= 3) {
+                    if (!tokenDict.has(token) && this.tokenCache.has(token) && freq >= 3) {
                         tokenDict.set(token, this.tokenCache.get(token));
                         persistentReused++;
                     }
@@ -1575,16 +1805,22 @@
 
                 // Find next available token ID
                 tokenId = tokenDict.size;
+                const newTokens = [];
                 sortedCandidates.forEach(([token, freq]) => {
                     tokenDict.set(token, `T${tokenId++}`);
+                    newTokens.push(token);
                 });
 
-                const newTokens = sortedCandidates.length;
-                this.log(`Reused: ${persistentReused} persistent, ${sessionReused} session, ${newTokens} new`, 'info');
-                this.updateLoadingDetail(`Filtered to ${tokenDict.size} tokens (${persistentReused + sessionReused} cached)... 60%`);
+                this.log(`Reused: ${ppReused} PP, ${persistentReused} persistent, ${sessionReused} session, ${newTokens.length} new`, 'info');
+                this.updateLoadingDetail(`Filtered to ${tokenDict.size} tokens (${ppReused + persistentReused + sessionReused} cached)... 60%`);
 
-                // Update caches for next run
+                // Update caches and PP dictionary
                 this.updateCaches(tokenDict, candidateFreq);
+                
+                // Track PP dictionary changes
+                if (this.ppMode) {
+                    this.syncPPDictionary(newTokens, tokenDict);
+                }
 
                 // Tokenize content
                 const tokenData = [];
@@ -1627,6 +1863,11 @@
                 parts.push('║  TEXT FILES: ' + this.padRight(String(this.textFiles.length), 62) + '║');
                 parts.push('║  GENERATED: ' + this.padRight(timestamp, 63) + '║');
                 parts.push('║  TOKENS: ' + this.padRight(String(tokenDict.size), 67) + '║');
+                
+                if (this.ppMode) {
+                    parts.push('║  PP DICT: ' + this.padRight(String(ppReused), 66) + '║');
+                }
+                
                 parts.push('║  CACHED: ' + this.padRight(`${persistentReused}+${sessionReused}`, 67) + '║');
                 parts.push('║  FILES: ' + this.padRight(String(tokenData.length), 68) + '║');
                 
@@ -1678,6 +1919,24 @@
                 
                 candidateFreq.clear();
                 allContents.length = 0;
+            },
+
+            syncPPDictionary(newTokens, tokenDict) {
+                // Add new high-value tokens to PP dictionary
+                for (const token of newTokens) {
+                    if (this.ppDictionary.size >= 100000) {
+                        this.log('PP dictionary reached 100k limit', 'warning');
+                        break;
+                    }
+                    
+                    if (!this.ppDictionaryOriginal.has(token)) {
+                        this.ppDictionary.set(token, tokenDict.get(token));
+                        this.ppAdded.add(token);
+                    }
+                }
+                
+                this.log(`PP dictionary updated: +${this.ppAdded.size} new tokens`, 'info');
+                this.updatePPStatus();
             },
 
             updateCaches(tokenDict, candidateFreq) {
@@ -2097,6 +2356,15 @@
                     this.allowNoExt = allowNoExt === null ? true : allowNoExt === 'true';
                     document.getElementById('allowNoExtToggle').checked = this.allowNoExt;
                     
+                    // Load PP mode setting
+                    const ppMode = localStorage.getItem('ptam_pp_mode') === 'true';
+                    this.ppMode = ppMode;
+                    document.getElementById('ppModeToggle').checked = ppMode;
+                    if (ppMode) {
+                        document.getElementById('ppModeControls').classList.remove('hidden');
+                        this.updatePPStatus();
+                    }
+                    
                     // Load filename
                     const state = localStorage.getItem('ptam_state');
                     if (state) {
@@ -2139,6 +2407,7 @@
             },
 
             confirmRefresh() {
+                // Only clear current work files, not caches
                 this.zipFiles = [];
                 this.textFiles = [];
                 this.fileTree = null;
@@ -2147,7 +2416,8 @@
                 document.getElementById('filenameInput').value = 'merged';
                 this.updateUI();
                 this.closeModal('refreshModal');
-                this.showAlert('All files cleared', 'success');
+                this.showAlert('Work files cleared (caches preserved)', 'success');
+                this.log('Cleared work files only, caches intact', 'info');
             },
 
             openModal(id) {
