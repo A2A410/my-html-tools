@@ -1,0 +1,2057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="PTAM Unified - Process ZIPs and text files">
+    <meta name="theme-color" content="#6366f1">
+    <title>PTAM Unified</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #252538;
+            --text-primary: #e8e8f0;
+            --text-secondary: #a8a8b8;
+            --text-tertiary: #707080;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --accent-dim: rgba(99, 102, 241, 0.15);
+            --success: #10b981;
+            --success-dim: rgba(16, 185, 129, 0.15);
+            --danger: #ef4444;
+            --danger-dim: rgba(239, 68, 68, 0.15);
+            --warning: #f59e0b;
+            --warning-dim: rgba(245, 158, 11, 0.15);
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 8px 48px rgba(0, 0, 0, 0.5);
+        }
+
+        body.light-mode {
+            --bg-primary: #fafafa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f5f5f5;
+            --text-primary: #0f0f1a;
+            --text-secondary: #404050;
+            --text-tertiary: #808090;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(0, 0, 0, 0.08);
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 8px 48px rgba(0, 0, 0, 0.12);
+        }
+
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: 'Syne', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .icon-btn:active {
+            transform: scale(0.92);
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .stat-card {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        .container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        .upload-zone {
+            background: var(--bg-secondary);
+            border: 2px dashed var(--border);
+            border-radius: 20px;
+            padding: 48px 24px;
+            text-align: center;
+            margin-bottom: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            touch-action: manipulation;
+        }
+
+        .upload-zone:active {
+            transform: scale(0.98);
+            background: var(--accent-dim);
+            border-color: var(--accent);
+        }
+
+        .upload-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .upload-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .file-info-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .file-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .file-name-display {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+
+        .remove-file-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: none;
+            background: var(--danger-dim);
+            color: var(--danger);
+            font-size: 18px;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .remove-file-btn:active {
+            transform: scale(0.9);
+            background: var(--danger);
+            color: white;
+        }
+
+        .tree-container {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .tree-item {
+            padding: 4px 0;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .tree-folder {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .tree-file {
+            color: var(--text-primary);
+        }
+
+        .tree-excluded {
+            color: var(--text-tertiary);
+            text-decoration: line-through;
+        }
+
+        .tree-empty {
+            color: var(--warning);
+            font-style: italic;
+        }
+
+        .bottom-actions {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 16px 20px;
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+            z-index: 90;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .mode-option {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .mode-option.active {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 2px 8px var(--accent-dim);
+        }
+
+        .mode-option:active:not(.active) {
+            transform: scale(0.95);
+        }
+
+        .filename-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .filename-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 16px var(--accent-dim);
+            touch-action: manipulation;
+            margin-bottom: 12px;
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: var(--bg-tertiary);
+            box-shadow: none;
+        }
+
+        .action-btn:active:not(:disabled) {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px var(--accent-dim);
+        }
+
+        .alert {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            animation: alertSlide 0.3s ease;
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(20px);
+        }
+
+        @keyframes alertSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert.success {
+            background: var(--success-dim);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .alert.error {
+            background: var(--danger-dim);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .alert.warning {
+            background: var(--warning-dim);
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        .alert-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .alert-text {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .alert-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: inherit;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .alert-close:active {
+            opacity: 1;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            animation: modalSlide 0.3s ease;
+        }
+
+        @keyframes modalSlide {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:active {
+            transform: scale(0.9);
+            background: var(--danger);
+            color: white;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .modal-btn.primary {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+        }
+
+        .modal-btn.secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .modal-btn:active {
+            transform: scale(0.96);
+        }
+
+        .preview-content {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: var(--text-secondary);
+        }
+
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .loading.active {
+            display: flex;
+        }
+
+        .loading-content {
+            text-align: center;
+            padding: 32px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .loading-detail {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-tertiary);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+
+        .debug-info {
+            background: var(--danger-dim);
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--danger);
+        }
+
+        .settings-section {
+            margin-bottom: 16px;
+        }
+
+        .setting-item {
+            margin-bottom: 20px;
+        }
+
+        .setting-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .setting-hint {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+            margin-left: 26px;
+        }
+
+        .debug-console {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .debug-header {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .debug-log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            max-height: 250px;
+        }
+
+        .debug-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .debug-entry:last-child {
+            border-bottom: none;
+        }
+
+        .debug-entry.error {
+            color: var(--danger);
+        }
+
+        .debug-entry.warning {
+            color: var(--warning);
+        }
+
+        .debug-entry.success {
+            color: var(--success);
+        }
+
+        .debug-entry.info {
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-top">
+            <div class="logo">PTAM UNIFIED</div>
+            <div class="header-actions">
+                <button class="icon-btn" id="settingsBtn" onclick="app.openModal('settingsModal')" title="Settings">⚙️</button>
+                <button class="icon-btn" id="refreshBtn" onclick="app.showRefreshConfirm()" title="Refresh">🔄</button>
+                <button class="icon-btn" id="saveBtn" onclick="app.saveState()" title="Save">💾</button>
+            </div>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="statZips">0</div>
+                <div class="stat-label">ZIPs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statTexts">0</div>
+                <div class="stat-label">Texts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statFiles">0</div>
+                <div class="stat-label">Files</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statText">0</div>
+                <div class="stat-label">Valid</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statSkip">0</div>
+                <div class="stat-label">Skip</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="upload-zone" id="uploadZone">
+            <div class="upload-icon">📦</div>
+            <div class="upload-title">Tap to select files</div>
+            <div class="upload-hint">ZIPs + Text files • Auto-detection<br>Local processing • No upload</div>
+        </div>
+        <input type="file" id="fileInput" multiple accept=".zip,.txt,.js,.css,.html,.json,.xml,.md,.log,.csv,.ts,.jsx,.tsx,.py,.java,.c,.cpp">
+
+        <div id="fileInfoContainer"></div>
+    </div>
+
+    <div class="bottom-actions">
+        <div class="mode-selector">
+            <button class="mode-option active" onclick="app.setMode('default')">
+                Default
+            </button>
+            <button class="mode-option" onclick="app.setMode('tokenized')">
+                Tokenized
+            </button>
+        </div>
+        <input 
+            type="text" 
+            class="filename-input" 
+            id="filenameInput" 
+            placeholder="Output filename..."
+            value="merged"
+        >
+        <button class="action-btn" id="convertBtn" onclick="app.convert()" disabled>
+            <span>⚡</span>
+            <span>Convert to PTAM</span>
+        </button>
+    </div>
+
+    <div id="alertContainer"></div>
+
+    <div class="modal" id="previewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">PTAM Preview</div>
+                <button class="modal-close" onclick="app.closeModal('previewModal')">×</button>
+            </div>
+            <div class="preview-content" id="previewContent"></div>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="app.closeModal('previewModal')">Close</button>
+                <button class="modal-btn primary" onclick="app.downloadPTAM()">💾 Download</button>
+                <button class="modal-btn primary" onclick="app.copyPTAM()">📋 Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="refreshModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Clear All?</div>
+                <button class="modal-close" onclick="app.closeModal('refreshModal')">×</button>
+            </div>
+            <p style="margin-bottom: 20px; color: var(--text-secondary); font-size: 14px;">This will remove all loaded files and reset. Continue?</p>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="app.closeModal('refreshModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="app.confirmRefresh()">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Settings</div>
+                <button class="modal-close" onclick="app.closeModal('settingsModal')">×</button>
+            </div>
+            
+            <div class="settings-section">
+                <div class="setting-item">
+                    <label class="setting-label">Theme</label>
+                    <div class="mode-selector" style="margin-bottom: 0;">
+                        <button class="mode-option" id="themeDark" onclick="app.setTheme('dark')">Dark</button>
+                        <button class="mode-option active" id="themeLight" onclick="app.setTheme('light')">Light</button>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <label class="setting-label">
+                        <input type="checkbox" id="debugViewToggle" onchange="app.toggleDebugView()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                        Enable Debug View
+                    </label>
+                    <div class="setting-hint">Shows detailed logs for file processing</div>
+                </div>
+
+                <div class="setting-item">
+                    <label class="setting-label">
+                        <input type="checkbox" id="allowNoExtToggle" onchange="app.toggleAllowNoExt()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                        Accept files without extension
+                    </label>
+                    <div class="setting-hint">Process files that have no extension</div>
+                </div>
+
+                <div class="setting-item">
+                    <label class="setting-label">Cache Statistics</label>
+                    <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span>Cached Tokens:</span>
+                            <span id="cacheTokenCount" style="color: var(--accent); font-weight: 600;">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span>Heatmap Entries:</span>
+                            <span id="cacheHeatmapCount" style="color: var(--accent); font-weight: 600;">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Cache Size:</span>
+                            <span id="cacheSize" style="color: var(--accent); font-weight: 600;">0B</span>
+                        </div>
+                    </div>
+                    <button onclick="app.clearCache()" style="width: 100%; margin-top: 8px; padding: 10px; background: var(--danger-dim); color: var(--danger); border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                        Clear Cache
+                    </button>
+                </div>
+            </div>
+
+            <div id="debugConsole" class="debug-console hidden">
+                <div class="debug-header">
+                    <span style="font-weight: 600;">Debug Console</span>
+                    <button onclick="app.clearDebug()" style="background: var(--danger-dim); color: var(--danger); border: none; padding: 4px 8px; border-radius: 6px; font-size: 11px; cursor: pointer;">Clear</button>
+                </div>
+                <div id="debugLog" class="debug-log"></div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn primary" onclick="app.closeModal('settingsModal')">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading" id="loading">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div class="loading-text">Processing</div>
+            <div class="loading-detail" id="loadingDetail">Please wait...</div>
+        </div>
+    </div>
+
+    <script>
+        const app = {
+            zipFiles: [],
+            textFiles: [],
+            fileTree: null,
+            ptamContent: null,
+            stats: { total: 0, text: 0, empty: 0, skip: 0 },
+            mode: 'default',
+            debugEnabled: false,
+            allowNoExt: true,
+            tokenCache: new Map(), // Cached tokens from previous runs
+            heatmapCache: new Map(), // Frequency heatmap for token reuse
+
+            // Comprehensive text file extensions
+            textExtensions: [
+                'txt', 'text', 'log', 'md', 'markdown',
+                'js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs',
+                'css', 'scss', 'sass', 'less',
+                'html', 'htm', 'xml', 'svg',
+                'json', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf',
+                'py', 'pyw', 'java', 'c', 'cpp', 'h', 'hpp',
+                'rs', 'go', 'rb', 'php', 'pl', 'sh', 'bash',
+                'sql', 'csv', 'tsv'
+            ],
+
+            // Binary extensions to skip
+            binaryExts: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'ico', 'mp4', 'mp3', 'wav', 'avi', 'mov', 'pdf', 'zip', 'rar', '7z', 'tar', 'gz', 'exe', 'dll', 'so', 'dylib', 'bin', 'dat', 'woff', 'woff2', 'ttf', 'eot'],
+
+            init() {
+                this.loadState();
+                this.setupEventListeners();
+            },
+
+            log(message, type = 'info') {
+                if (!this.debugEnabled) return;
+                
+                const debugLog = document.getElementById('debugLog');
+                if (!debugLog) return;
+
+                const entry = document.createElement('div');
+                entry.className = `debug-entry ${type}`;
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                debugLog.appendChild(entry);
+                debugLog.scrollTop = debugLog.scrollHeight;
+            },
+
+            clearDebug() {
+                const debugLog = document.getElementById('debugLog');
+                if (debugLog) debugLog.innerHTML = '';
+            },
+
+            toggleDebugView() {
+                this.debugEnabled = document.getElementById('debugViewToggle').checked;
+                const debugConsole = document.getElementById('debugConsole');
+                if (this.debugEnabled) {
+                    debugConsole.classList.remove('hidden');
+                    this.log('Debug view enabled', 'success');
+                } else {
+                    debugConsole.classList.add('hidden');
+                }
+                localStorage.setItem('ptam_debug', this.debugEnabled);
+            },
+
+            toggleAllowNoExt() {
+                this.allowNoExt = document.getElementById('allowNoExtToggle').checked;
+                localStorage.setItem('ptam_allow_no_ext', this.allowNoExt);
+                this.log(`Files without extension: ${this.allowNoExt ? 'ALLOWED' : 'BLOCKED'}`, 'info');
+            },
+
+            setTheme(theme) {
+                const body = document.body;
+                document.querySelectorAll('#themeDark, #themeLight').forEach(btn => btn.classList.remove('active'));
+                
+                if (theme === 'light') {
+                    body.classList.add('light-mode');
+                    document.getElementById('themeLight').classList.add('active');
+                } else {
+                    body.classList.remove('light-mode');
+                    document.getElementById('themeDark').classList.add('active');
+                }
+                
+                localStorage.setItem('ptam_theme', theme);
+                this.log(`Theme changed to ${theme}`, 'info');
+            },
+
+            setupEventListeners() {
+                const fileInput = document.getElementById('fileInput');
+                const uploadZone = document.getElementById('uploadZone');
+
+                uploadZone.addEventListener('click', () => fileInput.click());
+
+                uploadZone.addEventListener('touchstart', (e) => {
+                    e.currentTarget.style.transform = 'scale(0.98)';
+                    e.currentTarget.style.background = 'var(--accent-dim)';
+                    e.currentTarget.style.borderColor = 'var(--accent)';
+                });
+
+                uploadZone.addEventListener('touchend', (e) => {
+                    e.currentTarget.style.transform = '';
+                    e.currentTarget.style.background = '';
+                    e.currentTarget.style.borderColor = '';
+                });
+
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.handleFiles(e.target.files);
+                    }
+                    e.target.value = '';
+                });
+
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            this.closeModal(modal.id);
+                        }
+                    });
+                });
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        document.querySelectorAll('.modal.active').forEach(modal => {
+                            this.closeModal(modal.id);
+                        });
+                    }
+                });
+
+                window.addEventListener('beforeunload', (e) => {
+                    if ((this.zipFiles.length > 0 || this.textFiles.length > 0) && !this.ptamContent) {
+                        e.preventDefault();
+                        e.returnValue = '';
+                    }
+                });
+            },
+
+            async handleFiles(files) {
+                const fileList = Array.from(files);
+                
+                if (fileList.length === 0) return;
+
+                this.showLoading('Analyzing files...');
+                this.log(`Processing ${fileList.length} file(s)`, 'info');
+
+                let zipCount = 0;
+                let textCount = 0;
+                let skipped = 0;
+
+                for (const file of fileList) {
+                    const nameParts = file.name.split('.');
+                    const ext = nameParts.length > 1 ? nameParts.pop().toLowerCase() : '';
+                    const hasExt = ext !== '';
+                    
+                    this.log(`Analyzing: ${file.name} (ext: ${ext || 'none'}, size: ${this.formatSize(file.size)})`, 'info');
+                    
+                    if (ext === 'zip') {
+                        // Check if ZIP already exists
+                        if (this.zipFiles.some(z => z.name === file.name && z.file.size === file.size)) {
+                            this.log(`Duplicate ZIP: ${file.name}`, 'warning');
+                            continue;
+                        }
+
+                        try {
+                            this.updateLoadingDetail(`Loading ZIP: ${file.name}...`);
+                            const zip = await JSZip.loadAsync(file);
+                            this.zipFiles.push({ file, zip, name: file.name });
+                            zipCount++;
+                            this.log(`✓ Loaded ZIP: ${file.name}`, 'success');
+                        } catch (error) {
+                            this.log(`✗ Failed ZIP: ${file.name} - ${error.message}`, 'error');
+                            skipped++;
+                        }
+                    } else if (this.textExtensions.includes(ext) || file.type.startsWith('text/') || (!hasExt && this.allowNoExt)) {
+                        // Check if text file already exists
+                        if (this.textFiles.some(t => t.name === file.name && t.size === file.size)) {
+                            this.log(`Duplicate text: ${file.name}`, 'warning');
+                            continue;
+                        }
+
+                        // If no extension and not allowed, skip
+                        if (!hasExt && !this.allowNoExt) {
+                            this.log(`✗ Skipped (no ext, disabled): ${file.name}`, 'warning');
+                            skipped++;
+                            continue;
+                        }
+
+                        // Try to read as text to verify
+                        try {
+                            this.updateLoadingDetail(`Verifying: ${file.name}...`);
+                            const content = await this.readFileAsText(file);
+                            
+                            // Check if content is readable (not binary garbage)
+                            const isReadable = this.isTextReadable(content);
+                            
+                            if (isReadable) {
+                                this.textFiles.push({
+                                    file,
+                                    name: file.name,
+                                    size: file.size,
+                                    content,
+                                    lastModified: file.lastModified
+                                });
+                                textCount++;
+                                this.log(`✓ Loaded text: ${file.name} (${this.formatSize(file.size)})`, 'success');
+                            } else {
+                                this.log(`✗ Binary/unreadable: ${file.name} (${this.formatSize(file.size)})`, 'error');
+                                skipped++;
+                            }
+                        } catch (error) {
+                            this.log(`✗ Read error: ${file.name} - ${error.message}`, 'error');
+                            skipped++;
+                        }
+                    } else if (this.binaryExts.includes(ext)) {
+                        this.log(`✗ Binary extension: ${file.name} (.${ext})`, 'warning');
+                        skipped++;
+                    } else {
+                        this.log(`✗ Unsupported: ${file.name} (.${ext || 'no ext'})`, 'warning');
+                        skipped++;
+                    }
+                }
+
+                if (this.zipFiles.length > 0) {
+                    this.updateLoadingDetail('Analyzing ZIPs...');
+                    await this.analyzeAllZips();
+                }
+
+                this.hideLoading();
+                this.updateUI();
+
+                // Show results
+                let msg = [];
+                if (zipCount > 0) msg.push(`${zipCount} ZIP${zipCount > 1 ? 's' : ''}`);
+                if (textCount > 0) msg.push(`${textCount} text file${textCount > 1 ? 's' : ''}`);
+                if (skipped > 0) msg.push(`${skipped} skipped`);
+
+                if (msg.length > 0) {
+                    this.showAlert(`Loaded: ${msg.join(', ')}`, skipped > 0 ? 'warning' : 'success');
+                    this.log(`Summary: ${msg.join(', ')}`, skipped > 0 ? 'warning' : 'success');
+                } else {
+                    this.showAlert('No valid files loaded', 'error');
+                    this.log('No valid files loaded', 'error');
+                }
+            },
+
+            isTextReadable(content) {
+                if (!content || content.length === 0) return false;
+                
+                // Sample first 1000 chars
+                const sample = content.substring(0, 1000);
+                
+                // Count printable vs non-printable characters
+                const printable = sample.match(/[\x20-\x7E\n\r\t]/g);
+                const printableRatio = printable ? printable.length / sample.length : 0;
+                
+                // If more than 80% is printable, consider it text
+                return printableRatio > 0.8;
+            },
+
+            async analyzeAllZips() {
+                const tree = {};
+                this.stats = { total: 0, text: 0, empty: 0, skip: 0 };
+
+                for (let zipIdx = 0; zipIdx < this.zipFiles.length; zipIdx++) {
+                    const { zip, name } = this.zipFiles[zipIdx];
+                    const zipBaseName = name.replace('.zip', '');
+                    
+                    const entries = Object.entries(zip.files);
+                    let processed = 0;
+
+                    for (const [path, entry] of entries) {
+                        if (entry.dir) continue;
+
+                        this.stats.total++;
+
+                        const fileName = path.split('/').pop();
+                        const ext = fileName.split('.').pop().toLowerCase();
+                        
+                        // More lenient filtering - only skip obvious binaries
+                        if (this.binaryExts.includes(ext)) {
+                            this.stats.skip++;
+                            this.addToTree(tree, `${zipBaseName}/${path}`, { type: 'skip', name: fileName, size: 0 });
+                            continue;
+                        }
+
+                        try {
+                            const content = await entry.async('text');
+                            
+                            if (content.trim() === '') {
+                                this.stats.empty++;
+                                this.addToTree(tree, `${zipBaseName}/${path}`, { type: 'empty', name: fileName, size: 0 });
+                            } else if (this.isTextReadable(content)) {
+                                this.stats.text++;
+                                this.addToTree(tree, `${zipBaseName}/${path}`, { type: 'text', name: fileName, size: content.length, content });
+                            } else {
+                                this.stats.skip++;
+                                this.addToTree(tree, `${zipBaseName}/${path}`, { type: 'skip', name: fileName, size: 0 });
+                            }
+                        } catch (error) {
+                            console.error(`Failed to read ${path}:`, error);
+                            this.stats.skip++;
+                            this.addToTree(tree, `${zipBaseName}/${path}`, { type: 'skip', name: fileName, size: 0 });
+                        }
+
+                        processed++;
+                        if (processed % 10 === 0) {
+                            await new Promise(resolve => setTimeout(resolve, 0));
+                            const zipPercent = Math.round(((zipIdx + processed / entries.length) / this.zipFiles.length) * 100);
+                            this.updateLoadingDetail(`Analyzing ZIPs... ${zipPercent}%`);
+                        }
+                    }
+                }
+
+                this.fileTree = tree;
+            },
+
+            readFileAsText(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsText(file, 'UTF-8');
+                });
+            },
+
+            addToTree(tree, path, data) {
+                const parts = path.split('/').filter(p => p);
+                let current = tree;
+
+                for (let i = 0; i < parts.length - 1; i++) {
+                    if (!current[parts[i]]) {
+                        current[parts[i]] = {};
+                    }
+                    current = current[parts[i]];
+                }
+
+                current[parts[parts.length - 1]] = data;
+            },
+
+            renderTree(tree, indent = '') {
+                let html = '';
+                const entries = Object.entries(tree).sort(([a], [b]) => {
+                    const aIsFolder = typeof tree[a] === 'object' && !tree[a].type;
+                    const bIsFolder = typeof tree[b] === 'object' && !tree[b].type;
+                    if (aIsFolder && !bIsFolder) return -1;
+                    if (!aIsFolder && bIsFolder) return 1;
+                    return a.localeCompare(b);
+                });
+
+                for (const [name, value] of entries) {
+                    if (typeof value === 'object' && !value.type) {
+                        html += `<div class="tree-item tree-folder">${indent}📁 ${name}/</div>`;
+                        html += this.renderTree(value, indent + '  ');
+                    } else {
+                        const icon = value.type === 'text' ? '📄' : value.type === 'empty' ? '📭' : '⛔';
+                        const className = value.type === 'skip' ? 'tree-excluded' : value.type === 'empty' ? 'tree-empty' : 'tree-file';
+                        html += `<div class="tree-item ${className}">${indent}${icon} ${name}</div>`;
+                    }
+                }
+
+                return html;
+            },
+
+            async convert() {
+                if (this.zipFiles.length === 0 && this.textFiles.length === 0) return;
+
+                this.showLoading('Converting to PTAM...');
+
+                try {
+                    if (this.mode === 'tokenized') {
+                        await this.convertTokenized();
+                    } else {
+                        await this.convertDefault();
+                    }
+
+                    this.hideLoading();
+                    this.showPreview();
+                } catch (error) {
+                    this.hideLoading();
+                    console.error('Conversion error:', error);
+                    this.showAlert(`Conversion failed: ${error.message || 'Unknown error'}`, 'error');
+                }
+            },
+
+            async convertDefault() {
+                const parts = [];
+                const timestamp = new Date().toISOString();
+                
+                this.updateLoadingDetail('Building header... 0%');
+                
+                // Header
+                parts.push('╔' + '═'.repeat(78) + '╗');
+                parts.push('║' + ' '.repeat(78) + '║');
+                parts.push('║' + this.centerText('PTAM UNIFIED FORMAT', 78) + '║');
+                parts.push('║' + ' '.repeat(78) + '║');
+                parts.push('╠' + '═'.repeat(78) + '╣');
+                parts.push('║  SOURCE ZIPS: ' + this.padRight(String(this.zipFiles.length), 61) + '║');
+                parts.push('║  TEXT FILES: ' + this.padRight(String(this.textFiles.length), 62) + '║');
+                parts.push('║  GENERATED: ' + this.padRight(timestamp, 63) + '║');
+                parts.push('║  TOTAL FILES: ' + this.padRight(String(this.stats.total + this.textFiles.length), 61) + '║');
+                parts.push('║  VALID TEXT: ' + this.padRight(String(this.stats.text + this.textFiles.length), 62) + '║');
+                parts.push('║  SKIPPED: ' + this.padRight(String(this.stats.skip), 65) + '║');
+                parts.push('╚' + '═'.repeat(78) + '╝');
+                parts.push('');
+                parts.push('');
+
+                this.updateLoadingDetail('Converting files... 10%');
+                let processedFiles = 0;
+                const totalFiles = this.stats.text + this.textFiles.length;
+
+                // Process ZIP files
+                if (this.fileTree) {
+                    await this.convertTree(this.fileTree, parts, '', totalFiles);
+                    processedFiles = this.stats.text;
+                }
+
+                // Process standalone text files
+                for (let i = 0; i < this.textFiles.length; i++) {
+                    const tf = this.textFiles[i];
+                    
+                    parts.push('┌' + '─'.repeat(78) + '┐');
+                    parts.push('│ FILE: ' + this.padRight(tf.name, 71) + '│');
+                    parts.push('│ SIZE: ' + this.padRight(this.formatSize(tf.size), 71) + '│');
+                    parts.push('├' + '─'.repeat(78) + '┤');
+                    parts.push(tf.content);
+                    parts.push('└' + '─'.repeat(78) + '┘');
+                    parts.push('');
+
+                    processedFiles++;
+                    if (processedFiles % 3 === 0 || processedFiles === totalFiles) {
+                        const percent = 10 + Math.round((processedFiles / totalFiles) * 90);
+                        this.updateLoadingDetail(`Converting files... ${percent}%`);
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                }
+
+                this.updateLoadingDetail('Complete! 100%');
+                this.ptamContent = parts.join('\n');
+            },
+
+            async convertTree(tree, parts, path, totalFiles = 0) {
+                const entries = Object.entries(tree).sort(([a], [b]) => {
+                    const aIsFolder = typeof tree[a] === 'object' && !tree[a].type;
+                    const bIsFolder = typeof tree[b] === 'object' && !tree[b].type;
+                    if (aIsFolder && !bIsFolder) return -1;
+                    if (!aIsFolder && bIsFolder) return 1;
+                    return a.localeCompare(b);
+                });
+
+                for (const [name, value] of entries) {
+                    const currentPath = path ? `${path}/${name}` : name;
+
+                    if (typeof value === 'object' && !value.type) {
+                        await this.convertTree(value, parts, currentPath, totalFiles);
+                    } else if (value.type === 'text') {
+                        parts.push('┌' + '─'.repeat(78) + '┐');
+                        parts.push('│ FILE: ' + this.padRight(currentPath, 71) + '│');
+                        parts.push('│ SIZE: ' + this.padRight(this.formatSize(value.size), 71) + '│');
+                        parts.push('├' + '─'.repeat(78) + '┤');
+                        parts.push(value.content);
+                        parts.push('└' + '─'.repeat(78) + '┘');
+                        parts.push('');
+                    } else if (value.type === 'empty') {
+                        parts.push('┌' + '─'.repeat(78) + '┐');
+                        parts.push('│ FILE: ' + this.padRight(currentPath, 71) + '│');
+                        parts.push('│ [EMPTY FILE]' + ' '.repeat(65) + '│');
+                        parts.push('└' + '─'.repeat(78) + '┘');
+                        parts.push('');
+                    }
+                }
+            },
+
+            async convertTokenized() {
+                const candidateFreq = new Map();
+                const allContents = [];
+
+                // Collect from ZIP tree
+                this.updateLoadingDetail('Analyzing content... 0%');
+                if (this.fileTree) {
+                    await this.collectContent(this.fileTree, allContents, '');
+                }
+
+                // Add standalone text files
+                for (const tf of this.textFiles) {
+                    allContents.push({ path: tf.name, content: tf.content });
+                }
+
+                const totalFiles = allContents.length;
+                let processed = 0;
+
+                // Check if we have cached tokens that match
+                this.log(`Checking cache: ${this.tokenCache.size} tokens, ${this.heatmapCache.size} patterns`, 'info');
+                let cacheHits = 0;
+                let cacheMatches = 0;
+
+                // Build frequency map - use cache to speed up
+                this.updateLoadingDetail('Building frequency map... 0%');
+                
+                const strictPatterns = [
+                    /https?:\/\/[^\s]+/g,
+                    /[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+                    /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g,
+                    /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/g,
+                    /\b0x[a-fA-F0-9]+\b/g,
+                ];
+
+                for (let i = 0; i < allContents.length; i++) {
+                    const { content } = allContents[i];
+                    
+                    // First check cached tokens
+                    for (const [cachedToken, tokenId] of this.tokenCache.entries()) {
+                        const matches = content.match(new RegExp(cachedToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'));
+                        if (matches && matches.length > 0) {
+                            candidateFreq.set(cachedToken, (candidateFreq.get(cachedToken) || 0) + matches.length);
+                            cacheHits++;
+                        }
+                    }
+
+                    // Then discover new patterns
+                    strictPatterns.forEach(pattern => {
+                        const matches = content.match(pattern) || [];
+                        matches.forEach(match => {
+                            if (match.length > 5) {
+                                candidateFreq.set(match, (candidateFreq.get(match) || 0) + 1);
+                            }
+                        });
+                    });
+
+                    const words = content.match(/\b[a-zA-Z_][a-zA-Z0-9_]{4,}\b/g) || [];
+                    words.forEach(word => {
+                        candidateFreq.set(word, (candidateFreq.get(word) || 0) + 1);
+                    });
+
+                    const numbers = content.match(/\b\d{5,}\.?\d*\b/g) || [];
+                    numbers.forEach(num => {
+                        candidateFreq.set(`#${num}`, (candidateFreq.get(`#${num}`) || 0) + 1);
+                    });
+
+                    processed++;
+                    if (processed % 5 === 0 || processed === totalFiles) {
+                        const percent = Math.round((processed / totalFiles) * 50);
+                        this.updateLoadingDetail(`Building frequency map... ${percent}% (cache: ${cacheHits} hits)`);
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                }
+
+                this.log(`Cache hits: ${cacheHits} patterns matched from cache`, 'success');
+
+                // Filter tokens - prioritize cached tokens with high heatmap scores
+                this.updateLoadingDetail('Filtering tokens... 50%');
+                const tokenDict = new Map();
+                let tokenId = 0;
+
+                // First, add cached tokens that still have good frequency
+                for (const [token, freq] of candidateFreq.entries()) {
+                    if (this.tokenCache.has(token) && freq >= 3) { // Lower threshold for cached
+                        tokenDict.set(token, this.tokenCache.get(token));
+                        cacheMatches++;
+                    }
+                }
+
+                // Then sort remaining candidates
+                const sortedCandidates = Array.from(candidateFreq.entries())
+                    .filter(([token, freq]) => !tokenDict.has(token) && freq >= 5 && token.length >= 6)
+                    .sort((a, b) => {
+                        const benefitA = a[1] * a[0].length;
+                        const benefitB = b[1] * b[0].length;
+                        
+                        // Boost if in heatmap
+                        const heatA = this.heatmapCache.get(a[0]) || 0;
+                        const heatB = this.heatmapCache.get(b[0]) || 0;
+                        
+                        return (benefitB + heatB * 10) - (benefitA + heatA * 10);
+                    });
+
+                // Find next available token ID
+                tokenId = tokenDict.size;
+                sortedCandidates.forEach(([token, freq]) => {
+                    tokenDict.set(token, `T${tokenId++}`);
+                });
+
+                this.log(`Reused ${cacheMatches} tokens from cache, discovered ${sortedCandidates.length} new`, 'info');
+                this.updateLoadingDetail(`Filtered to ${tokenDict.size} tokens (${cacheMatches} cached)... 60%`);
+
+                // Update caches for next run
+                this.updateCaches(tokenDict, candidateFreq);
+
+                // Tokenize content
+                const tokenData = [];
+                processed = 0;
+
+                for (let i = 0; i < allContents.length; i++) {
+                    const { path, content } = allContents[i];
+                    
+                    let result = content;
+
+                    const sortedTokens = Array.from(tokenDict.entries())
+                        .sort((a, b) => b[0].length - a[0].length);
+
+                    sortedTokens.forEach(([original, token]) => {
+                        const escaped = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        result = result.replace(new RegExp(escaped, 'g'), token);
+                    });
+
+                    tokenData.push({ path, content: result });
+
+                    processed++;
+                    if (processed % 3 === 0 || processed === totalFiles) {
+                        const percent = 60 + Math.round((processed / totalFiles) * 30);
+                        this.updateLoadingDetail(`Tokenizing files... ${percent}%`);
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                }
+
+                // Build output
+                this.updateLoadingDetail('Building PTAM... 95%');
+                const parts = [];
+                const timestamp = new Date().toISOString();
+                
+                parts.push('╔' + '═'.repeat(78) + '╗');
+                parts.push('║' + ' '.repeat(78) + '║');
+                parts.push('║' + this.centerText('PTAM TOKENIZED FORMAT', 78) + '║');
+                parts.push('║' + ' '.repeat(78) + '║');
+                parts.push('╠' + '═'.repeat(78) + '╣');
+                parts.push('║  SOURCE ZIPS: ' + this.padRight(String(this.zipFiles.length), 61) + '║');
+                parts.push('║  TEXT FILES: ' + this.padRight(String(this.textFiles.length), 62) + '║');
+                parts.push('║  GENERATED: ' + this.padRight(timestamp, 63) + '║');
+                parts.push('║  TOKENS: ' + this.padRight(String(tokenDict.size), 67) + '║');
+                parts.push('║  CACHED: ' + this.padRight(String(cacheMatches), 67) + '║');
+                parts.push('║  FILES: ' + this.padRight(String(tokenData.length), 68) + '║');
+                
+                const originalSize = allContents.reduce((sum, c) => sum + c.content.length, 0);
+                const tokenizedSize = tokenData.reduce((sum, c) => sum + c.content.length, 0);
+                const ratio = ((1 - tokenizedSize / originalSize) * 100).toFixed(1);
+                
+                parts.push('║  COMPRESSION: ' + this.padRight(`${ratio}%`, 62) + '║');
+                parts.push('╚' + '═'.repeat(78) + '╝');
+                parts.push('');
+                parts.push('');
+
+                // Token Dictionary
+                parts.push('╔' + '═'.repeat(78) + '╗');
+                parts.push('║' + this.centerText('TOKEN DICTIONARY', 78) + '║');
+                parts.push('╚' + '═'.repeat(78) + '╝');
+                parts.push('');
+
+                const sortedTokens = Array.from(tokenDict.entries()).sort((a, b) => {
+                    const aNum = parseInt(a[1].substring(1));
+                    const bNum = parseInt(b[1].substring(1));
+                    return aNum - bNum;
+                });
+
+                sortedTokens.forEach(([original, token]) => {
+                    parts.push(`${token}=${original}`);
+                });
+
+                parts.push('');
+                parts.push('');
+
+                // Token Content
+                parts.push('╔' + '═'.repeat(78) + '╗');
+                parts.push('║' + this.centerText('TOKEN CONTENT', 78) + '║');
+                parts.push('╚' + '═'.repeat(78) + '╝');
+                parts.push('');
+
+                tokenData.forEach(({ path, content }) => {
+                    parts.push('┌' + '─'.repeat(78) + '┐');
+                    parts.push('│ FILE: ' + this.padRight(path, 71) + '│');
+                    parts.push('├' + '─'.repeat(78) + '┤');
+                    parts.push(content);
+                    parts.push('└' + '─'.repeat(78) + '┘');
+                    parts.push('');
+                });
+
+                this.updateLoadingDetail('Complete! 100%');
+                this.ptamContent = parts.join('\n');
+                
+                candidateFreq.clear();
+                allContents.length = 0;
+            },
+
+            updateCaches(tokenDict, candidateFreq) {
+                // Update token cache
+                for (const [token, tokenId] of tokenDict.entries()) {
+                    this.tokenCache.set(token, tokenId);
+                }
+
+                // Update heatmap with frequencies
+                for (const [token, freq] of candidateFreq.entries()) {
+                    const current = this.heatmapCache.get(token) || 0;
+                    this.heatmapCache.set(token, current + freq);
+                }
+
+                // Limit cache size - keep top 5000 by heatmap score
+                if (this.heatmapCache.size > 5000) {
+                    const sorted = Array.from(this.heatmapCache.entries())
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 5000);
+                    
+                    this.heatmapCache.clear();
+                    sorted.forEach(([token, score]) => {
+                        this.heatmapCache.set(token, score);
+                    });
+                    
+                    this.log('Cache pruned to top 5000 patterns', 'info');
+                }
+
+                // Save to localStorage
+                this.saveCaches();
+                this.updateCacheStats();
+            },
+
+            saveCaches() {
+                try {
+                    const tokenArray = Array.from(this.tokenCache.entries());
+                    const heatmapArray = Array.from(this.heatmapCache.entries());
+                    
+                    localStorage.setItem('ptam_token_cache', JSON.stringify(tokenArray));
+                    localStorage.setItem('ptam_heatmap_cache', JSON.stringify(heatmapArray));
+                    
+                    this.log(`Saved ${tokenArray.length} tokens, ${heatmapArray.length} heatmap entries`, 'success');
+                } catch (error) {
+                    console.error('Failed to save caches:', error);
+                    this.log('Cache save failed - quota exceeded?', 'error');
+                }
+            },
+
+            loadCaches() {
+                try {
+                    const tokenData = localStorage.getItem('ptam_token_cache');
+                    const heatmapData = localStorage.getItem('ptam_heatmap_cache');
+                    
+                    if (tokenData) {
+                        const tokenArray = JSON.parse(tokenData);
+                        this.tokenCache = new Map(tokenArray);
+                    }
+                    
+                    if (heatmapData) {
+                        const heatmapArray = JSON.parse(heatmapData);
+                        this.heatmapCache = new Map(heatmapArray);
+                    }
+                    
+                    this.log(`Loaded ${this.tokenCache.size} tokens, ${this.heatmapCache.size} patterns from cache`, 'info');
+                } catch (error) {
+                    console.error('Failed to load caches:', error);
+                    this.log('Cache load failed', 'error');
+                }
+            },
+
+            updateCacheStats() {
+                const tokenCount = this.tokenCache.size;
+                const heatmapCount = this.heatmapCache.size;
+                
+                // Estimate size
+                const tokenSize = JSON.stringify(Array.from(this.tokenCache.entries())).length;
+                const heatmapSize = JSON.stringify(Array.from(this.heatmapCache.entries())).length;
+                const totalSize = tokenSize + heatmapSize;
+                
+                document.getElementById('cacheTokenCount').textContent = tokenCount;
+                document.getElementById('cacheHeatmapCount').textContent = heatmapCount;
+                document.getElementById('cacheSize').textContent = this.formatSize(totalSize);
+            },
+
+            clearCache() {
+                if (!confirm('Clear all cached tokens and heatmap data? This cannot be undone.')) {
+                    return;
+                }
+                
+                this.tokenCache.clear();
+                this.heatmapCache.clear();
+                localStorage.removeItem('ptam_token_cache');
+                localStorage.removeItem('ptam_heatmap_cache');
+                
+                this.updateCacheStats();
+                this.showAlert('Cache cleared', 'success');
+                this.log('Cache cleared manually', 'warning');
+            },
+
+            async collectContent(tree, contents, path) {
+                const entries = Object.entries(tree).sort(([a], [b]) => {
+                    const aIsFolder = typeof tree[a] === 'object' && !tree[a].type;
+                    const bIsFolder = typeof tree[b] === 'object' && !tree[b].type;
+                    if (aIsFolder && !bIsFolder) return -1;
+                    if (!aIsFolder && bIsFolder) return 1;
+                    return a.localeCompare(b);
+                });
+
+                for (const [name, value] of entries) {
+                    const currentPath = path ? `${path}/${name}` : name;
+
+                    if (typeof value === 'object' && !value.type) {
+                        await this.collectContent(value, contents, currentPath);
+                    } else if (value.type === 'text') {
+                        contents.push({ path: currentPath, content: value.content });
+                    }
+                }
+            },
+
+            setMode(mode) {
+                this.mode = mode;
+                document.querySelectorAll('.mode-option').forEach(btn => {
+                    btn.classList.toggle('active', btn.textContent.trim().toLowerCase() === mode);
+                });
+                this.ptamContent = null;
+            },
+
+            centerText(text, width) {
+                const spaces = Math.floor((width - text.length) / 2);
+                return ' '.repeat(spaces) + text + ' '.repeat(width - spaces - text.length);
+            },
+
+            padRight(text, width) {
+                return text.length > width ? text.substring(0, width) : text + ' '.repeat(width - text.length);
+            },
+
+            updateUI() {
+                document.getElementById('statZips').textContent = this.zipFiles.length;
+                document.getElementById('statTexts').textContent = this.textFiles.length;
+                document.getElementById('statFiles').textContent = this.stats.total + this.textFiles.length;
+                document.getElementById('statText').textContent = this.stats.text + this.textFiles.length;
+                document.getElementById('statSkip').textContent = this.stats.skip + this.stats.empty;
+
+                const container = document.getElementById('fileInfoContainer');
+                
+                if (this.zipFiles.length === 0 && this.textFiles.length === 0) {
+                    container.innerHTML = '';
+                } else {
+                    let html = '';
+
+                    // Show ZIPs
+                    this.zipFiles.forEach((z, idx) => {
+                        html += `
+                            <div class="file-info-card">
+                                <div class="file-header">
+                                    <div class="file-name-display">📦 ${this.escapeHtml(z.name)}</div>
+                                    <button class="remove-file-btn" onclick="app.removeZipByIndex(${idx})" title="Remove">×</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    // Show text files
+                    this.textFiles.forEach((tf, idx) => {
+                        html += `
+                            <div class="file-info-card">
+                                <div class="file-header">
+                                    <div class="file-name-display">📄 ${this.escapeHtml(tf.name)} (${this.formatSize(tf.size)})</div>
+                                    <button class="remove-file-btn" onclick="app.removeTextByIndex(${idx})" title="Remove">×</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    // Combined tree if ZIPs exist
+                    if (this.fileTree) {
+                        html += `
+                            <div class="file-info-card">
+                                <div class="file-header" style="border-bottom: none;">
+                                    <div class="file-name-display">Combined File Tree</div>
+                                </div>
+                                <div class="tree-container">
+                                    ${this.renderTree(this.fileTree)}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    container.innerHTML = html;
+                }
+
+                document.getElementById('convertBtn').disabled = (this.zipFiles.length === 0 && this.textFiles.length === 0);
+            },
+
+            removeZipByIndex(index) {
+                const removed = this.zipFiles[index];
+                this.zipFiles.splice(index, 1);
+                
+                if (this.zipFiles.length > 0) {
+                    this.showLoading('Re-analyzing...');
+                    this.analyzeAllZips().then(() => {
+                        this.hideLoading();
+                        this.updateUI();
+                        this.showAlert(`Removed ${removed.name}`, 'success');
+                    });
+                } else {
+                    this.fileTree = null;
+                    this.stats = { total: 0, text: 0, empty: 0, skip: 0 };
+                    this.updateUI();
+                    this.showAlert(`Removed ${removed.name}`, 'success');
+                }
+            },
+
+            removeTextByIndex(index) {
+                const removed = this.textFiles[index];
+                this.textFiles.splice(index, 1);
+                this.updateUI();
+                this.showAlert(`Removed ${removed.name}`, 'success');
+            },
+
+            showPreview() {
+                const previewContent = document.getElementById('previewContent');
+                const preview = this.ptamContent.substring(0, 2000);
+                const remaining = this.ptamContent.length - 2000;
+                
+                previewContent.textContent = preview + (remaining > 0 ? `\n\n... (${this.formatSize(remaining)} more)` : '');
+                this.openModal('previewModal');
+            },
+
+            downloadPTAM() {
+                if (!this.ptamContent) return;
+
+                const filename = this.getFilename();
+                const blob = new Blob([this.ptamContent], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                this.showAlert(`Downloaded ${filename}`, 'success');
+            },
+
+            async copyPTAM() {
+                if (!this.ptamContent) return;
+
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(this.ptamContent);
+                    } else {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = this.ptamContent;
+                        textarea.style.position = 'fixed';
+                        textarea.style.opacity = '0';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                    }
+                    this.showAlert('Copied to clipboard!', 'success');
+                } catch (error) {
+                    this.showAlert('Failed to copy', 'error');
+                }
+            },
+
+            getFilename() {
+                const input = document.getElementById('filenameInput').value.trim();
+                const sanitized = (input || 'merged').replace(/[<>:"/\\|?*]/g, '_').substring(0, 100);
+                return `${sanitized}.ptam.txt`;
+            },
+
+            formatSize(bytes) {
+                if (bytes === 0) return '0B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return (bytes / Math.pow(k, i)).toFixed(1) + sizes[i];
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            loadState() {
+                try {
+                    // Load caches first
+                    this.loadCaches();
+                    
+                    // Load theme
+                    const theme = localStorage.getItem('ptam_theme') || 'light';
+                    this.setTheme(theme);
+                    
+                    // Load debug setting
+                    const debug = localStorage.getItem('ptam_debug') === 'true';
+                    document.getElementById('debugViewToggle').checked = debug;
+                    this.debugEnabled = debug;
+                    if (debug) {
+                        document.getElementById('debugConsole').classList.remove('hidden');
+                    }
+                    
+                    // Load no-ext setting
+                    const allowNoExt = localStorage.getItem('ptam_allow_no_ext');
+                    this.allowNoExt = allowNoExt === null ? true : allowNoExt === 'true';
+                    document.getElementById('allowNoExtToggle').checked = this.allowNoExt;
+                    
+                    // Load filename
+                    const state = localStorage.getItem('ptam_state');
+                    if (state) {
+                        const data = JSON.parse(state);
+                        if (data.filename) {
+                            document.getElementById('filenameInput').value = data.filename;
+                        }
+                    }
+                    
+                    // Update cache stats display
+                    this.updateCacheStats();
+                } catch (error) {
+                    console.error('Failed to load state:', error);
+                }
+            },
+
+            saveState() {
+                try {
+                    const state = {
+                        filename: document.getElementById('filenameInput').value,
+                        hasZips: this.zipFiles.length > 0,
+                        hasTexts: this.textFiles.length > 0,
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('ptam_state', JSON.stringify(state));
+                    this.showAlert('State saved', 'success');
+                    this.log('State saved', 'info');
+                } catch (error) {
+                    console.error('Failed to save state:', error);
+                    this.log('Failed to save state', 'error');
+                }
+            },
+
+            showRefreshConfirm() {
+                if (this.zipFiles.length > 0 || this.textFiles.length > 0) {
+                    this.openModal('refreshModal');
+                } else {
+                    this.showAlert('Nothing to clear', 'warning');
+                }
+            },
+
+            confirmRefresh() {
+                this.zipFiles = [];
+                this.textFiles = [];
+                this.fileTree = null;
+                this.ptamContent = null;
+                this.stats = { total: 0, text: 0, empty: 0, skip: 0 };
+                document.getElementById('filenameInput').value = 'merged';
+                this.updateUI();
+                this.closeModal('refreshModal');
+                this.showAlert('All files cleared', 'success');
+            },
+
+            openModal(id) {
+                if (id === 'settingsModal') {
+                    this.updateCacheStats();
+                }
+                document.getElementById(id).classList.add('active');
+            },
+
+            closeModal(id) {
+                document.getElementById(id).classList.remove('active');
+            },
+
+            showLoading(text) {
+                document.getElementById('loadingDetail').textContent = text;
+                document.getElementById('loading').classList.add('active');
+            },
+
+            updateLoadingDetail(text) {
+                document.getElementById('loadingDetail').textContent = text;
+            },
+
+            hideLoading() {
+                document.getElementById('loading').classList.remove('active');
+            },
+
+            showAlert(message, type = 'success') {
+                const container = document.getElementById('alertContainer');
+                
+                const icons = {
+                    success: '✓',
+                    error: '✗',
+                    warning: '⚠'
+                };
+
+                const alert = document.createElement('div');
+                alert.className = `alert ${type}`;
+                alert.innerHTML = `
+                    <div class="alert-icon">${icons[type] || 'ℹ'}</div>
+                    <div class="alert-text">${this.escapeHtml(message)}</div>
+                    <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+                `;
+
+                container.appendChild(alert);
+
+                setTimeout(() => {
+                    if (alert.parentElement) {
+                        alert.style.opacity = '0';
+                        alert.style.transform = 'translateY(-20px)';
+                        setTimeout(() => alert.remove(), 300);
+                    }
+                }, 5000);
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => app.init());
+    </script>
+</body>
+</html>

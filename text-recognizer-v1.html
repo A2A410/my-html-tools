@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Text Recognizer v1</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 16px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .header-icons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            font-size: 18px;
+        }
+
+        .icon-btn:active {
+            background: rgba(255,255,255,0.3);
+            transform: scale(0.95);
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .upload-zone {
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            background: #f8f9ff;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .upload-zone.active {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+            transition: all 0.3s;
+        }
+
+        .upload-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 8px rgba(102,126,234,0.3);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .status-card {
+            background: #f8f9ff;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .status-card.show {
+            display: block;
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .status-title {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-info {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .analysis-section {
+            margin-top: 20px;
+        }
+
+        .analysis-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .analysis-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .analysis-value {
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .preview-box {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin: 16px 0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn:active {
+            transform: translateY(2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .changelog-item {
+            padding: 12px;
+            border-left: 3px solid #667eea;
+            margin-bottom: 12px;
+            background: #f8f9ff;
+        }
+
+        .changelog-version {
+            font-weight: 500;
+            color: #667eea;
+            margin-bottom: 4px;
+        }
+
+        .changelog-text {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .debug-log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 16px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .settings-group {
+            margin-bottom: 20px;
+        }
+
+        .settings-label {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: #ccc;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #667eea;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            left: 26px;
+        }
+
+        .scroll-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 18px;
+            }
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 Text Recognizer v1</h1>
+            <div class="header-icons">
+                <button class="icon-btn" onclick="showChangelog()" title="Changelog">📋</button>
+                <button class="icon-btn" onclick="showSettings()" title="Settings">⚙️</button>
+                <button class="icon-btn" onclick="refreshPage()" title="Refresh">🔄</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="upload-zone" id="uploadZone">
+                <p style="margin-bottom: 16px; color: #667eea; font-size: 48px;">📁</p>
+                <p style="margin-bottom: 16px; color: #333;">Tap to select a text file</p>
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    Choose File
+                </button>
+                <input type="file" id="fileInput" class="file-input" accept=".txt,.log,.json,.xml,.csv,.md,.html,.js,.css,.py,.java,.cpp,.c,.h,.sh" onchange="handleFile(this.files[0])">
+                <p style="margin-top: 12px; font-size: 12px; color: #999;">Supports: TXT, LOG, JSON, XML, CSV, MD, and more</p>
+            </div>
+
+            <div class="status-card" id="statusCard">
+                <div class="status-header">
+                    <span class="status-title" id="statusTitle">File Status</span>
+                    <span class="status-badge" id="statusBadge">Processing...</span>
+                </div>
+                <div class="status-info" id="statusInfo"></div>
+            </div>
+
+            <div class="scroll-container">
+                <div class="analysis-section" id="analysisSection" style="display:none;">
+                    <div class="analysis-item">
+                        <div class="analysis-label">File Name</div>
+                        <div class="analysis-value" id="fileName">-</div>
+                    </div>
+                    <div class="analysis-item">
+                        <div class="analysis-label">File Size</div>
+                        <div class="analysis-value" id="fileSize">-</div>
+                    </div>
+                    <div class="analysis-item">
+                        <div class="analysis-label">Detected Encoding</div>
+                        <div class="analysis-value" id="encoding">-</div>
+                    </div>
+                    <div class="analysis-item">
+                        <div class="analysis-label">Readability Score</div>
+                        <div class="analysis-value" id="readability">-</div>
+                    </div>
+                    <div class="analysis-item">
+                        <div class="analysis-label">Issues Detected</div>
+                        <div class="analysis-value" id="issues">-</div>
+                    </div>
+
+                    <div style="margin: 20px 0;">
+                        <div class="analysis-label">Preview (First 500 chars)</div>
+                        <div class="preview-box" id="preview">-</div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="downloadBtn" onclick="downloadProcessed()" disabled>
+                            Download Processed
+                        </button>
+                        <button class="btn btn-secondary" onclick="resetTool()">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Changelog Modal -->
+    <div class="modal" id="changelogModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">Changelog</span>
+                <button class="close-btn" onclick="closeModal('changelogModal')">×</button>
+            </div>
+            <div class="changelog-item">
+                <div class="changelog-version">v1.0.0</div>
+                <div class="changelog-text">
+                    • Initial release<br>
+                    • UTF-8 text file analysis<br>
+                    • Encoding detection (UTF-8, Latin-1, ASCII)<br>
+                    • Readability scoring<br>
+                    • Bit-by-bit character validation<br>
+                    • Auto-recovery for common encoding issues<br>
+                    • Mobile-optimized interface<br>
+                    • Local storage for settings<br>
+                    • Debug logging system
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">Settings</span>
+                <button class="close-btn" onclick="closeModal('settingsModal')">×</button>
+            </div>
+            <div class="settings-group">
+                <label class="settings-label">
+                    Auto-download processed files
+                    <div style="margin-top: 8px;">
+                        <div class="toggle-switch" id="autoDownloadToggle" onclick="toggleSetting('autoDownload')"></div>
+                    </div>
+                </label>
+            </div>
+            <div class="settings-group">
+                <label class="settings-label">
+                    Show debug view
+                    <div style="margin-top: 8px;">
+                        <div class="toggle-switch" id="debugToggle" onclick="toggleSetting('debug')"></div>
+                    </div>
+                </label>
+            </div>
+            <div id="debugView" style="display:none; margin-top: 20px;">
+                <div class="analysis-label">Debug Logs</div>
+                <div class="debug-log" id="debugLog">Debug mode enabled. Logs will appear here...</div>
+                <button class="btn btn-secondary" style="margin-top: 12px; width: 100%;" onclick="clearDebugLog()">
+                    Clear Logs
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Debug logging system
+        const debugLog = [];
+        let settings = {
+            autoDownload: false,
+            debug: false
+        };
+
+        let processedData = null;
+        let currentFileName = '';
+
+        function log(msg) {
+            const timestamp = new Date().toISOString();
+            const logEntry = `[${timestamp}] ${msg}`;
+            debugLog.push(logEntry);
+            if (settings.debug) {
+                const debugLogEl = document.getElementById('debugLog');
+                if (debugLogEl) {
+                    debugLogEl.textContent = debugLog.join('\n');
+                    debugLogEl.scrollTop = debugLogEl.scrollHeight;
+                }
+            }
+            console.log(logEntry);
+        }
+
+        function clearDebugLog() {
+            debugLog.length = 0;
+            document.getElementById('debugLog').textContent = 'Debug logs cleared.';
+            log('Debug logs cleared by user');
+        }
+
+        // Load settings from localStorage
+        function loadSettings() {
+            const saved = localStorage.getItem('textRecognizerSettings');
+            if (saved) {
+                settings = JSON.parse(saved);
+                log('Settings loaded from localStorage');
+            }
+            updateSettingsUI();
+        }
+
+        function saveSettings() {
+            localStorage.setItem('textRecognizerSettings', JSON.stringify(settings));
+            log('Settings saved to localStorage');
+        }
+
+        function updateSettingsUI() {
+            document.getElementById('autoDownloadToggle').classList.toggle('active', settings.autoDownload);
+            document.getElementById('debugToggle').classList.toggle('active', settings.debug);
+            document.getElementById('debugView').style.display = settings.debug ? 'block' : 'none';
+        }
+
+        function toggleSetting(key) {
+            settings[key] = !settings[key];
+            saveSettings();
+            updateSettingsUI();
+            log(`Setting toggled: ${key} = ${settings[key]}`);
+        }
+
+        function showChangelog() {
+            document.getElementById('changelogModal').classList.add('show');
+            log('Changelog modal opened');
+        }
+
+        function showSettings() {
+            document.getElementById('settingsModal').classList.add('show');
+            log('Settings modal opened');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+            log(`Modal closed: ${id}`);
+        }
+
+        function refreshPage() {
+            log('Page refresh initiated');
+            location.reload();
+        }
+
+        function resetTool() {
+            document.getElementById('fileInput').value = '';
+            document.getElementById('statusCard').classList.remove('show');
+            document.getElementById('analysisSection').style.display = 'none';
+            processedData = null;
+            currentFileName = '';
+            log('Tool reset');
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        async function handleFile(file) {
+            if (!file) return;
+            
+            log(`File selected: ${file.name}, size: ${file.size} bytes`);
+            currentFileName = file.name;
+            
+            document.getElementById('statusCard').classList.add('show');
+            document.getElementById('statusBadge').className = 'status-badge badge-warning';
+            document.getElementById('statusBadge').textContent = 'Processing...';
+            document.getElementById('statusTitle').textContent = 'Analyzing File';
+            document.getElementById('statusInfo').textContent = 'Reading file and analyzing encoding...';
+            
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                log(`File read into ArrayBuffer: ${arrayBuffer.byteLength} bytes`);
+                
+                const analysis = analyzeFile(arrayBuffer, file.name, file.size);
+                displayAnalysis(analysis);
+                
+                if (analysis.recovered && settings.autoDownload) {
+                    log('Auto-download enabled, triggering download');
+                    downloadProcessed();
+                }
+            } catch (error) {
+                log(`ERROR: ${error.message}`);
+                document.getElementById('statusBadge').className = 'status-badge badge-error';
+                document.getElementById('statusBadge').textContent = 'Error';
+                document.getElementById('statusInfo').textContent = `Failed to process file: ${error.message}`;
+            }
+        }
+
+        function analyzeFile(arrayBuffer, fileName, fileSize) {
+            log('Starting file analysis');
+            const uint8Array = new Uint8Array(arrayBuffer);
+            
+            // Detect encoding
+            const encoding = detectEncoding(uint8Array);
+            log(`Detected encoding: ${encoding}`);
+            
+            // Try to decode
+            let text = '';
+            let decoded = false;
+            let issues = [];
+            
+            // Try UTF-8 first
+            try {
+                const decoder = new TextDecoder('utf-8', { fatal: true });
+                text = decoder.decode(uint8Array);
+                decoded = true;
+                log('Successfully decoded as UTF-8');
+            } catch (e) {
+                log('UTF-8 decode failed, trying fallback');
+                issues.push('Invalid UTF-8 sequences detected');
+            }
+            
+            // Fallback to Latin-1 if UTF-8 fails
+            if (!decoded) {
+                try {
+                    const decoder = new TextDecoder('iso-8859-1');
+                    text = decoder.decode(uint8Array);
+                    decoded = true;
+                    issues.push('Decoded with Latin-1 fallback');
+                    log('Decoded with Latin-1 fallback');
+                } catch (e) {
+                    log('Latin-1 decode failed');
+                }
+            }
+            
+            // Bit-by-bit analysis
+            const charAnalysis = analyzeBitByBit(uint8Array);
+            log(`Bit analysis: ${charAnalysis.validChars}/${charAnalysis.totalChars} valid chars`);
+            
+            // Calculate readability score
+            const readabilityScore = calculateReadability(text, charAnalysis);
+            log(`Readability score: ${readabilityScore}%`);
+            
+            // Check for common issues
+            const problemChars = findProblematicCharacters(text);
+            if (problemChars.length > 0) {
+                issues.push(`Found ${problemChars.length} problematic character(s)`);
+                log(`Problematic characters found: ${problemChars.length}`);
+            }
+            
+            // Attempt recovery
+            let recoveredText = text;
+            let recovered = false;
+            if (issues.length > 0 || readabilityScore < 90) {
+                log('Attempting text recovery');
+                recoveredText = attemptRecovery(uint8Array, text);
+                recovered = recoveredText !== text;
+                if (recovered) {
+                    log('Text recovery successful');
+                    issues.push('Recovery applied successfully');
+                }
+            }
+            
+            processedData = {
+                original: text,
+                recovered: recoveredText,
+                wasRecovered: recovered
+            };
+            
+            return {
+                fileName,
+                fileSize,
+                encoding,
+                readabilityScore,
+                issues: issues.length > 0 ? issues.join('; ') : 'None detected',
+                preview: recoveredText.substring(0, 500),
+                totalChars: charAnalysis.totalChars,
+                validChars: charAnalysis.validChars,
+                recovered
+            };
+        }
+
+        function detectEncoding(uint8Array) {
+            // Check BOM
+            if (uint8Array.length >= 3 && uint8Array[0] === 0xEF && uint8Array[1] === 0xBB && uint8Array[2] === 0xBF) {
+                return 'UTF-8 (with BOM)';
+            }
+            
+            // UTF-8 validation
+            let isUTF8 = true;
+            for (let i = 0; i < uint8Array.length; i++) {
+                const byte = uint8Array[i];
+                if (byte > 127) {
+                    // Multi-byte sequence
+                    if ((byte & 0xE0) === 0xC0) {
+                        if (i + 1 >= uint8Array.length || (uint8Array[i + 1] & 0xC0) !== 0x80) {
+                            isUTF8 = false;
+                            break;
+                        }
+                        i++;
+                    } else if ((byte & 0xF0) === 0xE0) {
+                        if (i + 2 >= uint8Array.length || (uint8Array[i + 1] & 0xC0) !== 0x80 || (uint8Array[i + 2] & 0xC0) !== 0x80) {
+                            isUTF8 = false;
+                            break;
+                        }
+                        i += 2;
+                    } else if ((byte & 0xF8) === 0xF0) {
+                        if (i + 3 >= uint8Array.length) {
+                            isUTF8 = false;
+                            break;
+                        }
+                        i += 3;
+                    } else {
+                        isUTF8 = false;
+                        break;
+                    }
+                }
+            }
+            
+            if (isUTF8) return 'UTF-8';
+            
+            // Check if pure ASCII
+            let isASCII = true;
+            for (let i = 0; i < uint8Array.length; i++) {
+                if (uint8Array[i] > 127) {
+                    isASCII = false;
+                    break;
+                }
+            }
+            
+            if (isASCII) return 'ASCII';
+            
+            return 'Latin-1 / Unknown';
+        }
+
+        function analyzeBitByBit(uint8Array) {
+            let validChars = 0;
+            let totalChars = uint8Array.length;
+            
+            for (let i = 0; i < uint8Array.length; i++) {
+                const byte = uint8Array[i];
+                // Count printable ASCII, common control chars, and valid UTF-8 continuation bytes
+                if ((byte >= 32 && byte <= 126) || byte === 9 || byte === 10 || byte === 13 || (byte & 0xC0) === 0x80) {
+                    validChars++;
+                }
+            }
+            
+            return { validChars, totalChars };
+        }
+
+        function calculateReadability(text, charAnalysis) {
+            const validRatio = charAnalysis.validChars / charAnalysis.totalChars;
+            
+            // Check for replacement characters
+            const replacementChars = (text.match(/�/g) || []).length;
+            const replacementPenalty = Math.min(replacementChars * 2, 30);
+            
+            // Check for null bytes
+            const nullBytes = (text.match(/\0/g) || []).length;
+            const nullPenalty = Math.min(nullBytes * 5, 40);
+            
+            let score = Math.round(validRatio * 100) - replacementPenalty - nullPenalty;
+            return Math.max(0, Math.min(100, score));
+        }
+
+        function findProblematicCharacters(text) {
+            const problems = [];
+            const problemChars = ['�', '\0', '\uFFFD'];
+            
+            for (const char of problemChars) {
+                const count = (text.match(new RegExp(char, 'g')) || []).length;
+                if (count > 0) {
+                    problems.push({ char, count });
+                }
+            }
+            
+            return problems;
+        }
+
+        function attemptRecovery(uint8Array, originalText) {
+            log('Attempting recovery with multiple encoding strategies');
+            
+            // Strategy 1: Remove null bytes
+            let cleaned = new Uint8Array(uint8Array.filter(b => b !== 0));
+            
+            // Strategy 2: Try UTF-8 with replacement
+            try {
+                const decoder = new TextDecoder('utf-8', { fatal: false });
+                let recovered = decoder.decode(cleaned);
+                
+                // Strategy 3: Fix common mojibake patterns
+                recovered = recovered.replace(/Ã©/g, 'é')
+                                   .replace(/Ã¨/g, 'è')
+                                   .replace(/Ã /g, 'à')
+                                   .replace(/Ã§/g, 'ç')
+                                   .replace(/â€™/g, "'")
+                                   .replace(/â€"/g, '—')
+                                   .replace(/â€œ/g, '"')
+                                   .replace(/â€�/g, '"');
+                
+                return recovered;
+            } catch (e) {
+                log(`Recovery failed: ${e.message}`);
+                return originalText;
+            }
+        }
+
+        function displayAnalysis(analysis) {
+            log('Displaying analysis results');
+            
+            document.getElementById('fileName').textContent = analysis.fileName;
+            document.getElementById('fileSize').textContent = formatBytes(analysis.fileSize);
+            document.getElementById('encoding').textContent = analysis.encoding;
+            document.getElementById('readability').textContent = `${analysis.readabilityScore}% (${analysis.validChars}/${analysis.totalChars} valid)`;
+            document.getElementById('issues').textContent = analysis.issues;
+            document.getElementById('preview').textContent = analysis.preview;
+            
+            const statusBadge = document.getElementById('statusBadge');
+            const statusInfo = document.getElementById('statusInfo');
+            
+            if (analysis.readabilityScore >= 90 && analysis.issues === 'None detected') {
+                statusBadge.className = 'status-badge badge-success';
+                statusBadge.textContent = 'Readable';
+                statusInfo.textContent = 'File is readable without issues.';
+            } else if (analysis.recovered) {
+                statusBadge.className = 'status-badge badge-success';
+                statusBadge.textContent = 'Recovered';
+                statusInfo.textContent = 'File had issues but was successfully recovered.';
+            } else if (analysis.readabilityScore >= 70) {
+                statusBadge.className = 'status-badge badge-warning';
+                statusBadge.textContent = 'Partial';
+                statusInfo.textContent = 'File is partially readable. Some content may be corrupted.';
+            } else {
+                statusBadge.className = 'status-badge badge-error';
+                statusBadge.textContent = 'Unreadable';
+                statusInfo.textContent = 'File has significant readability issues. Recovery attempted but results may vary.';
+            }
+            
+            document.getElementById('analysisSection').style.display = 'block';
+            document.getElementById('downloadBtn').disabled = false;
+        }
+
+        function downloadProcessed() {
+            if (!processedData) {
+                log('ERROR: No processed data available for download');
+                return;
+            }
+            
+            log('Initiating download');
+            const textToDownload = processedData.recovered;
+            const blob = new Blob([textToDownload], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = currentFileName.replace(/\.[^/.]+$/, '') + '_processed.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            log(`Download completed: ${a.download}`);
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            log('Text Recognizer v1 initialized');
+        });
+
+        // Prevent default drag behaviors
+        document.addEventListener('dragover', (e) => e.preventDefault());
+        document.addEventListener('drop', (e) => e.preventDefault());
+    </script>
+</body>
+</html>
