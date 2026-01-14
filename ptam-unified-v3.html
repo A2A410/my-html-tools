@@ -920,22 +920,39 @@
                 <div class="setting-item">
                     <label class="setting-label">Cache Statistics</label>
                     <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px;">
+                        <div style="font-weight: 600; color: var(--accent); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border);">Persistent (Cold Start)</div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                            <span>Cached Tokens:</span>
-                            <span id="cacheTokenCount" style="color: var(--accent); font-weight: 600;">0</span>
+                            <span>Tokens:</span>
+                            <span id="cachePersistentTokens" style="color: var(--accent); font-weight: 600;">0/5000</span>
                         </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span>Heatmap:</span>
+                            <span id="cachePersistentHeatmap" style="color: var(--accent); font-weight: 600;">0/5000</span>
+                        </div>
+                        
+                        <div style="font-weight: 600; color: var(--success); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border);">Session (Hot Cache)</div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                            <span>Heatmap Entries:</span>
-                            <span id="cacheHeatmapCount" style="color: var(--accent); font-weight: 600;">0</span>
+                            <span>Tokens:</span>
+                            <span id="cacheSessionTokens" style="color: var(--success); font-weight: 600;">0/15000</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>Cache Size:</span>
-                            <span id="cacheSize" style="color: var(--accent); font-weight: 600;">0B</span>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span>Heatmap:</span>
+                            <span id="cacheSessionHeatmap" style="color: var(--success); font-weight: 600;">0/15000</span>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border);">
+                            <span style="font-weight: 600;">Total Size:</span>
+                            <span id="cacheTotalSize" style="color: var(--accent); font-weight: 600;">0B</span>
                         </div>
                     </div>
-                    <button onclick="app.clearCache()" style="width: 100%; margin-top: 8px; padding: 10px; background: var(--danger-dim); color: var(--danger); border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
-                        Clear Cache
-                    </button>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <button onclick="app.clearCache('session')" style="flex: 1; padding: 10px; background: var(--warning-dim); color: var(--warning); border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                            Clear Session
+                        </button>
+                        <button onclick="app.clearCache('all')" style="flex: 1; padding: 10px; background: var(--danger-dim); color: var(--danger); border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                            Clear All
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -971,8 +988,10 @@
             mode: 'default',
             debugEnabled: false,
             allowNoExt: true,
-            tokenCache: new Map(), // Cached tokens from previous runs
-            heatmapCache: new Map(), // Frequency heatmap for token reuse
+            tokenCache: new Map(), // Persistent tokens from previous runs (5000 limit)
+            heatmapCache: new Map(), // Persistent frequency heatmap (5000 limit)
+            sessionTokenCache: new Map(), // Session-only tokens (15000 limit)
+            sessionHeatmapCache: new Map(), // Session-only heatmap (15000 limit)
 
             // Comprehensive text file extensions
             textExtensions: [
@@ -1448,12 +1467,14 @@
                 const totalFiles = allContents.length;
                 let processed = 0;
 
-                // Check if we have cached tokens that match
-                this.log(`Checking cache: ${this.tokenCache.size} tokens, ${this.heatmapCache.size} patterns`, 'info');
+                // Check both caches
+                const persistentSize = this.tokenCache.size + this.heatmapCache.size;
+                const sessionSize = this.sessionTokenCache.size + this.sessionHeatmapCache.size;
+                this.log(`Cache check: ${persistentSize} persistent, ${sessionSize} session`, 'info');
+                
                 let cacheHits = 0;
-                let cacheMatches = 0;
 
-                // Build frequency map - use cache to speed up
+                // Build frequency map - check both caches
                 this.updateLoadingDetail('Building frequency map... 0%');
                 
                 const strictPatterns = [
@@ -1467,8 +1488,17 @@
                 for (let i = 0; i < allContents.length; i++) {
                     const { content } = allContents[i];
                     
-                    // First check cached tokens
+                    // Check persistent cache first
                     for (const [cachedToken, tokenId] of this.tokenCache.entries()) {
+                        const matches = content.match(new RegExp(cachedToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'));
+                        if (matches && matches.length > 0) {
+                            candidateFreq.set(cachedToken, (candidateFreq.get(cachedToken) || 0) + matches.length);
+                            cacheHits++;
+                        }
+                    }
+
+                    // Check session cache
+                    for (const [cachedToken, tokenId] of this.sessionTokenCache.entries()) {
                         const matches = content.match(new RegExp(cachedToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'));
                         if (matches && matches.length > 0) {
                             candidateFreq.set(cachedToken, (candidateFreq.get(cachedToken) || 0) + matches.length);
@@ -1499,36 +1529,46 @@
                     processed++;
                     if (processed % 5 === 0 || processed === totalFiles) {
                         const percent = Math.round((processed / totalFiles) * 50);
-                        this.updateLoadingDetail(`Building frequency map... ${percent}% (cache: ${cacheHits} hits)`);
+                        this.updateLoadingDetail(`Building frequency map... ${percent}% (${cacheHits} hits)`);
                         await new Promise(resolve => setTimeout(resolve, 0));
                     }
                 }
 
-                this.log(`Cache hits: ${cacheHits} patterns matched from cache`, 'success');
+                this.log(`Total cache hits: ${cacheHits}`, 'success');
 
-                // Filter tokens - prioritize cached tokens with high heatmap scores
+                // Filter tokens - prioritize cached tokens with combined heatmap
                 this.updateLoadingDetail('Filtering tokens... 50%');
                 const tokenDict = new Map();
                 let tokenId = 0;
+                let persistentReused = 0;
+                let sessionReused = 0;
 
-                // First, add cached tokens that still have good frequency
+                // First, add persistent cached tokens that have good frequency
                 for (const [token, freq] of candidateFreq.entries()) {
-                    if (this.tokenCache.has(token) && freq >= 3) { // Lower threshold for cached
+                    if (this.tokenCache.has(token) && freq >= 3) {
                         tokenDict.set(token, this.tokenCache.get(token));
-                        cacheMatches++;
+                        persistentReused++;
                     }
                 }
 
-                // Then sort remaining candidates
+                // Then, add session cached tokens
+                for (const [token, freq] of candidateFreq.entries()) {
+                    if (!tokenDict.has(token) && this.sessionTokenCache.has(token) && freq >= 3) {
+                        tokenDict.set(token, this.sessionTokenCache.get(token));
+                        sessionReused++;
+                    }
+                }
+
+                // Then sort remaining candidates with combined heatmap
                 const sortedCandidates = Array.from(candidateFreq.entries())
                     .filter(([token, freq]) => !tokenDict.has(token) && freq >= 5 && token.length >= 6)
                     .sort((a, b) => {
                         const benefitA = a[1] * a[0].length;
                         const benefitB = b[1] * b[0].length;
                         
-                        // Boost if in heatmap
-                        const heatA = this.heatmapCache.get(a[0]) || 0;
-                        const heatB = this.heatmapCache.get(b[0]) || 0;
+                        // Combine both heatmaps
+                        const heatA = (this.heatmapCache.get(a[0]) || 0) + (this.sessionHeatmapCache.get(a[0]) || 0);
+                        const heatB = (this.heatmapCache.get(b[0]) || 0) + (this.sessionHeatmapCache.get(b[0]) || 0);
                         
                         return (benefitB + heatB * 10) - (benefitA + heatA * 10);
                     });
@@ -1539,8 +1579,9 @@
                     tokenDict.set(token, `T${tokenId++}`);
                 });
 
-                this.log(`Reused ${cacheMatches} tokens from cache, discovered ${sortedCandidates.length} new`, 'info');
-                this.updateLoadingDetail(`Filtered to ${tokenDict.size} tokens (${cacheMatches} cached)... 60%`);
+                const newTokens = sortedCandidates.length;
+                this.log(`Reused: ${persistentReused} persistent, ${sessionReused} session, ${newTokens} new`, 'info');
+                this.updateLoadingDetail(`Filtered to ${tokenDict.size} tokens (${persistentReused + sessionReused} cached)... 60%`);
 
                 // Update caches for next run
                 this.updateCaches(tokenDict, candidateFreq);
@@ -1586,7 +1627,7 @@
                 parts.push('║  TEXT FILES: ' + this.padRight(String(this.textFiles.length), 62) + '║');
                 parts.push('║  GENERATED: ' + this.padRight(timestamp, 63) + '║');
                 parts.push('║  TOKENS: ' + this.padRight(String(tokenDict.size), 67) + '║');
-                parts.push('║  CACHED: ' + this.padRight(String(cacheMatches), 67) + '║');
+                parts.push('║  CACHED: ' + this.padRight(`${persistentReused}+${sessionReused}`, 67) + '║');
                 parts.push('║  FILES: ' + this.padRight(String(tokenData.length), 68) + '║');
                 
                 const originalSize = allContents.reduce((sum, c) => sum + c.content.length, 0);
@@ -1640,45 +1681,111 @@
             },
 
             updateCaches(tokenDict, candidateFreq) {
-                // Update token cache
+                // Update session caches first (always add new tokens here)
                 for (const [token, tokenId] of tokenDict.entries()) {
-                    this.tokenCache.set(token, tokenId);
+                    // If not in persistent cache, add to session cache
+                    if (!this.tokenCache.has(token)) {
+                        this.sessionTokenCache.set(token, tokenId);
+                    }
                 }
 
-                // Update heatmap with frequencies
+                // Update session heatmap with frequencies
                 for (const [token, freq] of candidateFreq.entries()) {
-                    const current = this.heatmapCache.get(token) || 0;
-                    this.heatmapCache.set(token, current + freq);
+                    const current = this.sessionHeatmapCache.get(token) || 0;
+                    this.sessionHeatmapCache.set(token, current + freq);
                 }
 
-                // Limit cache size - keep top 5000 by heatmap score
-                if (this.heatmapCache.size > 5000) {
+                // Limit session cache size - keep top 15000
+                if (this.sessionTokenCache.size > 15000) {
+                    // Sort by combined heatmap score
+                    const sorted = Array.from(this.sessionTokenCache.entries())
+                        .sort((a, b) => {
+                            const scoreA = (this.sessionHeatmapCache.get(a[0]) || 0);
+                            const scoreB = (this.sessionHeatmapCache.get(b[0]) || 0);
+                            return scoreB - scoreA;
+                        })
+                        .slice(0, 15000);
+                    
+                    this.sessionTokenCache.clear();
+                    sorted.forEach(([token, id]) => {
+                        this.sessionTokenCache.set(token, id);
+                    });
+                    
+                    this.log('Session cache pruned to top 15000 patterns', 'info');
+                }
+
+                if (this.sessionHeatmapCache.size > 15000) {
+                    const sorted = Array.from(this.sessionHeatmapCache.entries())
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 15000);
+                    
+                    this.sessionHeatmapCache.clear();
+                    sorted.forEach(([token, score]) => {
+                        this.sessionHeatmapCache.set(token, score);
+                    });
+                }
+
+                // Promote high-value tokens from session to persistent
+                // (Tokens that appear in multiple conversions get promoted)
+                const promoted = [];
+                for (const [token, score] of this.sessionHeatmapCache.entries()) {
+                    if (score >= 20 && !this.tokenCache.has(token) && this.sessionTokenCache.has(token)) {
+                        this.tokenCache.set(token, this.sessionTokenCache.get(token));
+                        this.heatmapCache.set(token, score);
+                        promoted.push(token);
+                    }
+                }
+
+                if (promoted.length > 0) {
+                    this.log(`Promoted ${promoted.length} tokens to persistent cache`, 'success');
+                }
+
+                // Limit persistent cache size - keep top 5000
+                if (this.tokenCache.size > 5000) {
                     const sorted = Array.from(this.heatmapCache.entries())
                         .sort((a, b) => b[1] - a[1])
                         .slice(0, 5000);
+                    
+                    // Rebuild token cache with only top patterns
+                    const topTokens = new Set(sorted.map(([token]) => token));
+                    const newTokenCache = new Map();
+                    for (const [token, id] of this.tokenCache.entries()) {
+                        if (topTokens.has(token)) {
+                            newTokenCache.set(token, id);
+                        }
+                    }
+                    this.tokenCache = newTokenCache;
                     
                     this.heatmapCache.clear();
                     sorted.forEach(([token, score]) => {
                         this.heatmapCache.set(token, score);
                     });
                     
-                    this.log('Cache pruned to top 5000 patterns', 'info');
+                    this.log('Persistent cache pruned to top 5000 patterns', 'info');
                 }
 
-                // Save to localStorage
+                // Save persistent caches to localStorage
                 this.saveCaches();
                 this.updateCacheStats();
             },
 
             saveCaches() {
                 try {
+                    // Save persistent caches to localStorage
                     const tokenArray = Array.from(this.tokenCache.entries());
                     const heatmapArray = Array.from(this.heatmapCache.entries());
                     
                     localStorage.setItem('ptam_token_cache', JSON.stringify(tokenArray));
                     localStorage.setItem('ptam_heatmap_cache', JSON.stringify(heatmapArray));
                     
-                    this.log(`Saved ${tokenArray.length} tokens, ${heatmapArray.length} heatmap entries`, 'success');
+                    // Save session caches to sessionStorage
+                    const sessionTokenArray = Array.from(this.sessionTokenCache.entries());
+                    const sessionHeatmapArray = Array.from(this.sessionHeatmapCache.entries());
+                    
+                    sessionStorage.setItem('ptam_session_tokens', JSON.stringify(sessionTokenArray));
+                    sessionStorage.setItem('ptam_session_heatmap', JSON.stringify(sessionHeatmapArray));
+                    
+                    this.log(`Saved: ${tokenArray.length} persistent, ${sessionTokenArray.length} session`, 'success');
                 } catch (error) {
                     console.error('Failed to save caches:', error);
                     this.log('Cache save failed - quota exceeded?', 'error');
@@ -1687,6 +1794,7 @@
 
             loadCaches() {
                 try {
+                    // Load persistent caches from localStorage
                     const tokenData = localStorage.getItem('ptam_token_cache');
                     const heatmapData = localStorage.getItem('ptam_heatmap_cache');
                     
@@ -1700,7 +1808,23 @@
                         this.heatmapCache = new Map(heatmapArray);
                     }
                     
-                    this.log(`Loaded ${this.tokenCache.size} tokens, ${this.heatmapCache.size} patterns from cache`, 'info');
+                    // Load session caches from sessionStorage
+                    const sessionTokenData = sessionStorage.getItem('ptam_session_tokens');
+                    const sessionHeatmapData = sessionStorage.getItem('ptam_session_heatmap');
+                    
+                    if (sessionTokenData) {
+                        const sessionTokenArray = JSON.parse(sessionTokenData);
+                        this.sessionTokenCache = new Map(sessionTokenArray);
+                    }
+                    
+                    if (sessionHeatmapData) {
+                        const sessionHeatmapArray = JSON.parse(sessionHeatmapData);
+                        this.sessionHeatmapCache = new Map(sessionHeatmapArray);
+                    }
+                    
+                    const totalTokens = this.tokenCache.size + this.sessionTokenCache.size;
+                    const totalHeatmap = this.heatmapCache.size + this.sessionHeatmapCache.size;
+                    this.log(`Loaded: ${this.tokenCache.size}+${this.sessionTokenCache.size} tokens, ${this.heatmapCache.size}+${this.sessionHeatmapCache.size} patterns`, 'info');
                 } catch (error) {
                     console.error('Failed to load caches:', error);
                     this.log('Cache load failed', 'error');
@@ -1708,32 +1832,60 @@
             },
 
             updateCacheStats() {
-                const tokenCount = this.tokenCache.size;
-                const heatmapCount = this.heatmapCache.size;
+                const persistentTokens = this.tokenCache.size;
+                const persistentHeatmap = this.heatmapCache.size;
+                const sessionTokens = this.sessionTokenCache.size;
+                const sessionHeatmap = this.sessionHeatmapCache.size;
+                
+                // Update display
+                document.getElementById('cachePersistentTokens').textContent = `${persistentTokens}/5000`;
+                document.getElementById('cachePersistentHeatmap').textContent = `${persistentHeatmap}/5000`;
+                document.getElementById('cacheSessionTokens').textContent = `${sessionTokens}/15000`;
+                document.getElementById('cacheSessionHeatmap').textContent = `${sessionHeatmap}/15000`;
                 
                 // Estimate size
-                const tokenSize = JSON.stringify(Array.from(this.tokenCache.entries())).length;
-                const heatmapSize = JSON.stringify(Array.from(this.heatmapCache.entries())).length;
-                const totalSize = tokenSize + heatmapSize;
+                const persistentSize = JSON.stringify(Array.from(this.tokenCache.entries())).length +
+                                      JSON.stringify(Array.from(this.heatmapCache.entries())).length;
+                const sessionSize = JSON.stringify(Array.from(this.sessionTokenCache.entries())).length +
+                                   JSON.stringify(Array.from(this.sessionHeatmapCache.entries())).length;
+                const totalSize = persistentSize + sessionSize;
                 
-                document.getElementById('cacheTokenCount').textContent = tokenCount;
-                document.getElementById('cacheHeatmapCount').textContent = heatmapCount;
-                document.getElementById('cacheSize').textContent = this.formatSize(totalSize);
+                document.getElementById('cacheTotalSize').textContent = this.formatSize(totalSize);
             },
 
-            clearCache() {
-                if (!confirm('Clear all cached tokens and heatmap data? This cannot be undone.')) {
-                    return;
+            clearCache(type = 'all') {
+                if (type === 'session') {
+                    if (!confirm('Clear session cache? This will reset hot cache but keep persistent cache.')) {
+                        return;
+                    }
+                    
+                    this.sessionTokenCache.clear();
+                    this.sessionHeatmapCache.clear();
+                    sessionStorage.removeItem('ptam_session_tokens');
+                    sessionStorage.removeItem('ptam_session_heatmap');
+                    
+                    this.updateCacheStats();
+                    this.showAlert('Session cache cleared', 'success');
+                    this.log('Session cache cleared', 'warning');
+                } else {
+                    if (!confirm('Clear all caches? This will remove both persistent and session caches. Cannot be undone.')) {
+                        return;
+                    }
+                    
+                    this.tokenCache.clear();
+                    this.heatmapCache.clear();
+                    this.sessionTokenCache.clear();
+                    this.sessionHeatmapCache.clear();
+                    
+                    localStorage.removeItem('ptam_token_cache');
+                    localStorage.removeItem('ptam_heatmap_cache');
+                    sessionStorage.removeItem('ptam_session_tokens');
+                    sessionStorage.removeItem('ptam_session_heatmap');
+                    
+                    this.updateCacheStats();
+                    this.showAlert('All caches cleared', 'success');
+                    this.log('All caches cleared manually', 'warning');
                 }
-                
-                this.tokenCache.clear();
-                this.heatmapCache.clear();
-                localStorage.removeItem('ptam_token_cache');
-                localStorage.removeItem('ptam_heatmap_cache');
-                
-                this.updateCacheStats();
-                this.showAlert('Cache cleared', 'success');
-                this.log('Cache cleared manually', 'warning');
             },
 
             async collectContent(tree, contents, path) {
