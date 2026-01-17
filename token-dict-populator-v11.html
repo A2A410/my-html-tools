@@ -1,0 +1,3742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="Token Dictionary Populator - Create, sync, merge & optimize PTAM tokens">
+    <meta name="theme-color" content="#6366f1">
+    <title>Token Dictionary Populator v1</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #252538;
+            --text-primary: #e8e8f0;
+            --text-secondary: #a8a8b8;
+            --text-tertiary: #707080;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --accent-dim: rgba(99, 102, 241, 0.15);
+            --success: #10b981;
+            --success-dim: rgba(16, 185, 129, 0.15);
+            --danger: #ef4444;
+            --danger-dim: rgba(239, 68, 68, 0.15);
+            --warning: #f59e0b;
+            --warning-dim: rgba(245, 158, 11, 0.15);
+            --info: #06b6d4;
+            --info-dim: rgba(6, 182, 212, 0.15);
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 8px 48px rgba(0, 0, 0, 0.5);
+        }
+
+        body.light-mode {
+            --bg-primary: #fafafa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f5f5f5;
+            --text-primary: #0f0f1a;
+            --text-secondary: #404050;
+            --text-tertiary: #808090;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(0, 0, 0, 0.08);
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 8px 48px rgba(0, 0, 0, 0.12);
+        }
+
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: 'Syne', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .version {
+            font-size: 10px;
+            color: var(--text-tertiary);
+            margin-top: 2px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .icon-btn:active {
+            transform: scale(0.92);
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+        }
+
+        .stat-card {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        .container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        .section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .action-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .action-card:active {
+            transform: scale(0.97);
+            background: var(--accent-dim);
+            border-color: var(--accent);
+        }
+
+        .action-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .action-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .action-hint {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        .dict-status {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .status-row:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .status-value {
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .token-list {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .token-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .token-item:last-child {
+            border-bottom: none;
+        }
+
+        .token-original {
+            flex: 1;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+
+        .token-id {
+            color: var(--accent);
+            font-weight: 600;
+            margin-left: 12px;
+        }
+
+        .token-actions {
+            display: flex;
+            gap: 4px;
+            margin-left: 8px;
+        }
+
+        .token-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: none;
+            background: var(--danger-dim);
+            color: var(--danger);
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .token-btn:active {
+            transform: scale(0.9);
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+            box-shadow: 0 4px 16px var(--accent-dim);
+        }
+
+        .btn-success {
+            background: var(--success-dim);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .btn-warning {
+            background: var(--warning-dim);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+
+        .btn-danger {
+            background: var(--danger-dim);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            animation: modalSlide 0.3s ease;
+        }
+
+        @keyframes modalSlide {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:active {
+            transform: scale(0.9);
+            background: var(--danger);
+            color: white;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.2s ease;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+
+        .textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .alert {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            animation: alertSlide 0.3s ease;
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(20px);
+        }
+
+        @keyframes alertSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert.success {
+            background: var(--success-dim);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .alert.error {
+            background: var(--danger-dim);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .alert.warning {
+            background: var(--warning-dim);
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        .alert.info {
+            background: var(--info-dim);
+            border-color: var(--info);
+            color: var(--info);
+        }
+
+        .alert-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .alert-text {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .alert-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: inherit;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .alert-close:active {
+            opacity: 1;
+        }
+
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .loading.active {
+            display: flex;
+        }
+
+        .loading-content {
+            text-align: center;
+            padding: 32px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .loading-detail {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .debug-console {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-top: 16px;
+            max-height: 250px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .debug-header {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .debug-log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            max-height: 200px;
+        }
+
+        .debug-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .debug-entry:last-child {
+            border-bottom: none;
+        }
+
+        .debug-entry.error {
+            color: var(--danger);
+        }
+
+        .debug-entry.warning {
+            color: var(--warning);
+        }
+
+        .debug-entry.success {
+            color: var(--success);
+        }
+
+        .debug-entry.info {
+            color: var(--info);
+        }
+
+        .changelog {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .changelog-entry {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .changelog-entry:last-child {
+            border-bottom: none;
+        }
+
+        .changelog-time {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .changelog-action {
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .changelog-detail {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+
+        .optimize-result {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .optimize-header {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--accent);
+        }
+
+        .optimize-item {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .optimize-item:last-child {
+            border-bottom: none;
+        }
+
+        .optimize-before {
+            color: var(--danger);
+            text-decoration: line-through;
+        }
+
+        .optimize-after {
+            color: var(--success);
+            margin-left: 8px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-top">
+            <div>
+                <div class="logo">TOKEN DICT POPULATOR</div>
+                <div class="version">v1 • Modified: Just Now</div>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="app.rescanTokens()" title="Rescan Tokens">🔍</button>
+                <button class="icon-btn" onclick="app.openModal('settingsModal')" title="Settings">⚙️</button>
+                <button class="icon-btn" onclick="app.openModal('changelogModal')" title="Changelog">📋</button>
+                <button class="icon-btn" onclick="app.refreshClean()" title="Refresh & Clean">🔄</button>
+                <button class="icon-btn" onclick="app.saveToLocalStorage()" title="Save">💾</button>
+            </div>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="statTokens">0</div>
+                <div class="stat-label">Tokens</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statOptimized">0</div>
+                <div class="stat-label">Optimized</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statRedundant">0</div>
+                <div class="stat-label">Redundant</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statSeqCleaned">0</div>
+                <div class="stat-label">Seq Clean</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statSize">0KB</div>
+                <div class="stat-label">Size</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statDicts">0</div>
+                <div class="stat-label">Dicts</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Dictionary Status -->
+        <div class="section">
+            <div class="section-title">📊 Current Dictionary</div>
+            <div class="dict-status">
+                <div class="status-row">
+                    <span class="status-label">Status</span>
+                    <span class="status-value" id="dictStatus" style="color: var(--warning);">No dictionary loaded</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Filename</span>
+                    <span class="status-value" id="dictFilename">—</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Token Count</span>
+                    <span class="status-value" id="dictTokenCount">0</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Changes</span>
+                    <span class="status-value" id="dictChanges">+0 / -0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions Grid -->
+        <div class="section">
+            <div class="section-title">🎯 Actions</div>
+            <div class="action-grid">
+                <div class="action-card" onclick="app.newDictionary()">
+                    <div class="action-icon">➕</div>
+                    <div class="action-label">New Dictionary</div>
+                    <div class="action-hint">Create from scratch</div>
+                </div>
+                <div class="action-card" onclick="document.getElementById('importInput').click()">
+                    <div class="action-icon">📥</div>
+                    <div class="action-label">Import Dictionary</div>
+                    <div class="action-hint">Load existing JSON</div>
+                </div>
+                <div class="action-card" onclick="document.getElementById('uploadFilesInput').click()">
+                    <div class="action-icon">📂</div>
+                    <div class="action-label">Upload Files</div>
+                    <div class="action-hint">Extract tokens</div>
+                </div>
+                <div class="action-card" onclick="app.openModal('mergeModal')">
+                    <div class="action-icon">🔀</div>
+                    <div class="action-label">Merge Dictionaries</div>
+                    <div class="action-hint">Combine two dicts</div>
+                </div>
+                <div class="action-card" onclick="app.syncTokens()">
+                    <div class="action-icon">🔄</div>
+                    <div class="action-label">Sync Tokens</div>
+                    <div class="action-hint">Re-index & clean</div>
+                </div>
+                <div class="action-card" onclick="app.optimizeTokens()">
+                    <div class="action-icon">⚡</div>
+                    <div class="action-label">Optimize Tokens</div>
+                    <div class="action-hint">Break down long tokens</div>
+                </div>
+                <div class="action-card" onclick="app.removeRedundancy()">
+                    <div class="action-icon">🗑️</div>
+                    <div class="action-label">Remove Redundancy</div>
+                    <div class="action-hint">Clean random IDs</div>
+                </div>
+                <div class="action-card" onclick="app.seqCleaner()">
+                    <div class="action-icon">🔢</div>
+                    <div class="action-label">Seq Cleaner</div>
+                    <div class="action-hint">Remove number tokens</div>
+                </div>
+                <div class="action-card" onclick="app.exportDictionary()">
+                    <div class="action-icon">💾</div>
+                    <div class="action-label">Export Dictionary</div>
+                    <div class="action-hint">Save as JSON</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Token List -->
+        <div class="section">
+            <div class="section-title">
+                📝 Token List
+                <span style="margin-left: auto; font-size: 12px; font-weight: 400; color: var(--text-tertiary);" id="tokenListCount">0 tokens</span>
+            </div>
+            <div class="token-list" id="tokenList">
+                <div style="padding: 40px; text-align: center; color: var(--text-tertiary);">
+                    <div style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;">📭</div>
+                    <div style="font-size: 14px; font-weight: 600;">No tokens yet</div>
+                    <div style="font-size: 12px; margin-top: 4px;">Create or import a dictionary to start</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file inputs -->
+    <input type="file" id="importInput" accept=".json" onchange="app.importDictionary(event)">
+    <input type="file" id="uploadFilesInput" multiple accept=".zip,.txt,.js,.css,.html,.json,.xml,.md,.log,.csv,.ts,.jsx,.tsx,.py,.java,.c,.cpp" onchange="app.uploadFiles(event)">
+    <input type="file" id="mergeDictInput" accept=".json">
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+
+    <!-- Modals -->
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Settings</div>
+                <button class="modal-close" onclick="app.closeModal('settingsModal')">×</button>
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">Theme</label>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-primary" id="themeDark" onclick="app.setTheme('dark')" style="flex: 1;">Dark</button>
+                    <button class="btn" id="themeLight" onclick="app.setTheme('light')" style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary);">Light</button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">
+                    <input type="checkbox" id="debugToggle" onchange="app.toggleDebug()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                    Enable Debug View
+                </label>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">
+                    <input type="checkbox" id="autoOptimizeToggle" onchange="app.toggleAutoOptimize()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                    Auto-optimize on upload
+                </label>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Minimum Token Length</label>
+                <input type="number" class="input" id="minTokenLength" value="6" min="3" max="50" onchange="app.saveSettings()">
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Minimum Frequency</label>
+                <input type="number" class="input" id="minFrequency" value="3" min="1" max="100" onchange="app.saveSettings()">
+            </div>
+
+            <div id="debugConsole" class="debug-console hidden">
+                <div class="debug-header">
+                    <span style="font-weight: 600;">Debug Console</span>
+                    <button onclick="app.clearDebug()" style="background: var(--danger-dim); color: var(--danger); border: none; padding: 4px 8px; border-radius: 6px; font-size: 11px; cursor: pointer;">Clear</button>
+                </div>
+                <div id="debugLog" class="debug-log"></div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; gap: 8px;">
+                <button class="btn btn-warning" onclick="app.clearLocalStorage()" style="flex: 1;">Clear Storage</button>
+                <button class="btn btn-primary" onclick="app.closeModal('settingsModal')" style="flex: 1;">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Changelog Modal -->
+    <div class="modal" id="changelogModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Changelog</div>
+                <button class="modal-close" onclick="app.closeModal('changelogModal')">×</button>
+            </div>
+            
+            <div class="changelog" id="changelogList">
+                <div style="padding: 40px; text-align: center; color: var(--text-tertiary);">
+                    <div style="font-size: 14px; font-weight: 600;">No changes yet</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button class="btn btn-primary" onclick="app.closeModal('changelogModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Merge Modal -->
+    <div class="modal" id="mergeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Merge Dictionaries</div>
+                <button class="modal-close" onclick="app.closeModal('mergeModal')">×</button>
+            </div>
+            
+            <p style="margin-bottom: 16px; color: var(--text-secondary); font-size: 13px;">
+                Select a second dictionary to merge with the current one. Conflicts will be resolved by keeping higher frequency tokens.
+            </p>
+
+            <button class="btn btn-primary" onclick="document.getElementById('mergeDictInput').click()">
+                📂 Select Dictionary to Merge
+            </button>
+
+            <div id="mergePreview" class="hidden" style="margin-top: 16px;">
+                <div style="background: var(--bg-tertiary); border-radius: 12px; padding: 16px;">
+                    <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Merge Preview</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">
+                        <div>Current: <span id="mergeCurrent">0</span> tokens</div>
+                        <div>Merging: <span id="mergeIncoming">0</span> tokens</div>
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">
+                            Result: <span id="mergeResult" style="color: var(--accent); font-weight: 600;">0</span> tokens
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 16px; display: flex; gap: 8px;">
+                    <button class="btn" onclick="app.closeModal('mergeModal')" style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary);">Cancel</button>
+                    <button class="btn btn-success" onclick="app.confirmMerge()" style="flex: 1;">✓ Merge</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optimize Results Modal -->
+    <div class="modal" id="optimizeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Optimization Results</div>
+                <button class="modal-close" onclick="app.closeModal('optimizeModal')">×</button>
+            </div>
+            
+            <div id="optimizeResults"></div>
+
+            <div style="margin-top: 20px; display: flex; gap: 8px;">
+                <button class="btn" onclick="app.closeModal('optimizeModal')" style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary);">Cancel</button>
+                <button class="btn btn-success" onclick="app.applyOptimizations()" style="flex: 1;">✓ Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remove Redundancy Modal -->
+    <div class="modal" id="redundancyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Remove Redundancy</div>
+                <button class="modal-close" onclick="app.closeModal('redundancyModal')">×</button>
+            </div>
+            
+            <div style="background: var(--warning-dim); border: 1px solid var(--warning); border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+                <div style="font-size: 13px; font-weight: 600; color: var(--warning);">
+                    ⚠️ This will scan and remove tokens that appear to be random IDs or garbage data
+                </div>
+            </div>
+
+            <div id="redundancyResults"></div>
+
+            <div style="margin-top: 20px; display: flex; gap: 8px;">
+                <button class="btn" onclick="app.closeModal('redundancyModal')" style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary);">Cancel</button>
+                <button class="btn btn-danger" onclick="app.applyRedundancyRemoval()" style="flex: 1;">🗑️ Remove All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seq Cleaner Modal -->
+    <div class="modal" id="seqCleanerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Sequence Cleaner</div>
+                <button class="modal-close" onclick="app.closeModal('seqCleanerModal')">×</button>
+            </div>
+            
+            <div style="background: var(--info-dim); border: 1px solid var(--info); border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+                <div style="font-size: 13px; font-weight: 600; color: var(--info);">
+                    ℹ️ Removes pure number tokens with 3+ digits
+                </div>
+                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+                    Keeps 1-2 digit numbers (e.g., "1", "42")
+                </div>
+            </div>
+
+            <div id="seqCleanerResults"></div>
+
+            <div style="margin-top: 20px; display: flex; gap: 8px;">
+                <button class="btn" onclick="app.closeModal('seqCleanerModal')" style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary);">Cancel</button>
+                <button class="btn btn-danger" onclick="app.applySeqCleanerFromModal()" style="flex: 1;">🔢 Remove All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rescan Results Modal -->
+    <div class="modal" id="rescanModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Rescan Results</div>
+                <button class="modal-close" onclick="app.closeModal('rescanModal')">×</button>
+            </div>
+            
+            <div id="rescanSummary" style="margin-bottom: 16px;"></div>
+            
+            <div id="rescanResults" style="max-height: 400px; overflow-y: auto;"></div>
+
+            <div style="margin-top: 20px;">
+                <button class="btn btn-primary" onclick="app.closeModal('rescanModal')" style="width: 100%;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Export Dictionary</div>
+                <button class="modal-close" onclick="app.closeModal('exportModal')">×</button>
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">Filename</label>
+                <input type="text" class="input" id="exportFilename" value="token-dictionary-v1.json">
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Export Format</label>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-primary" id="formatOriginal" onclick="app.selectExportFormat('original')" style="flex: 1;">
+                        Original
+                    </button>
+                    <button class="btn" id="formatNative" onclick="app.selectExportFormat('native')" style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary);">
+                        Native
+                    </button>
+                </div>
+                <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;" id="formatDescription">
+                    Full format with metadata (recommended)
+                </div>
+            </div>
+
+            <div style="background: var(--bg-tertiary); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Export Info</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">
+                    <div>Tokens: <span id="exportTokenCount">0</span></div>
+                    <div>Format: <span id="exportFormatDisplay">Original</span></div>
+                    <div>Estimated Size: <span id="exportSize">0 KB</span></div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+                <button class="btn" onclick="app.closeModal('exportModal')" style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary);">Cancel</button>
+                <button class="btn btn-success" onclick="app.confirmExport()" style="flex: 1;">💾 Export</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div class="loading-text">Processing</div>
+            <div class="loading-detail" id="loadingDetail">Please wait...</div>
+        </div>
+    </div>
+
+    <script>
+        const app = {
+            dictionary: new Map(),
+            originalDictionary: new Map(),
+            filename: null,
+            added: new Set(),
+            removed: new Set(),
+            changelog: [],
+            settings: {
+                theme: 'dark',
+                debug: false,
+                autoOptimize: false,
+                minTokenLength: 6,
+                minFrequency: 3
+            },
+            optimizeSuggestions: [],
+            redundantTokens: [],
+            redundantCount: 0,
+            seqCleanedCount: 0,
+            mergeData: null,
+            exportFormat: 'original', // 'original' or 'native'
+            version: 1,
+
+            textExtensions: [
+                'txt', 'text', 'log', 'md', 'markdown',
+                'js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs',
+                'css', 'scss', 'sass', 'less',
+                'html', 'htm', 'xml', 'svg',
+                'json', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf',
+                'py', 'pyw', 'java', 'c', 'cpp', 'h', 'hpp',
+                'rs', 'go', 'rb', 'php', 'pl', 'sh', 'bash',
+                'sql', 'csv', 'tsv'
+            ],
+
+            init() {
+                this.loadFromLocalStorage();
+                this.updateUI();
+                this.log('App initialized', 'info');
+                this.addToChangelog('App started', 'Session initialized');
+            },
+
+            log(message, type = 'info') {
+                if (!this.settings.debug) return;
+                
+                const debugLog = document.getElementById('debugLog');
+                if (!debugLog) return;
+
+                const entry = document.createElement('div');
+                entry.className = `debug-entry ${type}`;
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                debugLog.appendChild(entry);
+                debugLog.scrollTop = debugLog.scrollHeight;
+
+                console.log(`[${type.toUpperCase()}] ${message}`);
+            },
+
+            clearDebug() {
+                const debugLog = document.getElementById('debugLog');
+                if (debugLog) debugLog.innerHTML = '';
+            },
+
+            toggleDebug() {
+                this.settings.debug = document.getElementById('debugToggle').checked;
+                const debugConsole = document.getElementById('debugConsole');
+                if (this.settings.debug) {
+                    debugConsole.classList.remove('hidden');
+                    this.log('Debug view enabled', 'success');
+                } else {
+                    debugConsole.classList.add('hidden');
+                }
+                this.saveSettings();
+            },
+
+            toggleAutoOptimize() {
+                this.settings.autoOptimize = document.getElementById('autoOptimizeToggle').checked;
+                this.saveSettings();
+                this.log(`Auto-optimize: ${this.settings.autoOptimize ? 'ON' : 'OFF'}`, 'info');
+            },
+
+            setTheme(theme) {
+                this.settings.theme = theme;
+                const body = document.body;
+                
+                if (theme === 'light') {
+                    body.classList.add('light-mode');
+                    document.getElementById('themeDark').style.background = 'var(--bg-tertiary)';
+                    document.getElementById('themeDark').style.color = 'var(--text-primary)';
+                    document.getElementById('themeLight').style.background = 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)';
+                    document.getElementById('themeLight').style.color = 'white';
+                } else {
+                    body.classList.remove('light-mode');
+                    document.getElementById('themeDark').style.background = 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)';
+                    document.getElementById('themeDark').style.color = 'white';
+                    document.getElementById('themeLight').style.background = 'var(--bg-tertiary)';
+                    document.getElementById('themeLight').style.color = 'var(--text-primary)';
+                }
+                
+                this.saveSettings();
+                this.log(`Theme: ${theme}`, 'info');
+            },
+
+            saveSettings() {
+                this.settings.minTokenLength = parseInt(document.getElementById('minTokenLength').value);
+                this.settings.minFrequency = parseInt(document.getElementById('minFrequency').value);
+                localStorage.setItem('tdp_settings', JSON.stringify(this.settings));
+                this.log('Settings saved', 'success');
+            },
+
+            newDictionary() {
+                if (this.dictionary.size > 0) {
+                    if (!confirm('Create new dictionary? Current dictionary will be cleared (unless saved).')) {
+                        return;
+                    }
+                }
+
+                this.dictionary.clear();
+                this.originalDictionary.clear();
+                this.added.clear();
+                this.removed.clear();
+                this.filename = `token-dict-v${this.version}-${Date.now()}.json`;
+                
+                this.updateUI();
+                this.showAlert('New dictionary created', 'success');
+                this.log('Created new dictionary', 'success');
+                this.addToChangelog('Created', 'New dictionary initialized');
+            },
+
+            async importDictionary(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                try {
+                    this.showLoading('Importing dictionary...');
+                    this.log(`=== IMPORT START: ${file.name} (${this.formatSize(file.size)}) ===`, 'info');
+                    
+                    const text = await this.readFileAsText(file);
+                    this.log(`File read complete: ${text.length} chars`, 'info');
+                    
+                    let data;
+                    let parseAttempt = 1;
+                    
+                    // Try to parse as JSON first
+                    try {
+                        this.log(`Parse attempt ${parseAttempt}: Standard JSON parsing...`, 'info');
+                        data = JSON.parse(text);
+                        this.log(`✓ JSON parsed successfully`, 'success');
+                    } catch (parseError) {
+                        this.log(`✗ JSON parse failed: ${parseError.message}`, 'error');
+                        this.log(`Error at position: ${parseError.message.match(/position (\d+)/)?.[1] || 'unknown'}`, 'error');
+                        
+                        // Log excerpt around error if position known
+                        const posMatch = parseError.message.match(/position (\d+)/);
+                        if (posMatch) {
+                            const pos = parseInt(posMatch[1]);
+                            const start = Math.max(0, pos - 50);
+                            const end = Math.min(text.length, pos + 50);
+                            const excerpt = text.substring(start, end);
+                            this.log(`Context: ...${excerpt}...`, 'error');
+                        }
+                        
+                        // If JSON parsing fails, try to fix and parse as broken Native format
+                        parseAttempt++;
+                        this.log(`Parse attempt ${parseAttempt}: Attempting Native format fix...`, 'warning');
+                        data = this.fixBrokenNativeFormat(text);
+                        
+                        if (!data) {
+                            this.log(`✗ Native format fix failed`, 'error');
+                            
+                            // Try more aggressive recovery
+                            parseAttempt++;
+                            this.log(`Parse attempt ${parseAttempt}: Attempting aggressive recovery...`, 'warning');
+                            data = this.aggressiveNativeRecovery(text);
+                            
+                            if (!data) {
+                                this.log(`✗ All parse attempts failed`, 'error');
+                                throw new Error('Unable to parse or fix dictionary format after 3 attempts');
+                            }
+                        }
+                    }
+
+                    this.log(`Data parsed, analyzing structure...`, 'info');
+                    this.log(`Type: ${typeof data}, Keys: ${Object.keys(data).length}`, 'info');
+                    
+                    // Deep structure inspection
+                    const keys = Object.keys(data);
+                    if (keys.length > 0) {
+                        this.log(`Inspecting structure details...`, 'info');
+                        this.log(`First key: "${keys[0]}"`, 'info');
+                        this.log(`First key type: ${typeof keys[0]}`, 'info');
+                        this.log(`First value: ${JSON.stringify(data[keys[0]]).substring(0, 100)}`, 'info');
+                        this.log(`First value type: ${typeof data[keys[0]]}`, 'info');
+                        
+                        // Check if it has nested structure
+                        if (typeof data[keys[0]] === 'object' && data[keys[0]] !== null) {
+                            this.log(`⚠️ First value is an object (nested structure detected)`, 'warning');
+                            const nestedKeys = Object.keys(data[keys[0]]);
+                            this.log(`Nested keys (${nestedKeys.length}): ${nestedKeys.slice(0, 5).join(', ')}`, 'info');
+                        }
+                    }
+
+                    // Detect dictionary format
+                    let detectedFormat = 'Unknown';
+                    let tokens = null;
+                    let wasFixed = false;
+
+                    // Check for Original format (has version, type, tokens object)
+                    if (data.version && data.type === 'ptam-plugplay-dictionary' && data.tokens) {
+                        detectedFormat = 'Original';
+                        tokens = data.tokens;
+                        this.log(`✓ Detected Original format: ${Object.keys(tokens).length} tokens`, 'success');
+                    }
+                    // Check if it has 'version' but not the right type - might be malformed Original
+                    else if (data.version && !data.type) {
+                        this.log(`⚠️ Has 'version' but missing 'type' field`, 'warning');
+                        this.log(`Checking if 'tokens' field exists...`, 'info');
+                        
+                        if (data.tokens) {
+                            this.log(`Found 'tokens' field, treating as malformed Original format`, 'warning');
+                            detectedFormat = 'Original';
+                            tokens = data.tokens;
+                            wasFixed = true;
+                        } else {
+                            this.log(`No 'tokens' field found, checking if root is tokens...`, 'info');
+                            // Maybe the entire object IS the tokens (version is accidentally included)
+                            const { version, type, metadata, created, ...possibleTokens } = data;
+                            if (Object.keys(possibleTokens).length > 0) {
+                                this.log(`Extracting tokens from root (excluding metadata fields)`, 'info');
+                                detectedFormat = 'Original';
+                                tokens = possibleTokens;
+                                wasFixed = true;
+                            }
+                        }
+                    }
+                    // Check for Native format (flat object with token values)
+                    else if (typeof data === 'object' && !data.version && !data.type) {
+                        this.log(`Analyzing as potential Native format...`, 'info');
+                        
+                        const entries = Object.entries(data);
+                        
+                        if (entries.length === 0) {
+                            this.log(`✗ Empty dictionary`, 'error');
+                            throw new Error('Empty dictionary');
+                        }
+                        
+                        this.log(`Total entries: ${entries.length}`, 'info');
+                        
+                        // For large dictionaries (50k+ tokens), only sample first 100 entries
+                        const sampleSize = entries.length > 50000 ? 100 : Math.min(100, entries.length);
+                        const sample = entries.slice(0, sampleSize);
+                        
+                        this.log(`Sampling ${sampleSize} entries for format detection...`, 'info');
+                        
+                        // Check if sample looks like Native format
+                        let validCount = 0;
+                        let invalidCount = 0;
+                        const invalidSamples = [];
+                        const invalidReasons = {
+                            keyNotString: 0,
+                            valNotString: 0,
+                            valWrongFormat: 0,
+                            keyTooShort: 0,
+                            valNull: 0,
+                            valUndefined: 0
+                        };
+                        
+                        for (const [key, val] of sample) {
+                            let isValid = true;
+                            let reason = '';
+                            
+                            // Check key type
+                            if (typeof key !== 'string') {
+                                isValid = false;
+                                reason = 'key not string';
+                                invalidReasons.keyNotString++;
+                            }
+                            // Check key length
+                            else if (key.length < 3) {
+                                isValid = false;
+                                reason = 'key too short';
+                                invalidReasons.keyTooShort++;
+                            }
+                            // Check value type
+                            else if (val === null) {
+                                isValid = false;
+                                reason = 'value is null';
+                                invalidReasons.valNull++;
+                            }
+                            else if (val === undefined) {
+                                isValid = false;
+                                reason = 'value is undefined';
+                                invalidReasons.valUndefined++;
+                            }
+                            else if (typeof val !== 'string') {
+                                isValid = false;
+                                reason = `value not string (${typeof val})`;
+                                invalidReasons.valNotString++;
+                            }
+                            // Check value format (should be T followed by digits)
+                            else if (!/^T\d+$/.test(val)) {
+                                isValid = false;
+                                reason = `value wrong format: "${val}"`;
+                                invalidReasons.valWrongFormat++;
+                            }
+                            
+                            if (isValid) {
+                                validCount++;
+                            } else {
+                                invalidCount++;
+                                if (invalidSamples.length < 10) {
+                                    invalidSamples.push({ 
+                                        key: String(key).substring(0, 50), 
+                                        val: String(val).substring(0, 50),
+                                        keyType: typeof key, 
+                                        valType: typeof val,
+                                        reason: reason
+                                    });
+                                }
+                            }
+                        }
+                        
+                        this.log(`Sample analysis: ${validCount} valid, ${invalidCount} invalid`, invalidCount > 0 ? 'warning' : 'success');
+                        
+                        if (invalidCount > 0) {
+                            this.log(`Invalid entry breakdown:`, 'warning');
+                            if (invalidReasons.keyNotString > 0) this.log(`  - ${invalidReasons.keyNotString} keys not strings`, 'warning');
+                            if (invalidReasons.keyTooShort > 0) this.log(`  - ${invalidReasons.keyTooShort} keys too short (< 3 chars)`, 'warning');
+                            if (invalidReasons.valNull > 0) this.log(`  - ${invalidReasons.valNull} null values`, 'warning');
+                            if (invalidReasons.valUndefined > 0) this.log(`  - ${invalidReasons.valUndefined} undefined values`, 'warning');
+                            if (invalidReasons.valNotString > 0) this.log(`  - ${invalidReasons.valNotString} values not strings`, 'warning');
+                            if (invalidReasons.valWrongFormat > 0) this.log(`  - ${invalidReasons.valWrongFormat} values wrong format (not T\\d+)`, 'warning');
+                            
+                            this.log(`Invalid sample entries (showing first ${invalidSamples.length}):`, 'warning');
+                            invalidSamples.forEach((s, idx) => {
+                                this.log(`  ${idx + 1}. Key: "${s.key}" (${s.keyType}), Val: "${s.val}" (${s.valType}) - ${s.reason}`, 'warning');
+                            });
+                        }
+                        
+                        const validRatio = validCount / sampleSize;
+                        this.log(`Valid ratio: ${(validRatio * 100).toFixed(1)}%`, 'info');
+                        
+                        // Decision logic with detailed reasons
+                        if (validRatio >= 0.8) {
+                            detectedFormat = 'Native';
+                            this.log(`✓ Valid ratio ≥ 80%, treating as Native format`, 'success');
+                            this.log(`Decision: PROCEED with Native format validation`, 'success');
+                            
+                            // Validate and optionally fix the entire dictionary
+                            this.log(`Validating all ${entries.length} entries...`, 'info');
+                            this.updateLoadingDetail(`Validating ${entries.length} tokens...`);
+                            
+                            const fixResult = await this.validateAndFixNative(data);
+                            tokens = fixResult.tokens;
+                            wasFixed = fixResult.fixed;
+                            
+                            this.log(`Validation complete: ${Object.keys(tokens).length} tokens, ${fixResult.fixCount} fixes applied`, wasFixed ? 'warning' : 'success');
+                            
+                            if (wasFixed) {
+                                this.log(`✓ Native format validated and fixed`, 'warning');
+                            } else {
+                                this.log(`✓ Native format validated (clean)`, 'success');
+                            }
+                        } else if (validRatio > 0.3) {
+                            // Partially looks like Native, try recovery
+                            this.log(`Valid ratio ${(validRatio * 100).toFixed(1)}% (30-80%), attempting recovery...`, 'warning');
+                            this.log(`Decision: TRY RECOVERY`, 'warning');
+                            this.updateLoadingDetail('Attempting recovery...');
+                            
+                            const fixedData = await this.attemptNativeFormatRecovery(data);
+                            if (fixedData) {
+                                detectedFormat = 'Native';
+                                tokens = fixedData;
+                                wasFixed = true;
+                                this.log(`✓ Recovered ${Object.keys(tokens).length} tokens from partially broken format`, 'success');
+                            } else {
+                                this.log(`✗ Recovery failed`, 'error');
+                                this.log(`Decision: REJECT - Recovery unsuccessful`, 'error');
+                            }
+                        } else {
+                            this.log(`✗ Valid ratio ${(validRatio * 100).toFixed(1)}% is below 30% threshold`, 'error');
+                            this.log(`Decision: REJECT as Native format`, 'error');
+                            this.log(`Reason: Too many invalid entries (${invalidCount}/${sampleSize})`, 'error');
+                            
+                            // Provide guidance
+                            if (invalidReasons.valWrongFormat > 0) {
+                                this.log(`💡 Hint: Values should be in format "T0", "T1", "T2", etc.`, 'info');
+                            }
+                            if (invalidReasons.valNotString > 0) {
+                                this.log(`💡 Hint: All values must be strings, found ${invalidReasons.valNotString} non-string values`, 'info');
+                            }
+                            if (invalidReasons.keyNotString > 0 || invalidReasons.keyTooShort > 0) {
+                                this.log(`💡 Hint: All keys must be strings with at least 3 characters`, 'info');
+                            }
+                        }
+                    } else {
+                        this.log(`✗ Unknown structure`, 'error');
+                        this.log(`Structure analysis:`, 'error');
+                        this.log(`  - Has 'version' field: ${!!data.version} ${data.version ? `(value: "${data.version}")` : ''}`, 'error');
+                        this.log(`  - Has 'type' field: ${!!data.type} ${data.type ? `(value: "${data.type}")` : ''}`, 'error');
+                        this.log(`  - Has 'tokens' field: ${!!data.tokens}`, 'error');
+                        this.log(`  - Is object: ${typeof data === 'object'}`, 'error');
+                        this.log(`  - Top-level keys (first 10): ${Object.keys(data).slice(0, 10).join(', ')}`, 'error');
+                        
+                        // Try to give hints about what's wrong
+                        if (data.version && !data.type) {
+                            this.log(`💡 Hint: File has 'version' but missing 'type: "ptam-plugplay-dictionary"'`, 'info');
+                        }
+                        if (data.version && data.type && data.type !== 'ptam-plugplay-dictionary') {
+                            this.log(`💡 Hint: Wrong type "${data.type}", expected "ptam-plugplay-dictionary"`, 'info');
+                        }
+                        if (data.version && data.type === 'ptam-plugplay-dictionary' && !data.tokens) {
+                            this.log(`💡 Hint: Original format but missing 'tokens' object`, 'info');
+                        }
+                        if (!data.version && !data.type) {
+                            this.log(`💡 Hint: No version/type, should be Native format but failed validation`, 'info');
+                            this.log(`💡 Check: Are values in format "T0", "T1", etc.?`, 'info');
+                        }
+                    }
+
+                    if (!tokens) {
+                        this.log(`=== IMPORT FAILED: Could not extract tokens ===`, 'error');
+                        throw new Error('Invalid dictionary format. Expected Original or Native format.');
+                    }
+
+                    this.log(`Converting to Map structure...`, 'info');
+                    this.dictionary = new Map(Object.entries(tokens));
+                    this.originalDictionary = new Map(this.dictionary);
+                    this.filename = file.name;
+                    this.added.clear();
+                    this.removed.clear();
+
+                    this.hideLoading();
+                    this.updateUI();
+                    
+                    const statusMsg = wasFixed 
+                        ? `Imported ${this.dictionary.size} tokens (${detectedFormat} format, auto-fixed)`
+                        : `Imported ${this.dictionary.size} tokens (${detectedFormat} format)`;
+                    
+                    this.log(`=== IMPORT SUCCESS: ${this.dictionary.size} tokens loaded ===`, 'success');
+                    this.showAlert(statusMsg, wasFixed ? 'warning' : 'success');
+                    this.addToChangelog('Imported', `${file.name} (${detectedFormat}${wasFixed ? ', fixed' : ''}) with ${this.dictionary.size} tokens`);
+                } catch (error) {
+                    this.hideLoading();
+                    this.log(`=== IMPORT FAILED: ${error.message} ===`, 'error');
+                    this.log(`Stack trace: ${error.stack}`, 'error');
+                    this.showAlert('Import failed: ' + error.message, 'error');
+                }
+
+                event.target.value = '';
+            },
+
+            fixBrokenNativeFormat(text) {
+                // Try to fix common issues in Native format
+                this.log(`Attempting to fix broken Native format...`, 'info');
+                
+                try {
+                    const original = text.length;
+                    
+                    // Remove any leading/trailing whitespace
+                    text = text.trim();
+                    this.log(`Trimmed whitespace: ${original} → ${text.length} chars`, 'info');
+                    
+                    // Check if it's missing opening brace
+                    if (!text.startsWith('{')) {
+                        this.log(`Adding missing opening brace`, 'warning');
+                        text = '{' + text;
+                    }
+                    
+                    // Check if it's missing closing brace
+                    if (!text.endsWith('}')) {
+                        this.log(`Adding missing closing brace`, 'warning');
+                        text = text + '}';
+                    }
+                    
+                    // Fix missing commas between entries (line breaks between entries)
+                    const beforeCommaFix = text.length;
+                    text = text.replace(/"\s*\n\s*"/g, '",\n"');
+                    if (text.length !== beforeCommaFix) {
+                        this.log(`Fixed missing commas between entries`, 'warning');
+                    }
+                    
+                    // Fix trailing commas before closing brace
+                    const beforeTrailingFix = text.length;
+                    text = text.replace(/,(\s*\})/g, '$1');
+                    if (text.length !== beforeTrailingFix) {
+                        this.log(`Removed trailing commas`, 'warning');
+                    }
+                    
+                    // Try to parse
+                    this.log(`Attempting to parse fixed JSON...`, 'info');
+                    const result = JSON.parse(text);
+                    this.log(`✓ Fixed format parsed successfully`, 'success');
+                    return result;
+                } catch (error) {
+                    this.log(`✗ Fix attempt failed: ${error.message}`, 'error');
+                    return null;
+                }
+            },
+
+            aggressiveNativeRecovery(text) {
+                // Very aggressive recovery for badly broken Native format
+                this.log(`Starting aggressive recovery...`, 'warning');
+                
+                try {
+                    const tokens = {};
+                    let recovered = 0;
+                    let nextId = 0;
+                    
+                    // Try to extract key-value pairs using regex
+                    // Match patterns like: "key": "value" or 'key': 'value'
+                    const pairRegex = /["']([^"']+)["']\s*:\s*["']([^"']+)["']/g;
+                    let match;
+                    
+                    while ((match = pairRegex.exec(text)) !== null) {
+                        const key = match[1];
+                        const val = match[2];
+                        
+                        // Validate key looks reasonable (not empty, not too short)
+                        if (key && key.length >= 3) {
+                            // If value looks like a token ID, use it; otherwise assign new one
+                            if (/^T\d+$/.test(val)) {
+                                tokens[key] = val;
+                                const id = parseInt(val.substring(1));
+                                if (id >= nextId) nextId = id + 1;
+                            } else {
+                                tokens[key] = `T${nextId++}`;
+                            }
+                            recovered++;
+                        }
+                    }
+                    
+                    if (recovered > 0) {
+                        this.log(`✓ Aggressive recovery found ${recovered} token pairs`, 'success');
+                        return tokens;
+                    }
+                    
+                    this.log(`✗ Aggressive recovery found no tokens`, 'error');
+                    return null;
+                } catch (error) {
+                    this.log(`✗ Aggressive recovery failed: ${error.message}`, 'error');
+                    return null;
+                }
+            },
+
+            async validateAndFixNative(data) {
+                // Validate Native format and fix any issues
+                this.log(`Starting validation and fix process...`, 'info');
+                
+                const tokens = {};
+                let fixed = false;
+                let fixCount = 0;
+                let nextId = 0;
+                const usedIds = new Set();
+                const entries = Object.entries(data);
+                
+                // First pass - collect used IDs and validate structure
+                this.log(`Pass 1/2: Collecting used IDs from ${entries.length} entries...`, 'info');
+                
+                for (let i = 0; i < entries.length; i++) {
+                    const [key, val] = entries[i];
+                    
+                    // Progress update for large dictionaries
+                    if (i > 0 && i % 10000 === 0) {
+                        this.updateLoadingDetail(`Scanning... ${i}/${entries.length}`);
+                        await new Promise(resolve => setTimeout(resolve, 0)); // Allow UI update
+                    }
+                    
+                    if (typeof val === 'string' && /^T\d+$/.test(val)) {
+                        const id = parseInt(val.substring(1));
+                        usedIds.add(id);
+                        if (id >= nextId) {
+                            nextId = id + 1;
+                        }
+                    }
+                }
+                
+                this.log(`Found ${usedIds.size} unique token IDs, next available: T${nextId}`, 'info');
+                
+                // Second pass - validate and fix
+                this.log(`Pass 2/2: Validating and fixing entries...`, 'info');
+                
+                for (let i = 0; i < entries.length; i++) {
+                    const [key, val] = entries[i];
+                    
+                    // Progress update for large dictionaries
+                    if (i > 0 && i % 10000 === 0) {
+                        this.updateLoadingDetail(`Fixing... ${i}/${entries.length}`);
+                        await new Promise(resolve => setTimeout(resolve, 0)); // Allow UI update
+                    }
+                    
+                    // Check if value is valid token ID
+                    if (typeof val === 'string' && /^T\d+$/.test(val)) {
+                        // Check for duplicates
+                        const existingKey = Object.keys(tokens).find(k => tokens[k] === val);
+                        if (existingKey) {
+                            // Duplicate ID found, assign new one
+                            tokens[key] = `T${nextId++}`;
+                            fixed = true;
+                            fixCount++;
+                            if (fixCount <= 10) { // Only log first 10 to avoid spam
+                                this.log(`Fixed duplicate ID ${val}: "${key}" → T${nextId - 1}`, 'warning');
+                            }
+                        } else {
+                            tokens[key] = val;
+                        }
+                    } else if (typeof val === 'string') {
+                        // Value is string but not valid format, assign new ID
+                        tokens[key] = `T${nextId++}`;
+                        fixed = true;
+                        fixCount++;
+                        if (fixCount <= 10) {
+                            this.log(`Fixed invalid ID for "${key}": "${val}" → T${nextId - 1}`, 'warning');
+                        }
+                    } else {
+                        // Non-string value, assign new ID
+                        tokens[key] = `T${nextId++}`;
+                        fixed = true;
+                        fixCount++;
+                        if (fixCount <= 10) {
+                            this.log(`Fixed non-string value for "${key}": ${typeof val} → T${nextId - 1}`, 'warning');
+                        }
+                }
+                }
+                
+                if (fixCount > 10) {
+                    this.log(`... and ${fixCount - 10} more fixes`, 'warning');
+                }
+                
+                return { tokens, fixed, fixCount };
+            },
+
+            async attemptNativeFormatRecovery(data) {
+                // Try to recover if it looks like it might be Native format with issues
+                this.log(`Attempting recovery from partially broken format...`, 'warning');
+                
+                const tokens = {};
+                let recovered = 0;
+                let nextId = 0;
+                const entries = Object.entries(data);
+                
+                for (let i = 0; i < entries.length; i++) {
+                    const [key, val] = entries[i];
+                    
+                    // Progress update for large dictionaries
+                    if (i > 0 && i % 10000 === 0) {
+                        this.updateLoadingDetail(`Recovering... ${i}/${entries.length}`);
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                    
+                    // If key looks like a token string and value is anything
+                    if (typeof key === 'string' && key.length >= 3) {
+                        // Assign a new token ID
+                        tokens[key] = `T${nextId++}`;
+                        recovered++;
+                    }
+                }
+                
+                // Only return if we recovered at least some tokens
+                if (recovered > 0) {
+                    this.log(`✓ Recovered ${recovered} tokens`, 'success');
+                    return tokens;
+                }
+                
+                this.log(`✗ Recovery failed: no tokens found`, 'error');
+                return null;
+            },
+
+            async uploadFiles(event) {
+                const files = Array.from(event.target.files);
+                if (files.length === 0) return;
+
+                this.showLoading('Processing files...');
+                this.log(`Uploading ${files.length} file(s)`, 'info');
+
+                const contents = [];
+                let processed = 0;
+
+                for (const file of files) {
+                    const ext = file.name.split('.').pop().toLowerCase();
+
+                    if (ext === 'zip') {
+                        try {
+                            const zip = await JSZip.loadAsync(file);
+                            for (const [path, entry] of Object.entries(zip.files)) {
+                                if (!entry.dir) {
+                                    const content = await entry.async('text');
+                                    if (this.isTextReadable(content)) {
+                                        contents.push(content);
+                                    }
+                                }
+                            }
+                        } catch (error) {
+                            this.log(`Failed to read ZIP: ${file.name}`, 'error');
+                        }
+                    } else if (this.textExtensions.includes(ext)) {
+                        try {
+                            const content = await this.readFileAsText(file);
+                            if (this.isTextReadable(content)) {
+                                contents.push(content);
+                            }
+                        } catch (error) {
+                            this.log(`Failed to read file: ${file.name}`, 'error');
+                        }
+                    }
+
+                    processed++;
+                    this.updateLoadingDetail(`Processing... ${Math.round((processed / files.length) * 100)}%`);
+                }
+
+                if (contents.length > 0) {
+                    await this.extractTokens(contents);
+                    
+                    if (this.settings.autoOptimize) {
+                        this.log('Auto-optimize enabled, optimizing...', 'info');
+                        await this.optimizeTokens();
+                    }
+                }
+
+                this.hideLoading();
+                this.updateUI();
+                this.showAlert(`Processed ${files.length} files, extracted tokens`, 'success');
+                this.log(`Extraction complete: ${contents.length} files processed`, 'success');
+                this.addToChangelog('Files uploaded', `${files.length} files processed`);
+
+                event.target.value = '';
+            },
+
+            async extractTokens(contents) {
+                const candidateFreq = new Map();
+                const minLen = this.settings.minTokenLength;
+                const minFreq = this.settings.minFrequency;
+
+                this.log(`Extracting tokens (min length: ${minLen}, min freq: ${minFreq})`, 'info');
+
+                // Pattern extraction
+                const patterns = [
+                    /https?:\/\/[^\s]+/g,
+                    /[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+                    /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g,
+                    /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/g,
+                    /\b0x[a-fA-F0-9]+\b/g,
+                ];
+
+                for (const content of contents) {
+                    // Pattern matching
+                    patterns.forEach(pattern => {
+                        const matches = content.match(pattern) || [];
+                        matches.forEach(match => {
+                            if (match.length >= minLen) {
+                                candidateFreq.set(match, (candidateFreq.get(match) || 0) + 1);
+                            }
+                        });
+                    });
+
+                    // Word extraction
+                    const words = content.match(/\b[a-zA-Z_][a-zA-Z0-9_]{4,}\b/g) || [];
+                    words.forEach(word => {
+                        if (word.length >= minLen) {
+                            candidateFreq.set(word, (candidateFreq.get(word) || 0) + 1);
+                        }
+                    });
+
+                    // Number extraction
+                    const numbers = content.match(/\b\d{5,}\.?\d*\b/g) || [];
+                    numbers.forEach(num => {
+                        if (num.length >= minLen) {
+                            candidateFreq.set(`#${num}`, (candidateFreq.get(`#${num}`) || 0) + 1);
+                        }
+                    });
+                }
+
+                // Filter by frequency and add to dictionary
+                let newTokens = 0;
+                let nextId = this.dictionary.size;
+
+                for (const [token, freq] of candidateFreq.entries()) {
+                    if (freq >= minFreq && !this.dictionary.has(token)) {
+                        this.dictionary.set(token, `T${nextId++}`);
+                        this.added.add(token);
+                        newTokens++;
+                    }
+                }
+
+                this.log(`Extracted ${newTokens} new tokens`, 'success');
+            },
+
+            syncTokens() {
+                if (this.dictionary.size === 0) {
+                    this.showAlert('No tokens to sync', 'warning');
+                    return;
+                }
+
+                this.showLoading('Syncing tokens...');
+                this.log('Starting token sync', 'info');
+
+                this.syncTokensInternal();
+
+                this.hideLoading();
+                this.updateUI();
+                this.showAlert('Tokens synchronized and re-indexed', 'success');
+                this.log(`Sync complete: ${this.dictionary.size} tokens re-indexed`, 'success');
+                this.addToChangelog('Synchronized', 'Tokens re-indexed and cleaned');
+            },
+
+            syncTokensInternal() {
+                // Internal sync without UI updates - used by other functions
+                const sortedTokens = Array.from(this.dictionary.entries())
+                    .sort((a, b) => a[0].localeCompare(b[0]));
+
+                this.dictionary.clear();
+                sortedTokens.forEach(([token, _], idx) => {
+                    this.dictionary.set(token, `T${idx}`);
+                });
+
+                // Reset change tracking
+                this.originalDictionary = new Map(this.dictionary);
+                this.added.clear();
+                this.removed.clear();
+            },
+
+            optimizeTokens() {
+                if (this.dictionary.size === 0) {
+                    this.showAlert('No tokens to optimize', 'warning');
+                    return;
+                }
+
+                this.showLoading('Analyzing tokens for optimization...');
+                this.log('Starting token optimization', 'info');
+
+                this.optimizeSuggestions = [];
+                const tokens = Array.from(this.dictionary.keys());
+
+                // Find tokens that can be broken down
+                for (const token of tokens) {
+                    // Check for leading/trailing symbols (single or double)
+                    const symbolResult = this.checkLeadingTrailingSymbols(token);
+                    if (symbolResult.shouldOptimize) {
+                        this.optimizeSuggestions.push({
+                            original: token,
+                            cleaned: symbolResult.cleaned,
+                            type: 'symbols',
+                            symbolType: symbolResult.symbolType
+                        });
+                        continue; // Skip other checks if symbols found
+                    }
+
+                    // Only check long tokens for other optimizations
+                    if (token.length < 20) continue;
+
+                    // Check if token contains repeating patterns
+                    const patterns = this.findRepeatingPatterns(token);
+                    if (patterns.length > 0) {
+                        this.optimizeSuggestions.push({
+                            original: token,
+                            patterns: patterns,
+                            type: 'repeating'
+                        });
+                        continue;
+                    }
+
+                    // Check if token can be split into meaningful parts
+                    const parts = this.findMeaningfulParts(token);
+                    if (parts.length > 1) {
+                        this.optimizeSuggestions.push({
+                            original: token,
+                            parts: parts,
+                            type: 'split'
+                        });
+                    }
+                }
+
+                if (this.optimizeSuggestions.length === 0) {
+                    this.hideLoading();
+                    this.showAlert('No optimization opportunities found', 'info');
+                    this.log('No optimization needed', 'info');
+                    return;
+                }
+
+                // Auto-apply optimizations
+                this.updateLoadingDetail('Applying optimizations...');
+                let optimized = 0;
+
+                for (const suggestion of this.optimizeSuggestions) {
+                    const originalToken = suggestion.original;
+                    
+                    if (!this.dictionary.has(originalToken)) continue;
+
+                    // Remove original token
+                    this.dictionary.delete(originalToken);
+                    this.removed.add(originalToken);
+
+                    if (suggestion.type === 'symbols') {
+                        // Add cleaned token without symbols
+                        if (!this.dictionary.has(suggestion.cleaned) && suggestion.cleaned.length >= this.settings.minTokenLength) {
+                            this.dictionary.set(suggestion.cleaned, `T${this.dictionary.size}`);
+                            this.added.add(suggestion.cleaned);
+                        }
+                    } else if (suggestion.type === 'repeating') {
+                        // Add the repeating pattern as a new token
+                        const pattern = suggestion.patterns[0].pattern;
+                        if (!this.dictionary.has(pattern) && pattern.length >= this.settings.minTokenLength) {
+                            this.dictionary.set(pattern, `T${this.dictionary.size}`);
+                            this.added.add(pattern);
+                        }
+                    } else if (suggestion.type === 'split') {
+                        // Add each meaningful part as a new token
+                        for (const part of suggestion.parts) {
+                            if (!this.dictionary.has(part) && part.length >= this.settings.minTokenLength) {
+                                this.dictionary.set(part, `T${this.dictionary.size}`);
+                                this.added.add(part);
+                            }
+                        }
+                    }
+
+                    optimized++;
+                }
+
+                // Auto-sync after optimization
+                this.updateLoadingDetail('Syncing tokens...');
+                this.syncTokensInternal();
+
+                this.hideLoading();
+                this.updateUI();
+                this.showAlert(`Optimized ${optimized} tokens and synced`, 'success');
+                this.log(`Applied ${optimized} optimizations and synced`, 'success');
+                this.addToChangelog('Optimized & Synced', `${optimized} tokens optimized and re-indexed`);
+                
+                this.optimizeSuggestions = [];
+            },
+
+            checkLeadingTrailingSymbols(token) {
+                // Check for leading/trailing symbols (1-2 characters)
+                // Symbols: anything that's not alphanumeric
+                
+                const symbolPattern = /^([^a-zA-Z0-9]{1,2})|([^a-zA-Z0-9]{1,2})$/;
+                
+                // Check if token has leading or trailing symbols
+                const hasLeading = /^[^a-zA-Z0-9]{1,2}/.test(token);
+                const hasTrailing = /[^a-zA-Z0-9]{1,2}$/.test(token);
+                
+                if (!hasLeading && !hasTrailing) {
+                    return { shouldOptimize: false };
+                }
+
+                // Extract the core token without symbols
+                let cleaned = token;
+                let symbolType = '';
+                
+                if (hasLeading && hasTrailing) {
+                    cleaned = token.replace(/^[^a-zA-Z0-9]{1,2}/, '').replace(/[^a-zA-Z0-9]{1,2}$/, '');
+                    const leadingSymbols = token.match(/^[^a-zA-Z0-9]{1,2}/)[0];
+                    const trailingSymbols = token.match(/[^a-zA-Z0-9]{1,2}$/)[0];
+                    symbolType = `Leading "${leadingSymbols}" + Trailing "${trailingSymbols}"`;
+                } else if (hasLeading) {
+                    cleaned = token.replace(/^[^a-zA-Z0-9]{1,2}/, '');
+                    const leadingSymbols = token.match(/^[^a-zA-Z0-9]{1,2}/)[0];
+                    symbolType = `Leading "${leadingSymbols}"`;
+                } else if (hasTrailing) {
+                    cleaned = token.replace(/[^a-zA-Z0-9]{1,2}$/, '');
+                    const trailingSymbols = token.match(/[^a-zA-Z0-9]{1,2}$/)[0];
+                    symbolType = `Trailing "${trailingSymbols}"`;
+                }
+
+                // Only optimize if:
+                // 1. Cleaned token is long enough
+                // 2. Cleaned token doesn't already exist
+                // 3. Cleaned token is different from original
+                if (cleaned.length >= this.settings.minTokenLength && 
+                    cleaned !== token && 
+                    !this.dictionary.has(cleaned)) {
+                    return {
+                        shouldOptimize: true,
+                        cleaned: cleaned,
+                        symbolType: symbolType
+                    };
+                }
+
+                return { shouldOptimize: false };
+            },
+
+            findRepeatingPatterns(token) {
+                const patterns = [];
+                
+                // Find repeating substrings (min 3 chars, must repeat at least 2x)
+                for (let len = 3; len <= token.length / 2; len++) {
+                    for (let i = 0; i <= token.length - len; i++) {
+                        const pattern = token.substring(i, i + len);
+                        const regex = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                        const matches = token.match(regex);
+                        
+                        if (matches && matches.length >= 2) {
+                            patterns.push({
+                                pattern: pattern,
+                                count: matches.length,
+                                savings: pattern.length * (matches.length - 1)
+                            });
+                        }
+                    }
+                }
+
+                // Return top 3 patterns by savings
+                return patterns
+                    .sort((a, b) => b.savings - a.savings)
+                    .slice(0, 3);
+            },
+
+            findMeaningfulParts(token) {
+                const parts = [];
+                
+                // Split by common delimiters
+                const delimiters = ['-', '_', '.', '/', ':', '\\'];
+                for (const delim of delimiters) {
+                    if (token.includes(delim)) {
+                        const split = token.split(delim);
+                        if (split.every(part => part.length >= this.settings.minTokenLength)) {
+                            return split;
+                        }
+                    }
+                }
+
+                // Split by camelCase or PascalCase
+                const camelSplit = token.split(/(?=[A-Z])/);
+                if (camelSplit.length > 1 && camelSplit.every(part => part.length >= 3)) {
+                    return camelSplit;
+                }
+
+                return [];
+            },
+
+            showOptimizationResults() {
+                const resultsContainer = document.getElementById('optimizeResults');
+                
+                let html = `
+                    <div style="background: var(--info-dim); border: 1px solid var(--info); border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+                        <div style="font-size: 13px; font-weight: 600; color: var(--info);">
+                            Found ${this.optimizeSuggestions.length} optimization opportunities
+                        </div>
+                    </div>
+                    <div class="optimize-result">
+                `;
+
+                this.optimizeSuggestions.forEach((suggestion, idx) => {
+                    html += `<div class="optimize-item">`;
+                    html += `<div class="optimize-before">Original: ${this.escapeHtml(suggestion.original)}</div>`;
+                    
+                    if (suggestion.type === 'repeating') {
+                        html += `<div class="optimize-after">→ Extract pattern: "${suggestion.patterns[0].pattern}" (appears ${suggestion.patterns[0].count}x)</div>`;
+                    } else if (suggestion.type === 'split') {
+                        html += `<div class="optimize-after">→ Split into: ${suggestion.parts.map(p => `"${p}"`).join(', ')}</div>`;
+                    }
+                    
+                    html += `</div>`;
+                });
+
+                html += `</div>`;
+                resultsContainer.innerHTML = html;
+                
+                this.openModal('optimizeModal');
+            },
+
+            applyOptimizations() {
+                if (this.optimizeSuggestions.length === 0) return;
+
+                this.showLoading('Applying optimizations...');
+                let optimized = 0;
+
+                for (const suggestion of this.optimizeSuggestions) {
+                    const originalToken = suggestion.original;
+                    
+                    if (!this.dictionary.has(originalToken)) continue;
+
+                    // Remove original long token
+                    this.dictionary.delete(originalToken);
+                    this.removed.add(originalToken);
+
+                    if (suggestion.type === 'repeating') {
+                        // Add the repeating pattern as a new token
+                        const pattern = suggestion.patterns[0].pattern;
+                        if (!this.dictionary.has(pattern) && pattern.length >= this.settings.minTokenLength) {
+                            this.dictionary.set(pattern, `T${this.dictionary.size}`);
+                            this.added.add(pattern);
+                        }
+                    } else if (suggestion.type === 'split') {
+                        // Add each meaningful part as a new token
+                        for (const part of suggestion.parts) {
+                            if (!this.dictionary.has(part) && part.length >= this.settings.minTokenLength) {
+                                this.dictionary.set(part, `T${this.dictionary.size}`);
+                                this.added.add(part);
+                            }
+                        }
+                    }
+
+                    optimized++;
+                }
+
+                this.hideLoading();
+                this.closeModal('optimizeModal');
+                this.updateUI();
+                this.showAlert(`Optimized ${optimized} tokens`, 'success');
+                this.log(`Applied ${optimized} optimizations`, 'success');
+                this.addToChangelog('Optimized', `${optimized} tokens optimized`);
+                
+                this.optimizeSuggestions = [];
+            },
+
+            removeRedundancy() {
+                if (this.dictionary.size === 0) {
+                    this.showAlert('No tokens to analyze', 'warning');
+                    return;
+                }
+
+                const isLargeDictionary = this.dictionary.size >= 10000;
+                
+                if (isLargeDictionary) {
+                    // Large dictionary - auto-process without confirmation
+                    this.log(`Large dictionary detected (${this.dictionary.size} tokens), auto-processing...`, 'info');
+                    this.processRedundancyRemovalAutomatic();
+                } else {
+                    // Small dictionary - show preview and confirmation
+                    this.processRedundancyRemovalWithPreview();
+                }
+            },
+
+            async processRedundancyRemovalAutomatic() {
+                // Automatic processing for large dictionaries without preview
+                this.showLoading('Scanning for redundant tokens...');
+                this.log('Starting automatic redundancy removal (no preview)', 'info');
+
+                const tokens = Array.from(this.dictionary.keys());
+                let removed = 0;
+                let sliced = 0;
+                let processed = 0;
+                const totalTokens = tokens.length;
+
+                for (const token of tokens) {
+                    let action = null;
+                    let slicedToken = null;
+
+                    // Progress updates
+                    processed++;
+                    if (processed % 1000 === 0) {
+                        this.updateLoadingDetail(`Scanning... ${processed}/${totalTokens} (Found: ${removed + sliced})`);
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+
+                    // Run all detection checks
+                    const result = this.analyzeTokenForRedundancy(token);
+                    action = result.action;
+                    slicedToken = result.slicedToken;
+
+                    // Immediately apply the action
+                    if (action === 'slice' && slicedToken) {
+                        this.dictionary.delete(token);
+                        this.removed.add(token);
+                        this.dictionary.set(slicedToken, `T${this.dictionary.size}`);
+                        this.added.add(slicedToken);
+                        sliced++;
+                    } else if (action === 'remove') {
+                        this.dictionary.delete(token);
+                        this.removed.add(token);
+                        removed++;
+                    }
+                }
+
+                // Auto-sync after removal
+                this.updateLoadingDetail('Syncing tokens...');
+                this.syncTokensInternal();
+
+                this.redundantCount += (removed + sliced);
+
+                this.hideLoading();
+                this.updateUI();
+                
+                const msg = sliced > 0 
+                    ? `Removed ${removed}, sliced ${sliced} tokens and synced`
+                    : `Removed ${removed} redundant tokens and synced`;
+                    
+                this.showAlert(msg, 'success');
+                this.log(`Automatic redundancy removal: ${removed} removed, ${sliced} sliced, synced`, 'success');
+                this.addToChangelog('Redundancy Cleaned (Auto)', `${removed} removed, ${sliced} sliced, re-indexed`);
+            },
+
+            async processRedundancyRemovalWithPreview() {
+                // Preview mode for smaller dictionaries
+                this.showLoading('Scanning for redundant tokens...');
+                this.log('Starting redundancy analysis with preview', 'info');
+
+                this.redundantTokens = [];
+                const tokens = Array.from(this.dictionary.keys());
+
+                for (const token of tokens) {
+                    const result = this.analyzeTokenForRedundancy(token);
+                    
+                    if (result.action) {
+                        this.redundantTokens.push({
+                            token: token,
+                            action: result.action,
+                            slicedToken: result.slicedToken,
+                            reason: result.reason
+                        });
+                    }
+                }
+
+                this.hideLoading();
+
+                if (this.redundantTokens.length === 0) {
+                    this.showAlert('No redundant tokens found', 'info');
+                    this.log('No redundancy detected', 'info');
+                } else {
+                    this.showRedundancyResults();
+                    this.log(`Found ${this.redundantTokens.length} redundant tokens`, 'warning');
+                }
+            },
+
+            seqCleaner() {
+                if (this.dictionary.size === 0) {
+                    this.showAlert('No tokens to analyze', 'warning');
+                    return;
+                }
+
+                const isLargeDictionary = this.dictionary.size >= 10000;
+                
+                if (isLargeDictionary) {
+                    // Large dictionary - auto-process without confirmation
+                    this.log(`Large dictionary detected (${this.dictionary.size} tokens), auto-processing seq cleaner...`, 'info');
+                    this.processSeqCleanerAutomatic();
+                } else {
+                    // Small dictionary - show preview and confirmation
+                    this.processSeqCleanerWithPreview();
+                }
+            },
+
+            async processSeqCleanerAutomatic() {
+                // Automatic processing for large dictionaries
+                this.showLoading('Scanning for number sequence tokens...');
+                this.log('Starting automatic sequence cleaner (no preview)', 'info');
+
+                const tokens = Array.from(this.dictionary.keys());
+                let removed = 0;
+                let processed = 0;
+                const totalTokens = tokens.length;
+
+                for (const token of tokens) {
+                    processed++;
+                    if (processed % 1000 === 0) {
+                        this.updateLoadingDetail(`Scanning... ${processed}/${totalTokens} (Found: ${removed})`);
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+
+                    // Check if token is pure numbers (optionally with # prefix)
+                    const cleanToken = token.startsWith('#') ? token.substring(1) : token;
+                    
+                    if (/^\d+$/.test(cleanToken)) {
+                        const digitCount = cleanToken.length;
+                        
+                        // Remove if 3+ digits (keep 1-2 digit numbers like "1", "42")
+                        if (digitCount >= 3) {
+                            this.dictionary.delete(token);
+                            this.removed.add(token);
+                            removed++;
+                        }
+                    }
+                }
+
+                // Auto-sync after removal
+                this.updateLoadingDetail('Syncing tokens...');
+                this.syncTokensInternal();
+
+                this.seqCleanedCount += removed;
+
+                this.hideLoading();
+                this.updateUI();
+                
+                this.showAlert(`Removed ${removed} number sequence tokens and synced`, 'success');
+                this.log(`Automatic seq cleaner: ${removed} number tokens removed, synced`, 'success');
+                this.addToChangelog('Seq Cleaned (Auto)', `${removed} number tokens removed, re-indexed`);
+            },
+
+            async processSeqCleanerWithPreview() {
+                // Preview mode for smaller dictionaries
+                this.showLoading('Scanning for number sequence tokens...');
+                this.log('Starting sequence cleaner with preview', 'info');
+
+                const seqTokens = [];
+                const tokens = Array.from(this.dictionary.keys());
+
+                for (const token of tokens) {
+                    const cleanToken = token.startsWith('#') ? token.substring(1) : token;
+                    
+                    if (/^\d+$/.test(cleanToken)) {
+                        const digitCount = cleanToken.length;
+                        
+                        if (digitCount >= 3) {
+                            seqTokens.push({
+                                token: token,
+                                digitCount: digitCount,
+                                reason: `Pure number with ${digitCount} digits`
+                            });
+                        }
+                    }
+                }
+
+                this.hideLoading();
+
+                if (seqTokens.length === 0) {
+                    this.showAlert('No number sequence tokens found', 'info');
+                    this.log('No number sequences detected', 'info');
+                } else {
+                    this.showSeqCleanerResults(seqTokens);
+                    this.log(`Found ${seqTokens.length} number sequence tokens`, 'warning');
+                }
+            },
+
+            showSeqCleanerResults(seqTokens) {
+                const resultsContainer = document.getElementById('seqCleanerResults');
+                
+                // Store tokens for later use
+                this.seqCleanerTokens = seqTokens;
+                
+                let html = `
+                    <div style="background: var(--info-dim); border: 1px solid var(--info); border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+                        <div style="font-size: 13px; font-weight: 600; color: var(--info);">
+                            Found ${seqTokens.length} number sequence tokens (≥3 digits)
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+                            Pure numbers don't hold much tokenization value
+                        </div>
+                    </div>
+                    <div class="optimize-result" style="max-height: 300px; overflow-y: auto;">
+                `;
+
+                // Group by digit count for better display
+                const grouped = {};
+                seqTokens.forEach(item => {
+                    if (!grouped[item.digitCount]) grouped[item.digitCount] = [];
+                    grouped[item.digitCount].push(item);
+                });
+
+                const sortedCounts = Object.keys(grouped).sort((a, b) => b - a);
+
+                sortedCounts.forEach(count => {
+                    const items = grouped[count];
+                    html += `<div style="padding: 8px 0; border-bottom: 1px solid var(--border);">`;
+                    html += `<div style="font-size: 11px; font-weight: 600; color: var(--text-tertiary); margin-bottom: 4px;">${count} digits (${items.length} tokens)</div>`;
+                    
+                    // Show first 5 examples for each digit count
+                    const examples = items.slice(0, 5);
+                    examples.forEach(item => {
+                        html += `<div class="optimize-item" style="padding: 4px 0;">`;
+                        html += `<div style="color: var(--danger); font-weight: 600;">🔢 ${this.escapeHtml(item.token)}</div>`;
+                        html += `</div>`;
+                    });
+                    
+                    if (items.length > 5) {
+                        html += `<div style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">... and ${items.length - 5} more</div>`;
+                    }
+                    
+                    html += `</div>`;
+                });
+
+                html += `</div>`;
+                resultsContainer.innerHTML = html;
+                
+                this.openModal('seqCleanerModal');
+            },
+
+            applySeqCleanerFromModal() {
+                if (!this.seqCleanerTokens || this.seqCleanerTokens.length === 0) return;
+                this.applySeqCleaner(this.seqCleanerTokens);
+            },
+
+            applySeqCleaner(seqTokens) {
+                if (seqTokens.length === 0) return;
+
+                this.showLoading('Removing number sequence tokens...');
+                let removed = 0;
+
+                seqTokens.forEach(item => {
+                    if (this.dictionary.has(item.token)) {
+                        this.dictionary.delete(item.token);
+                        this.removed.add(item.token);
+                        removed++;
+                    }
+                });
+
+                // Auto-sync after removal
+                this.updateLoadingDetail('Syncing tokens...');
+                this.syncTokensInternal();
+
+                this.seqCleanedCount += removed;
+
+                this.hideLoading();
+                this.closeModal('seqCleanerModal');
+                this.updateUI();
+                this.showAlert(`Removed ${removed} number sequence tokens and synced`, 'success');
+                this.log(`Seq cleaner: ${removed} number tokens removed and synced`, 'success');
+                this.addToChangelog('Seq Cleaned', `${removed} number tokens removed and re-indexed`);
+            },
+
+            analyzeTokenForRedundancy(token) {
+                // Centralized analysis function for token redundancy
+                let action = null;
+                let reason = '';
+                let slicedToken = null;
+
+                // Check for random hex strings (common in IDs)
+                if (/^[a-fA-F0-9]{8,}$/.test(token)) {
+                    action = 'remove';
+                    reason = 'Random hex string (likely ID)';
+                }
+                
+                // Check for UUID patterns - remove entirely
+                else if (/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/.test(token)) {
+                    action = 'remove';
+                    reason = 'UUID format';
+                }
+                
+                // Check for tokens with hex/random ID suffixes
+                else if (token.length >= 12) {
+                    const idSuffixMatch = token.match(/^([a-zA-Z_][a-zA-Z0-9_-]{2,}?)[_\-.]([a-fA-F0-9]{6,}|[A-Z0-9]{6,})$/);
+                    if (idSuffixMatch) {
+                        const base = idSuffixMatch[1];
+                        if (base.length >= this.settings.minTokenLength && !this.dictionary.has(base)) {
+                            slicedToken = base;
+                            action = 'slice';
+                            reason = `ID suffix detected, slice to "${base}"`;
+                        } else if (base.length >= this.settings.minTokenLength) {
+                            action = 'remove';
+                            reason = `ID suffix detected, but "${base}" already exists`;
+                        } else {
+                            action = 'remove';
+                            reason = `ID suffix detected, base too short`;
+                        }
+                    }
+                    
+                    const idPrefixMatch = token.match(/^([a-fA-F0-9]{6,}|[A-Z0-9]{6,})[_\-.]([a-zA-Z_][a-zA-Z0-9_-]{2,})$/);
+                    if (!action && idPrefixMatch) {
+                        const base = idPrefixMatch[2];
+                        if (base.length >= this.settings.minTokenLength && !this.dictionary.has(base)) {
+                            slicedToken = base;
+                            action = 'slice';
+                            reason = `ID prefix detected, slice to "${base}"`;
+                        } else if (base.length >= this.settings.minTokenLength) {
+                            action = 'remove';
+                            reason = `ID prefix detected, but "${base}" already exists`;
+                        } else {
+                            action = 'remove';
+                            reason = `ID prefix detected, base too short`;
+                        }
+                    }
+                }
+                
+                // Check for tokens with random alphanumeric segments
+                if (!action && token.length >= 10) {
+                    const mixedMatch = token.match(/^([a-zA-Z_][a-zA-Z0-9_]{2,}?)[_\-.]([a-zA-Z0-9]{6,})$/);
+                    if (mixedMatch) {
+                        const base = mixedMatch[1];
+                        const suffix = mixedMatch[2];
+                        
+                        const suffixHasUpper = /[A-Z]/.test(suffix);
+                        const suffixHasLower = /[a-z]/.test(suffix);
+                        const suffixHasDigit = /[0-9]/.test(suffix);
+                        const suffixEntropy = this.calculateEntropy(suffix);
+                        
+                        if ((suffixHasUpper && suffixHasLower && suffixHasDigit) || suffixEntropy > 4.0) {
+                            if (base.length >= this.settings.minTokenLength && !this.dictionary.has(base)) {
+                                slicedToken = base;
+                                action = 'slice';
+                                reason = `Random suffix detected, slice to "${base}"`;
+                            } else if (base.length >= this.settings.minTokenLength) {
+                                action = 'remove';
+                                reason = `Random suffix detected, but "${base}" already exists`;
+                            } else {
+                                action = 'remove';
+                                reason = `Random suffix detected, base too short`;
+                            }
+                        }
+                    }
+                }
+                
+                // Check for random alphanumeric strings
+                if (!action && token.length >= 8 && /^[a-zA-Z0-9]+$/.test(token)) {
+                    const hasUpper = /[A-Z]/.test(token);
+                    const hasLower = /[a-z]/.test(token);
+                    const hasDigit = /[0-9]/.test(token);
+                    
+                    if (hasUpper && hasLower && hasDigit) {
+                        const hasPattern = /(.{3,})\1/.test(token);
+                        const hasCommonWord = /^(user|data|config|test|temp|file|auth|session|token|key|api)/i.test(token);
+                        
+                        if (!hasPattern && !hasCommonWord) {
+                            action = 'remove';
+                            reason = 'Random alphanumeric (likely hash/ID)';
+                        }
+                    }
+                }
+                
+                // Check for very long numbers
+                if (!action && /^#?\d{10,}$/.test(token)) {
+                    action = 'remove';
+                    reason = 'Long number (likely timestamp/ID)';
+                }
+                
+                // Check for base64-like strings
+                if (!action && token.length >= 16 && /^[A-Za-z0-9+/]+=*$/.test(token)) {
+                    const hasEquals = token.includes('=');
+                    const validBase64 = hasEquals || token.length % 4 === 0;
+                    
+                    if (validBase64) {
+                        action = 'remove';
+                        reason = 'Base64 encoded data';
+                    }
+                }
+                
+                // Check for tokens with excessive symbols
+                if (!action && token.length >= 6) {
+                    const symbolPattern = /[^a-zA-Z0-9]+/g;
+                    const parts = token.split(symbolPattern).filter(p => p.length >= this.settings.minTokenLength);
+                    
+                    if (parts.length === 1 && parts[0] !== token) {
+                        const cleaned = parts[0];
+                        if (!this.dictionary.has(cleaned)) {
+                            slicedToken = cleaned;
+                            action = 'slice';
+                            reason = `Symbols removed, slice to "${cleaned}"`;
+                        } else {
+                            action = 'remove';
+                            reason = `Symbols detected, but "${cleaned}" already exists`;
+                        }
+                    } else if (parts.length > 1) {
+                        const longest = parts.reduce((a, b) => a.length >= b.length ? a : b);
+                        if (longest.length >= this.settings.minTokenLength && !this.dictionary.has(longest)) {
+                            slicedToken = longest;
+                            action = 'slice';
+                            reason = `Symbols detected, extract longest part "${longest}"`;
+                        } else if (longest.length >= this.settings.minTokenLength) {
+                            action = 'remove';
+                            reason = `Symbols detected, but "${longest}" already exists`;
+                        }
+                    }
+                    
+                    if (!action) {
+                        const trimmed = token.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
+                        if (trimmed !== token && trimmed.length >= this.settings.minTokenLength) {
+                            if (!this.dictionary.has(trimmed)) {
+                                slicedToken = trimmed;
+                                action = 'slice';
+                                reason = `Leading/trailing symbols removed, slice to "${trimmed}"`;
+                            } else {
+                                action = 'remove';
+                                reason = `Leading/trailing symbols, but "${trimmed}" already exists`;
+                            }
+                        }
+                    }
+                }
+                
+                // Check for very high entropy strings
+                if (!action && token.length >= 12) {
+                    const entropy = this.calculateEntropy(token);
+                    if (entropy > 4.5) {
+                        action = 'remove';
+                        reason = `High entropy (${entropy.toFixed(2)}) - likely random`;
+                    }
+                }
+
+                return { action, slicedToken, reason };
+            },
+
+            calculateEntropy(str) {
+                // Calculate Shannon entropy to detect randomness
+                const freq = {};
+                for (const char of str) {
+                    freq[char] = (freq[char] || 0) + 1;
+                }
+                
+                let entropy = 0;
+                const len = str.length;
+                
+                for (const char in freq) {
+                    const p = freq[char] / len;
+                    entropy -= p * Math.log2(p);
+                }
+                
+                return entropy;
+            },
+
+            showRedundancyResults() {
+                const resultsContainer = document.getElementById('redundancyResults');
+                
+                const removeCount = this.redundantTokens.filter(t => t.action === 'remove').length;
+                const sliceCount = this.redundantTokens.filter(t => t.action === 'slice').length;
+                
+                let html = `
+                    <div style="background: var(--danger-dim); border: 1px solid var(--danger); border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+                        <div style="font-size: 13px; font-weight: 600; color: var(--danger);">
+                            Found ${this.redundantTokens.length} redundant tokens
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+                            ${removeCount} to remove, ${sliceCount} to slice
+                        </div>
+                    </div>
+                    <div class="optimize-result" style="max-height: 300px; overflow-y: auto;">
+                `;
+
+                this.redundantTokens.forEach((item, idx) => {
+                    html += `<div class="optimize-item">`;
+                    
+                    if (item.action === 'slice') {
+                        html += `<div style="color: var(--warning); font-weight: 600;">
+                            ✂️ ${this.escapeHtml(item.token)} → ${this.escapeHtml(item.slicedToken)}
+                        </div>`;
+                    } else {
+                        html += `<div style="color: var(--danger); font-weight: 600;">
+                            🗑️ ${this.escapeHtml(item.token)}
+                        </div>`;
+                    }
+                    
+                    html += `<div style="color: var(--text-tertiary); font-size: 11px; margin-top: 2px;">${item.reason}</div>`;
+                    html += `</div>`;
+                });
+
+                html += `</div>`;
+                resultsContainer.innerHTML = html;
+                
+                this.openModal('redundancyModal');
+            },
+
+            applyRedundancyRemoval() {
+                if (this.redundantTokens.length === 0) return;
+
+                this.showLoading('Removing redundant tokens...');
+                let removed = 0;
+                let sliced = 0;
+
+                for (const item of this.redundantTokens) {
+                    if (!this.dictionary.has(item.token)) continue;
+
+                    if (item.action === 'slice' && item.slicedToken) {
+                        // Remove original token
+                        this.dictionary.delete(item.token);
+                        this.removed.add(item.token);
+                        
+                        // Add sliced token
+                        this.dictionary.set(item.slicedToken, `T${this.dictionary.size}`);
+                        this.added.add(item.slicedToken);
+                        
+                        sliced++;
+                        this.log(`Sliced: "${item.token}" → "${item.slicedToken}"`, 'info');
+                    } else if (item.action === 'remove') {
+                        // Just remove the token
+                        this.dictionary.delete(item.token);
+                        this.removed.add(item.token);
+                        removed++;
+                        this.log(`Removed: "${item.token}"`, 'warning');
+                    }
+                }
+
+                // Auto-sync after removal
+                this.updateLoadingDetail('Syncing tokens...');
+                this.syncTokensInternal();
+
+                this.redundantCount += (removed + sliced);
+
+                this.hideLoading();
+                this.closeModal('redundancyModal');
+                this.updateUI();
+                
+                const msg = sliced > 0 
+                    ? `Removed ${removed}, sliced ${sliced} tokens and synced`
+                    : `Removed ${removed} redundant tokens and synced`;
+                    
+                this.showAlert(msg, 'success');
+                this.log(`Removed ${removed}, sliced ${sliced}, synced`, 'success');
+                this.addToChangelog('Redundancy Cleaned', `${removed} removed, ${sliced} sliced, re-indexed`);
+
+                this.redundantTokens = [];
+            },
+
+            async mergeDictionaries() {
+                document.getElementById('mergeDictInput').onchange = async (event) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    try {
+                        const text = await this.readFileAsText(file);
+                        const data = JSON.parse(text);
+
+                        if (!data.version || !data.tokens) {
+                            throw new Error('Invalid dictionary format');
+                        }
+
+                        this.mergeData = {
+                            filename: file.name,
+                            tokens: new Map(Object.entries(data.tokens))
+                        };
+
+                        // Show preview
+                        document.getElementById('mergeCurrent').textContent = this.dictionary.size;
+                        document.getElementById('mergeIncoming').textContent = this.mergeData.tokens.size;
+                        
+                        // Calculate result size (union of both)
+                        const combined = new Set([...this.dictionary.keys(), ...this.mergeData.tokens.keys()]);
+                        document.getElementById('mergeResult').textContent = combined.size;
+
+                        document.getElementById('mergePreview').classList.remove('hidden');
+                        this.log(`Merge preview: ${file.name}`, 'info');
+                    } catch (error) {
+                        this.showAlert('Invalid dictionary file', 'error');
+                        this.log(`Merge failed: ${error.message}`, 'error');
+                    }
+
+                    event.target.value = '';
+                };
+            },
+
+            confirmMerge() {
+                if (!this.mergeData) return;
+
+                this.showLoading('Merging dictionaries...');
+                let added = 0;
+                let conflicts = 0;
+
+                // Add all tokens from incoming dictionary
+                for (const [token, tokenId] of this.mergeData.tokens.entries()) {
+                    if (this.dictionary.has(token)) {
+                        conflicts++;
+                        // Keep existing token (current dict has priority)
+                    } else {
+                        this.dictionary.set(token, `T${this.dictionary.size}`);
+                        this.added.add(token);
+                        added++;
+                    }
+                }
+
+                this.hideLoading();
+                this.closeModal('mergeModal');
+                this.updateUI();
+                this.showAlert(`Merged: +${added} tokens, ${conflicts} conflicts`, 'success');
+                this.log(`Merge complete: ${added} added, ${conflicts} conflicts`, 'success');
+                this.addToChangelog('Merged', `${this.mergeData.filename}: +${added} tokens`);
+
+                this.mergeData = null;
+                document.getElementById('mergePreview').classList.add('hidden');
+            },
+
+            exportDictionary() {
+                if (this.dictionary.size === 0) {
+                    this.showAlert('No tokens to export', 'warning');
+                    return;
+                }
+
+                // Set default filename
+                const defaultName = this.filename || `token-dict-v${this.version}-${Date.now()}.json`;
+                document.getElementById('exportFilename').value = defaultName;
+                
+                // Reset to Original format
+                this.exportFormat = 'original';
+                this.selectExportFormat('original');
+                
+                // Show export info
+                document.getElementById('exportTokenCount').textContent = this.dictionary.size;
+                document.getElementById('exportFormatDisplay').textContent = 'Original';
+                
+                this.updateExportSize();
+
+                this.openModal('exportModal');
+            },
+
+            selectExportFormat(format) {
+                this.exportFormat = format;
+                
+                // Update button styles
+                const originalBtn = document.getElementById('formatOriginal');
+                const nativeBtn = document.getElementById('formatNative');
+                const description = document.getElementById('formatDescription');
+                const displayFormat = document.getElementById('exportFormatDisplay');
+                
+                if (format === 'original') {
+                    originalBtn.style.background = 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)';
+                    originalBtn.style.color = 'white';
+                    nativeBtn.style.background = 'var(--bg-tertiary)';
+                    nativeBtn.style.color = 'var(--text-primary)';
+                    description.textContent = 'Full format with metadata (recommended)';
+                    displayFormat.textContent = 'Original';
+                } else {
+                    nativeBtn.style.background = 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)';
+                    nativeBtn.style.color = 'white';
+                    originalBtn.style.background = 'var(--bg-tertiary)';
+                    originalBtn.style.color = 'var(--text-primary)';
+                    description.textContent = 'Flat format (token: id mapping only)';
+                    displayFormat.textContent = 'Native';
+                }
+                
+                this.updateExportSize();
+            },
+
+            updateExportSize() {
+                let data;
+                
+                if (this.exportFormat === 'native') {
+                    // Native format - flat object
+                    data = Object.fromEntries(this.dictionary);
+                } else {
+                    // Original format - full structure
+                    data = {
+                        version: '1.0',
+                        type: 'ptam-plugplay-dictionary',
+                        created: new Date().toISOString(),
+                        tokens: Object.fromEntries(this.dictionary),
+                        metadata: {
+                            tokenCount: this.dictionary.size,
+                            added: this.added.size,
+                            removed: this.removed.size,
+                            appVersion: this.version
+                        }
+                    };
+                }
+                
+                const estimatedSize = JSON.stringify(data, null, 2).length;
+                document.getElementById('exportSize').textContent = (estimatedSize / 1024).toFixed(1) + ' KB';
+            },
+
+            confirmExport() {
+                const filename = document.getElementById('exportFilename').value.trim() || 'token-dictionary.json';
+                
+                let data;
+                
+                // Always export in Original format (as specified)
+                if (this.exportFormat === 'native') {
+                    // Native format - flat object
+                    data = Object.fromEntries(this.dictionary);
+                } else {
+                    // Original format (default) - full structure
+                    data = {
+                        version: '1.0',
+                        type: 'ptam-plugplay-dictionary',
+                        created: new Date().toISOString(),
+                        tokens: Object.fromEntries(this.dictionary),
+                        metadata: {
+                            tokenCount: this.dictionary.size,
+                            added: this.added.size,
+                            removed: this.removed.size,
+                            appVersion: this.version
+                        }
+                    };
+                }
+
+                const json = JSON.stringify(data, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+                this.closeModal('exportModal');
+                this.showAlert(`Exported: ${filename} (${this.exportFormat === 'native' ? 'Native' : 'Original'} format)`, 'success');
+                this.log(`Exported: ${filename} (${this.exportFormat}, ${this.dictionary.size} tokens)`, 'success');
+                this.addToChangelog('Exported', `${filename} (${this.exportFormat === 'native' ? 'Native' : 'Original'}) with ${this.dictionary.size} tokens`);
+
+                // Update version after export
+                this.version++;
+                this.updateVersionDisplay();
+                
+                // Reset to Original format for next export
+                this.exportFormat = 'original';
+            },
+
+            updateUI() {
+                // Update stats
+                document.getElementById('statTokens').textContent = this.dictionary.size;
+                document.getElementById('statOptimized').textContent = this.removed.size;
+                document.getElementById('statRedundant').textContent = this.redundantCount;
+                document.getElementById('statSeqCleaned').textContent = this.seqCleanedCount;
+                
+                const size = JSON.stringify(Object.fromEntries(this.dictionary)).length;
+                document.getElementById('statSize').textContent = (size / 1024).toFixed(1) + 'KB';
+                
+                const dictCount = this.dictionary.size > 0 ? 1 : 0;
+                document.getElementById('statDicts').textContent = dictCount;
+
+                // Update dictionary status
+                if (this.dictionary.size === 0) {
+                    document.getElementById('dictStatus').textContent = 'No dictionary loaded';
+                    document.getElementById('dictStatus').style.color = 'var(--warning)';
+                    document.getElementById('dictFilename').textContent = '—';
+                    document.getElementById('dictTokenCount').textContent = '0';
+                    document.getElementById('dictChanges').textContent = '+0 / -0';
+                } else {
+                    document.getElementById('dictStatus').textContent = 'Active';
+                    document.getElementById('dictStatus').style.color = 'var(--success)';
+                    document.getElementById('dictFilename').textContent = this.filename || 'Untitled';
+                    document.getElementById('dictTokenCount').textContent = this.dictionary.size;
+                    document.getElementById('dictChanges').textContent = `+${this.added.size} / -${this.removed.size}`;
+                }
+
+                // Update token list
+                this.updateTokenList();
+                this.updateVersionDisplay();
+            },
+
+            updateTokenList() {
+                const tokenList = document.getElementById('tokenList');
+                const tokenCount = this.dictionary.size;
+                document.getElementById('tokenListCount').textContent = `${tokenCount} tokens`;
+
+                // Disable token list display for large dictionaries (10k+) or Native format imports
+                const isLargeDictionary = tokenCount >= 10000;
+                
+                if (isLargeDictionary) {
+                    this.log(`Token list disabled for large dictionary (${tokenCount} tokens)`, 'info');
+                    tokenList.innerHTML = `
+                        <div style="padding: 40px; text-align: center; color: var(--text-tertiary);">
+                            <div style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;">📊</div>
+                            <div style="font-size: 14px; font-weight: 600;">Token list disabled</div>
+                            <div style="font-size: 12px; margin-top: 4px;">
+                                ${tokenCount.toLocaleString()} tokens loaded<br>
+                                List view disabled to prevent performance issues
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (tokenCount === 0) {
+                    tokenList.innerHTML = `
+                        <div style="padding: 40px; text-align: center; color: var(--text-tertiary);">
+                            <div style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;">📭</div>
+                            <div style="font-size: 14px; font-weight: 600;">No tokens yet</div>
+                            <div style="font-size: 12px; margin-top: 4px;">Create or import a dictionary to start</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const sortedTokens = Array.from(this.dictionary.entries())
+                    .sort((a, b) => {
+                        const aNum = parseInt(a[1].substring(1));
+                        const bNum = parseInt(b[1].substring(1));
+                        return aNum - bNum;
+                    });
+
+                let html = '';
+                sortedTokens.forEach(([token, tokenId]) => {
+                    html += `
+                        <div class="token-item">
+                            <div class="token-original">${this.escapeHtml(token)}</div>
+                            <div class="token-id">${tokenId}</div>
+                            <div class="token-actions">
+                                <button class="token-btn" onclick="app.deleteToken('${this.escapeHtml(token)}')" title="Delete">×</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                tokenList.innerHTML = html;
+            },
+
+            deleteToken(token) {
+                const unescaped = this.unescapeHtml(token);
+                if (!this.dictionary.has(unescaped)) return;
+
+                this.dictionary.delete(unescaped);
+                this.removed.add(unescaped);
+                this.added.delete(unescaped);
+
+                this.updateUI();
+                this.log(`Deleted token: ${unescaped}`, 'warning');
+                this.addToChangelog('Token deleted', unescaped);
+            },
+
+            updateVersionDisplay() {
+                const versionEl = document.querySelector('.version');
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                versionEl.textContent = `v${this.version} • Modified: ${timeStr}`;
+            },
+
+            addToChangelog(action, detail) {
+                const entry = {
+                    timestamp: new Date().toISOString(),
+                    action: action,
+                    detail: detail
+                };
+
+                this.changelog.unshift(entry);
+                
+                // Keep only last 50 entries
+                if (this.changelog.length > 50) {
+                    this.changelog = this.changelog.slice(0, 50);
+                }
+
+                this.updateChangelogUI();
+            },
+
+            updateChangelogUI() {
+                const changelogList = document.getElementById('changelogList');
+                
+                if (this.changelog.length === 0) {
+                    changelogList.innerHTML = `
+                        <div style="padding: 40px; text-align: center; color: var(--text-tertiary);">
+                            <div style="font-size: 14px; font-weight: 600;">No changes yet</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                this.changelog.forEach(entry => {
+                    const time = new Date(entry.timestamp).toLocaleTimeString();
+                    html += `
+                        <div class="changelog-entry">
+                            <div class="changelog-time">${time}</div>
+                            <div class="changelog-action">${entry.action}</div>
+                            <div class="changelog-detail">${this.escapeHtml(entry.detail)}</div>
+                        </div>
+                    `;
+                });
+
+                changelogList.innerHTML = html;
+            },
+
+            async rescanTokens() {
+                if (this.dictionary.size === 0) {
+                    this.showAlert('No tokens to rescan', 'warning');
+                    return;
+                }
+
+                this.showLoading('Rescanning tokens for issues...');
+                this.log('=== RESCAN START ===', 'info');
+                this.log(`Total tokens: ${this.dictionary.size}`, 'info');
+
+                const issues = {
+                    duplicateIds: [],
+                    invalidIds: [],
+                    invalidKeys: [],
+                    emptyKeys: [],
+                    duplicateKeys: [],
+                    nonSequentialIds: [],
+                    gaps: [],
+                    structuralIssues: []
+                };
+
+                const tokens = Array.from(this.dictionary.entries());
+                const seenIds = new Map(); // Track which ID is used by which key
+                const seenKeys = new Map(); // Track duplicate keys
+                let processed = 0;
+
+                // Phase 1: Check each token for issues
+                this.updateLoadingDetail('Phase 1/3: Checking token structure...');
+                this.log('Phase 1: Checking token structure', 'info');
+
+                for (const [key, tokenId] of tokens) {
+                    processed++;
+                    if (processed % 1000 === 0) {
+                        this.updateLoadingDetail(`Phase 1/3: Checking... ${processed}/${tokens.length}`);
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+
+                    // Check for empty keys
+                    if (!key || key.trim() === '') {
+                        issues.emptyKeys.push({ key: '[empty]', id: tokenId });
+                        this.log(`✗ Empty key with ID ${tokenId}`, 'error');
+                    }
+
+                    // Check for invalid key types
+                    if (typeof key !== 'string') {
+                        issues.invalidKeys.push({ key: String(key), type: typeof key, id: tokenId });
+                        this.log(`✗ Invalid key type: ${typeof key} for "${key}"`, 'error');
+                    }
+
+                    // Check for duplicate keys (shouldn't happen in Map but check anyway)
+                    if (seenKeys.has(key)) {
+                        issues.duplicateKeys.push({ key: key, ids: [seenKeys.get(key), tokenId] });
+                        this.log(`✗ Duplicate key: "${key}" with IDs ${seenKeys.get(key)} and ${tokenId}`, 'error');
+                    } else {
+                        seenKeys.set(key, tokenId);
+                    }
+
+                    // Check for invalid token ID format
+                    if (typeof tokenId !== 'string' || !/^T\d+$/.test(tokenId)) {
+                        issues.invalidIds.push({ key: key, id: tokenId });
+                        this.log(`✗ Invalid token ID format: "${tokenId}" for key "${key}"`, 'error');
+                        continue;
+                    }
+
+                    // Check for duplicate token IDs
+                    const idNum = parseInt(tokenId.substring(1));
+                    if (seenIds.has(tokenId)) {
+                        issues.duplicateIds.push({ 
+                            id: tokenId, 
+                            keys: [seenIds.get(tokenId), key] 
+                        });
+                        this.log(`✗ Duplicate ID ${tokenId}: "${seenIds.get(tokenId)}" and "${key}"`, 'error');
+                    } else {
+                        seenIds.set(tokenId, key);
+                    }
+                }
+
+                // Phase 2: Check sequence and gaps
+                this.updateLoadingDetail('Phase 2/3: Checking sequence...');
+                this.log('Phase 2: Checking ID sequence', 'info');
+
+                const idNumbers = Array.from(seenIds.keys())
+                    .map(id => parseInt(id.substring(1)))
+                    .sort((a, b) => a - b);
+
+                if (idNumbers.length > 0) {
+                    const expectedMax = this.dictionary.size - 1;
+                    const actualMax = idNumbers[idNumbers.length - 1];
+
+                    // Check if IDs are sequential starting from 0
+                    let expectedId = 0;
+                    for (const idNum of idNumbers) {
+                        if (idNum !== expectedId) {
+                            if (idNum > expectedId) {
+                                // Gap detected
+                                for (let missing = expectedId; missing < idNum; missing++) {
+                                    issues.gaps.push({ id: `T${missing}` });
+                                }
+                                this.log(`✗ Gap detected: T${expectedId} to T${idNum - 1}`, 'warning');
+                            } else {
+                                // Non-sequential (out of order)
+                                issues.nonSequentialIds.push({ expected: `T${expectedId}`, actual: `T${idNum}` });
+                                this.log(`✗ Non-sequential: expected T${expectedId}, got T${idNum}`, 'warning');
+                            }
+                        }
+                        expectedId = idNum + 1;
+                    }
+
+                    // Check if max ID is higher than expected
+                    if (actualMax > expectedMax) {
+                        issues.structuralIssues.push({
+                            type: 'ID range mismatch',
+                            detail: `Max ID is T${actualMax} but dictionary has ${this.dictionary.size} tokens (expected max T${expectedMax})`
+                        });
+                        this.log(`✗ ID range mismatch: max T${actualMax}, expected T${expectedMax}`, 'warning');
+                    }
+                }
+
+                // Phase 3: Check data integrity
+                this.updateLoadingDetail('Phase 3/3: Checking data integrity...');
+                this.log('Phase 3: Checking data integrity', 'info');
+
+                // Check if dictionary size matches unique entries
+                const uniqueKeys = new Set(this.dictionary.keys()).size;
+                const uniqueValues = new Set(this.dictionary.values()).size;
+
+                if (uniqueKeys !== this.dictionary.size) {
+                    issues.structuralIssues.push({
+                        type: 'Key duplication',
+                        detail: `Dictionary size: ${this.dictionary.size}, Unique keys: ${uniqueKeys}`
+                    });
+                    this.log(`✗ Key duplication detected`, 'error');
+                }
+
+                if (uniqueValues !== this.dictionary.size) {
+                    issues.structuralIssues.push({
+                        type: 'Value duplication',
+                        detail: `Dictionary size: ${this.dictionary.size}, Unique values: ${uniqueValues}`
+                    });
+                    this.log(`✗ Value duplication detected`, 'error');
+                }
+
+                this.hideLoading();
+
+                // Calculate totals
+                const totalIssues = 
+                    issues.duplicateIds.length +
+                    issues.invalidIds.length +
+                    issues.invalidKeys.length +
+                    issues.emptyKeys.length +
+                    issues.duplicateKeys.length +
+                    issues.nonSequentialIds.length +
+                    issues.gaps.length +
+                    issues.structuralIssues.length;
+
+                this.log(`=== RESCAN COMPLETE: ${totalIssues} issues found ===`, totalIssues > 0 ? 'warning' : 'success');
+
+                // Show results
+                this.showRescanResults(issues, totalIssues);
+            },
+
+            showRescanResults(issues, totalIssues) {
+                const summaryContainer = document.getElementById('rescanSummary');
+                const resultsContainer = document.getElementById('rescanResults');
+
+                // Summary
+                let summaryHtml = '';
+                if (totalIssues === 0) {
+                    summaryHtml = `
+                        <div style="background: var(--success-dim); border: 1px solid var(--success); border-radius: 12px; padding: 16px;">
+                            <div style="font-size: 16px; font-weight: 700; color: var(--success); margin-bottom: 8px;">
+                                ✓ Dictionary is healthy
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">
+                                No structural or data problems detected
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    summaryHtml = `
+                        <div style="background: var(--warning-dim); border: 1px solid var(--warning); border-radius: 12px; padding: 16px;">
+                            <div style="font-size: 16px; font-weight: 700; color: var(--warning); margin-bottom: 8px;">
+                                ⚠️ Found ${totalIssues} issue${totalIssues > 1 ? 's' : ''}
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">
+                                Review the details below
+                            </div>
+                        </div>
+                    `;
+                }
+                summaryContainer.innerHTML = summaryHtml;
+
+                // Detailed results
+                let resultsHtml = '';
+
+                if (totalIssues === 0) {
+                    resultsHtml = `
+                        <div style="background: var(--bg-tertiary); border-radius: 12px; padding: 20px; text-align: center;">
+                            <div style="font-size: 13px; color: var(--text-secondary);">
+                                All checks passed:<br>
+                                ✓ No duplicate IDs<br>
+                                ✓ No invalid IDs<br>
+                                ✓ No invalid keys<br>
+                                ✓ Sequential IDs<br>
+                                ✓ No gaps<br>
+                                ✓ Data integrity intact
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultsHtml = '<div style="background: var(--bg-tertiary); border-radius: 12px; padding: 16px;">';
+
+                    // Duplicate IDs
+                    if (issues.duplicateIds.length > 0) {
+                        resultsHtml += `
+                            <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+                                <div style="font-size: 14px; font-weight: 600; color: var(--danger); margin-bottom: 8px;">
+                                    Duplicate IDs (${issues.duplicateIds.length})
+                                </div>
+                                ${issues.duplicateIds.slice(0, 10).map(issue => `
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-family: 'JetBrains Mono', monospace;">
+                                        ${issue.id}: "${this.escapeHtml(issue.keys[0])}" & "${this.escapeHtml(issue.keys[1])}"
+                                    </div>
+                                `).join('')}
+                                ${issues.duplicateIds.length > 10 ? `<div style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">... and ${issues.duplicateIds.length - 10} more</div>` : ''}
+                            </div>
+                        `;
+                    }
+
+                    // Invalid IDs
+                    if (issues.invalidIds.length > 0) {
+                        resultsHtml += `
+                            <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+                                <div style="font-size: 14px; font-weight: 600; color: var(--danger); margin-bottom: 8px;">
+                                    Invalid IDs (${issues.invalidIds.length})
+                                </div>
+                                ${issues.invalidIds.slice(0, 10).map(issue => `
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-family: 'JetBrains Mono', monospace;">
+                                        "${this.escapeHtml(issue.key)}": "${issue.id}"
+                                    </div>
+                                `).join('')}
+                                ${issues.invalidIds.length > 10 ? `<div style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">... and ${issues.invalidIds.length - 10} more</div>` : ''}
+                            </div>
+                        `;
+                    }
+
+                    // Invalid Keys
+                    if (issues.invalidKeys.length > 0) {
+                        resultsHtml += `
+                            <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+                                <div style="font-size: 14px; font-weight: 600; color: var(--danger); margin-bottom: 8px;">
+                                    Invalid Keys (${issues.invalidKeys.length})
+                                </div>
+                                ${issues.invalidKeys.slice(0, 10).map(issue => `
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-family: 'JetBrains Mono', monospace;">
+                                        Type: ${issue.type}, Key: "${this.escapeHtml(issue.key)}", ID: ${issue.id}
+                                    </div>
+                                `).join('')}
+                                ${issues.invalidKeys.length > 10 ? `<div style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">... and ${issues.invalidKeys.length - 10} more</div>` : ''}
+                            </div>
+                        `;
+                    }
+
+                    // Empty Keys
+                    if (issues.emptyKeys.length > 0) {
+                        resultsHtml += `
+                            <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+                                <div style="font-size: 14px; font-weight: 600; color: var(--danger); margin-bottom: 8px;">
+                                    Empty Keys (${issues.emptyKeys.length})
+                                </div>
+                                ${issues.emptyKeys.slice(0, 10).map(issue => `
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-family: 'JetBrains Mono', monospace;">
+                                        ID: ${issue.id}
+                                    </div>
+                                `).join('')}
+                                ${issues.emptyKeys.length > 10 ? `<div style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">... and ${issues.emptyKeys.length - 10} more</div>` : ''}
+                            </div>
+                        `;
+                    }
+
+                    // Gaps
+                    if (issues.gaps.length > 0) {
+                        resultsHtml += `
+                            <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+                                <div style="font-size: 14px; font-weight: 600; color: var(--warning); margin-bottom: 8px;">
+                                    ID Gaps (${issues.gaps.length})
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">
+                                    Missing IDs: ${issues.gaps.slice(0, 20).map(g => g.id).join(', ')}
+                                    ${issues.gaps.length > 20 ? ` ... and ${issues.gaps.length - 20} more` : ''}
+                                </div>
+                                <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 8px;">
+                                    💡 Run "Sync Tokens" to fix gaps
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // Structural Issues
+                    if (issues.structuralIssues.length > 0) {
+                        resultsHtml += `
+                            <div style="margin-bottom: 16px;">
+                                <div style="font-size: 14px; font-weight: 600; color: var(--warning); margin-bottom: 8px;">
+                                    Structural Issues (${issues.structuralIssues.length})
+                                </div>
+                                ${issues.structuralIssues.map(issue => `
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+                                        <div style="font-weight: 600;">${issue.type}</div>
+                                        <div style="margin-top: 2px;">${issue.detail}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+
+                    resultsHtml += '</div>';
+                }
+
+                resultsContainer.innerHTML = resultsHtml;
+                this.openModal('rescanModal');
+            },
+
+            refreshClean() {
+                if (this.dictionary.size === 0) {
+                    this.showAlert('Nothing to clean', 'info');
+                    return;
+                }
+
+                if (!confirm('Refresh and clean? This will clear the current dictionary. Continue?')) {
+                    return;
+                }
+
+                this.dictionary.clear();
+                this.originalDictionary.clear();
+                this.added.clear();
+                this.removed.clear();
+                this.filename = null;
+                this.redundantCount = 0;
+                this.redundantTokens = [];
+                this.optimizeSuggestions = [];
+
+                this.updateUI();
+                this.showAlert('Dictionary cleared and refreshed', 'success');
+                this.log('Dictionary refreshed and cleaned', 'info');
+                this.addToChangelog('Refreshed', 'Dictionary cleared and reset');
+            },
+
+            saveToLocalStorage() {
+                try {
+                    const data = {
+                        version: this.version,
+                        dictionary: Array.from(this.dictionary.entries()),
+                        originalDictionary: Array.from(this.originalDictionary.entries()),
+                        filename: this.filename,
+                        added: Array.from(this.added),
+                        removed: Array.from(this.removed),
+                        redundantCount: this.redundantCount,
+                        seqCleanedCount: this.seqCleanedCount,
+                        changelog: this.changelog,
+                        timestamp: Date.now()
+                    };
+
+                    localStorage.setItem('tdp_data', JSON.stringify(data));
+                    this.showAlert('Saved to browser storage', 'success');
+                    this.log('Data saved to localStorage', 'success');
+                } catch (error) {
+                    this.showAlert('Save failed: ' + error.message, 'error');
+                    this.log('Save failed: ' + error.message, 'error');
+                }
+            },
+
+            loadFromLocalStorage() {
+                try {
+                    // Load settings
+                    const settingsData = localStorage.getItem('tdp_settings');
+                    if (settingsData) {
+                        this.settings = JSON.parse(settingsData);
+                        
+                        // Apply settings to UI
+                        document.getElementById('debugToggle').checked = this.settings.debug;
+                        document.getElementById('autoOptimizeToggle').checked = this.settings.autoOptimize;
+                        document.getElementById('minTokenLength').value = this.settings.minTokenLength;
+                        document.getElementById('minFrequency').value = this.settings.minFrequency;
+                        
+                        this.setTheme(this.settings.theme);
+                        
+                        if (this.settings.debug) {
+                            document.getElementById('debugConsole').classList.remove('hidden');
+                        }
+                    }
+
+                    // Load data
+                    const data = localStorage.getItem('tdp_data');
+                    if (data) {
+                        const parsed = JSON.parse(data);
+                        
+                        this.version = parsed.version || 1;
+                        this.dictionary = new Map(parsed.dictionary || []);
+                        this.originalDictionary = new Map(parsed.originalDictionary || []);
+                        this.filename = parsed.filename;
+                        this.added = new Set(parsed.added || []);
+                        this.removed = new Set(parsed.removed || []);
+                        this.redundantCount = parsed.redundantCount || 0;
+                        this.seqCleanedCount = parsed.seqCleanedCount || 0;
+                        this.changelog = parsed.changelog || [];
+
+                        this.log('Data loaded from localStorage', 'success');
+                        this.updateChangelogUI();
+                    }
+                } catch (error) {
+                    this.log('Load failed: ' + error.message, 'error');
+                }
+            },
+
+            clearLocalStorage() {
+                if (!confirm('Clear all saved data? This cannot be undone.')) {
+                    return;
+                }
+
+                localStorage.removeItem('tdp_data');
+                localStorage.removeItem('tdp_settings');
+                
+                this.showAlert('Storage cleared', 'success');
+                this.log('localStorage cleared', 'warning');
+                
+                setTimeout(() => location.reload(), 1000);
+            },
+
+            isTextReadable(content) {
+                if (!content || content.length === 0) return false;
+                const sample = content.substring(0, 1000);
+                const printable = sample.match(/[\x20-\x7E\n\r\t]/g);
+                const printableRatio = printable ? printable.length / sample.length : 0;
+                return printableRatio > 0.8;
+            },
+
+            readFileAsText(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsText(file, 'UTF-8');
+                });
+            },
+
+            openModal(id) {
+                document.getElementById(id).classList.add('active');
+                
+                if (id === 'mergeModal') {
+                    this.mergeDictionaries();
+                } else if (id === 'exportModal') {
+                    // Already set up in exportDictionary()
+                }
+            },
+
+            closeModal(id) {
+                document.getElementById(id).classList.remove('active');
+            },
+
+            showLoading(text) {
+                document.getElementById('loadingDetail').textContent = text;
+                document.getElementById('loading').classList.add('active');
+            },
+
+            updateLoadingDetail(text) {
+                document.getElementById('loadingDetail').textContent = text;
+            },
+
+            hideLoading() {
+                document.getElementById('loading').classList.remove('active');
+            },
+
+            showAlert(message, type = 'success') {
+                const container = document.getElementById('alertContainer');
+                
+                const icons = {
+                    success: '✓',
+                    error: '✗',
+                    warning: '⚠',
+                    info: 'ℹ'
+                };
+
+                const alert = document.createElement('div');
+                alert.className = `alert ${type}`;
+                alert.innerHTML = `
+                    <div class="alert-icon">${icons[type] || 'ℹ'}</div>
+                    <div class="alert-text">${this.escapeHtml(message)}</div>
+                    <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+                `;
+
+                container.appendChild(alert);
+
+                setTimeout(() => {
+                    if (alert.parentElement) {
+                        alert.style.opacity = '0';
+                        alert.style.transform = 'translateY(-20px)';
+                        setTimeout(() => alert.remove(), 300);
+                    }
+                }, 5000);
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            unescapeHtml(text) {
+                const div = document.createElement('div');
+                div.innerHTML = text;
+                return div.textContent;
+            },
+
+            formatSize(bytes) {
+                if (bytes === 0) return '0B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return (bytes / Math.pow(k, i)).toFixed(1) + sizes[i];
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+            
+            // Add export button to header actions
+            const headerActions = document.querySelector('.header-actions');
+            const exportBtn = document.createElement('button');
+            exportBtn.className = 'icon-btn';
+            exportBtn.title = 'Export';
+            exportBtn.innerHTML = '💾';
+            exportBtn.onclick = () => app.exportDictionary();
+            headerActions.insertBefore(exportBtn, headerActions.lastChild);
+        });
+
+        // Close modals on outside click
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('active');
+            }
+        });
+
+        // Close modals on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal.active').forEach(modal => {
+                    modal.classList.remove('active');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

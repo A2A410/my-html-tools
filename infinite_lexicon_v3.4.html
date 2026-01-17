@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Infinite Lexicon</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #6200EA;
+            --primary-light: #7C4DFF;
+            --primary-dark: #4527A0;
+            --accent: #00BFA5;
+            --bg: #121212;
+            --surface: #1E1E1E;
+            --surface-light: #2C2C2C;
+            --text: #E0E0E0;
+            --text-secondary: #B0B0B0;
+            --error: #CF6679;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            padding-bottom: 70px;
+        }
+
+        .search-container {
+            padding: 20px 16px;
+            max-width: 600px;
+            margin: 0 auto;
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            z-index: 100;
+        }
+
+        .search-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .spacer {
+            flex: 1;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: background 0.2s;
+            font-size: 18px;
+        }
+
+        .icon-btn:active {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .search-box {
+            background: var(--surface);
+            border-radius: 24px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border-radius: 0 0 16px 16px;
+            margin-top: -8px;
+            padding: 12px 16px 16px 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 99;
+        }
+
+        .search-suggestions.active {
+            display: block;
+        }
+
+        .suggestion-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .suggestion-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .suggestion-chip {
+            background: var(--surface-light);
+            border: 1px solid var(--primary);
+            color: var(--primary-light);
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .suggestion-chip:active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .suggestion-chip .next-letter {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .search-icon {
+            font-size: 20px;
+            color: var(--text-secondary);
+        }
+
+        input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        input:focus {
+            outline: none;
+        }
+
+        .container {
+            padding: 0 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .variant-grid {
+            display: grid;
+            gap: 8px;
+        }
+
+        .variant-card {
+            background: var(--surface);
+            padding: 16px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .variant-card:active {
+            background: var(--surface-light);
+            border-left-color: var(--primary);
+        }
+
+        .variant-word {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+
+        .variant-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .load-more-btn {
+            background: var(--surface);
+            color: var(--text);
+            border: none;
+            border-radius: 8px;
+            padding: 14px;
+            width: 100%;
+            cursor: pointer;
+            margin-top: 8px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .load-more-btn:active {
+            background: var(--surface-light);
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            transition: color 0.2s;
+        }
+
+        .nav-item.active {
+            color: var(--primary-light);
+        }
+
+        .nav-icon {
+            font-size: 24px;
+        }
+
+        .nav-label {
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--surface-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .dict-word {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary-light);
+            margin-bottom: 8px;
+        }
+
+        .dict-pronunciation {
+            font-size: 16px;
+            color: var(--accent);
+            font-style: italic;
+            margin-bottom: 16px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--primary-dark);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .dict-section {
+            margin-bottom: 16px;
+        }
+
+        .dict-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .dict-text {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .star-btn {
+            background: transparent;
+            border: 2px solid var(--accent);
+            color: var(--accent);
+            border-radius: 8px;
+            padding: 12px;
+            width: 100%;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .star-btn.starred {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        .starred-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: var(--surface);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .starred-word {
+            font-weight: 600;
+            color: var(--primary-light);
+            cursor: pointer;
+        }
+
+        .delete-btn {
+            background: transparent;
+            border: none;
+            color: var(--error);
+            padding: 8px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .debug-panel {
+            background: #000;
+            color: #0F0;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            padding: 12px;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            line-height: 1.4;
+        }
+
+        .changelog {
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .version {
+            font-weight: 600;
+            color: var(--accent);
+            margin-top: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 16px;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .btn:active {
+            background: var(--primary-dark);
+        }
+
+        .btn-error {
+            background: var(--error);
+        }
+
+        .adv-search-panel {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 2px solid var(--accent);
+        }
+
+        .adv-search-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .adv-search-hint {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            line-height: 1.4;
+        }
+
+        .injection-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .inject-btn {
+            background: var(--surface-light);
+            border: 1px solid var(--primary);
+            color: var(--primary-light);
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .inject-btn:active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .isolation-notice {
+            background: var(--surface-light);
+            border-left: 3px solid var(--accent);
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 16px;
+        }
+
+        .isolation-notice strong {
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <!-- Search Container -->
+    <div class="search-container">
+        <div class="search-header">
+            <div class="logo">∞</div>
+            <div class="spacer"></div>
+            <button class="icon-btn" onclick="showChangelog()" title="Changelog">📝</button>
+            <button class="icon-btn" onclick="showSettings()" title="Settings">⚙️</button>
+        </div>
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="seedInput" placeholder="Search for words..." />
+            <div class="search-suggestions" id="searchSuggestions">
+                <div class="suggestion-label">Predicted next letters</div>
+                <div class="suggestion-chips" id="suggestionChips"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Results Tab -->
+        <div class="tab-content active" id="resultsTab">
+            <div id="variantList"></div>
+        </div>
+
+        <!-- Starred Tab -->
+        <div class="tab-content" id="starredTab">
+            <div id="starredWords"></div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <button class="nav-item active" onclick="switchTab('results')">
+            <div class="nav-icon">🔍</div>
+            <div class="nav-label">Results</div>
+        </button>
+        <button class="nav-item" onclick="switchTab('starred')">
+            <div class="nav-icon">⭐</div>
+            <div class="nav-label">Starred</div>
+        </button>
+    </div>
+
+    <!-- Dictionary Modal -->
+    <div class="modal" id="dictModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="dict-word" id="dictWord"></div>
+                <button class="icon-btn" onclick="closeDictModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="dict-pronunciation" id="dictPronunciation"></div>
+                <div class="badge" id="dictPOS"></div>
+                
+                <div class="dict-section">
+                    <div class="dict-label">Test Sentences · Blend Evaluation</div>
+                    <div id="dictSentences"></div>
+                </div>
+                
+                <div class="dict-section">
+                    <div class="dict-label">Meaning</div>
+                    <div class="dict-text" id="dictMeaning"></div>
+                </div>
+                
+                <div class="dict-section">
+                    <div class="dict-label">Stress Pattern</div>
+                    <div class="dict-text" id="dictStress" style="font-family: monospace;"></div>
+                </div>
+                
+                <div class="dict-section" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <div class="dict-label">Origin</div>
+                        <div class="dict-text" id="dictOrigin" style="font-size: 12px;"></div>
+                    </div>
+                    <div>
+                        <div class="dict-label">Register</div>
+                        <div class="dict-text" id="dictRegister" style="font-style: italic;"></div>
+                    </div>
+                </div>
+                
+                <div class="dict-section">
+                    <div class="dict-label">Related Forms</div>
+                    <div class="dict-text" id="dictRelated" style="font-size: 13px; color: var(--primary-light);"></div>
+                </div>
+                
+                <button class="star-btn" id="starBtn" onclick="toggleStar()">⭐ Star This Word</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div style="font-weight: 600;">Settings</div>
+                <button class="icon-btn" onclick="closeSettings()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="debugToggle" onchange="toggleDebug()">
+                        <span>Debug View</span>
+                    </label>
+                </div>
+                <div class="debug-panel" id="debugPanel" style="display: none;"></div>
+                <button class="btn btn-error" onclick="clearStorage()" style="margin-top: 16px;">Clear All Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Changelog Modal -->
+    <div class="modal" id="changelogModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div style="font-weight: 600;">Changelog</div>
+                <button class="icon-btn" onclick="closeChangelog()">✕</button>
+            </div>
+            <div class="modal-body changelog">
+                <div class="version">v3.4 - Enhanced Blend Testing</div>
+                <div>• 16 diverse test sentence templates</div>
+                <div>• Shows 3 random sentences per word (different contexts)</div>
+                <div>• Sentences categorized by theme:</div>
+                <div>&nbsp;&nbsp;- Poetic/abstract (soft flow test)</div>
+                <div>&nbsp;&nbsp;- Academic/technical (formal register test)</div>
+                <div>&nbsp;&nbsp;- Action/dynamic (hard consonant test)</div>
+                <div>&nbsp;&nbsp;- Emotional/intimate (vowel smoothness test)</div>
+                <div>&nbsp;&nbsp;- Narrative/story (natural embedding test)</div>
+                <div>&nbsp;&nbsp;- Philosophical (abstract fit test)</div>
+                <div>• Renamed "Example Sentences" → "Test Sentences · Blend Evaluation"</div>
+                
+                <div class="version">v3.3 - Smart Search Predictions</div>
+                <div>• Live phonetic predictions as you type</div>
+                <div>• Click chips to append letters</div>
+                
+                <div class="version">v3.2 - Intelligent Heatmap</div>
+                <div>• Phonetic tendency analysis</div>
+                <div>• Smart injection suggestions</div>
+                
+                <div class="version">v3.0 - Word Hunting Refinement</div>
+                <div>• Stability scoring & semantic gravity</div>
+                
+                <div class="version">v1.0 - Initial Release</div>
+                <div>• Procedural word generation</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        let currentSeed = '';
+        let allVariants = [];
+        let displayedCount = 0;
+        let currentWord = null;
+
+        // Debug logging
+        const DEBUG_LOG = [];
+        function log(msg) {
+            const timestamp = new Date().toLocaleTimeString();
+            DEBUG_LOG.push(`[${timestamp}] ${msg}`);
+            if (DEBUG_LOG.length > 100) DEBUG_LOG.shift();
+            updateDebugPanel();
+        }
+
+        function updateDebugPanel() {
+            const panel = document.getElementById('debugPanel');
+            if (panel.style.display !== 'none') {
+                panel.innerHTML = DEBUG_LOG.join('<br>');
+                panel.scrollTop = panel.scrollHeight;
+            }
+        }
+
+        // Storage
+        function saveToStorage(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+            log(`Saved ${key} to storage`);
+        }
+
+        function loadFromStorage(key) {
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : null;
+        }
+
+        // Phonetics & Generation
+        const VOWELS = ['a', 'e', 'i', 'o', 'u', 'ae', 'ai', 'ea', 'ei', 'ou'];
+        const CONSONANTS = ['b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'r', 's', 't', 'v', 'w', 'x', 'z', 'ch', 'sh', 'th', 'ph'];
+        const POS_OPTIONS = ['noun', 'verb', 'adjective', 'adverb'];
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return Math.abs(hash);
+        }
+
+        class SeededRandom {
+            constructor(seed) {
+                this.seed = seed % 2147483647;
+                if (this.seed <= 0) this.seed += 2147483646;
+            }
+            next() {
+                this.seed = (this.seed * 16807) % 2147483647;
+                return (this.seed - 1) / 2147483646;
+            }
+            choice(arr) {
+                return arr[Math.floor(this.next() * arr.length)];
+            }
+        }
+
+        function splitSyllables(word) {
+            const parts = [];
+            let current = '';
+            for (let i = 0; i < word.length; i++) {
+                current += word[i];
+                if (VOWELS.some(v => current.includes(v)) && current.length >= 2) {
+                    parts.push(current);
+                    current = '';
+                }
+            }
+            if (current) parts.push(current);
+            return parts.length > 0 ? parts : [word];
+        }
+
+        function isPronounceable(word) {
+            let consonantRun = 0;
+            let hasVowel = false;
+            for (let i = 0; i < word.length; i++) {
+                if (VOWELS.some(v => v === word[i] || v.includes(word[i]))) {
+                    consonantRun = 0;
+                    hasVowel = true;
+                } else {
+                    consonantRun++;
+                    if (consonantRun > 3) return false;
+                }
+            }
+            return hasVowel && word.length >= 3 && word.length <= 12;
+        }
+
+        // Word stability scoring - ranks quality of generated words
+        function scoreWordStability(word) {
+            let score = 0;
+            
+            // 1. Vowel-consonant balance (target ~40% vowels)
+            const vowelCount = word.split('').filter(c => 'aeiou'.includes(c)).length;
+            const vowelRatio = vowelCount / word.length;
+            const balanceScore = 1 - Math.abs(vowelRatio - 0.4);
+            score += balanceScore * 30;
+            
+            // 2. Repeated letter smoothness (intentional doubles like 'ii', 'oo')
+            const doubles = (word.match(/([aeiou])\1/g) || []).length;
+            score += doubles * 10;
+            
+            // 3. Syllable rhythm (prefer 2-3 syllables)
+            const syllables = splitSyllables(word);
+            if (syllables.length >= 2 && syllables.length <= 3) score += 20;
+            
+            // 4. Length preference (5-8 chars ideal)
+            if (word.length >= 5 && word.length <= 8) score += 15;
+            
+            // 5. No harsh consonant clusters at start/end
+            if (!/^[bcdfghjklmnpqrstvwxz]{2,}/.test(word)) score += 10;
+            if (!/[bcdfghjklmnpqrstvwxz]{2,}$/.test(word)) score += 10;
+            
+            // 6. Penalty for too many of same letter
+            const letterCounts = {};
+            for (let c of word) {
+                letterCounts[c] = (letterCounts[c] || 0) + 1;
+            }
+            const maxRepeat = Math.max(...Object.values(letterCounts));
+            if (maxRepeat > 3) score -= 20;
+            
+            return Math.max(0, score);
+        }
+
+        function mutateWord(word, rng) {
+            let syllables = splitSyllables(word);
+            
+            // Simple mutation: pick one random transformation
+            const mutationType = Math.floor(rng.next() * 4);
+            
+            switch(mutationType) {
+                case 0: // Vowel swap
+                    if (syllables.length > 0) {
+                        const idx = Math.floor(rng.next() * syllables.length);
+                        syllables[idx] = syllables[idx].replace(/[aeiou]/g, () => rng.choice(VOWELS));
+                    }
+                    break;
+                case 1: // Consonant shift
+                    if (syllables.length > 0) {
+                        const idx = Math.floor(rng.next() * syllables.length);
+                        syllables[idx] = syllables[idx].replace(/[bcdfghjklmnpqrstvwxz]/g, () => rng.choice(CONSONANTS));
+                    }
+                    break;
+                case 2: // Insert vowel
+                    if (syllables.length > 0) {
+                        const idx = Math.floor(rng.next() * syllables.length);
+                        syllables[idx] += rng.choice(VOWELS);
+                    }
+                    break;
+                case 3: // Shuffle syllables
+                    if (syllables.length > 1) {
+                        const i = Math.floor(rng.next() * syllables.length);
+                        const j = Math.floor(rng.next() * syllables.length);
+                        [syllables[i], syllables[j]] = [syllables[j], syllables[i]];
+                    }
+                    break;
+            }
+            
+            return syllables.join('');
+        }
+
+        // Phoneme equivalence classes for substitution
+        const PHONEME_EQUIVALENTS = {
+            'q': ['k', 'g'],
+            'x': ['z', 's', 'ks'],
+            'z': ['s', 'zh'],
+            'c': ['k', 's'],
+            'ph': ['f'],
+            'th': ['t', 'd']
+        };
+
+        // Advanced mutation with phoneme substitution
+        function mutateWithSubstitution(word, rng) {
+            let result = word;
+            
+            // Try phoneme substitution on tricky letters
+            for (let [letter, equivalents] of Object.entries(PHONEME_EQUIVALENTS)) {
+                if (word.includes(letter)) {
+                    const substitute = rng.choice(equivalents);
+                    result = word.replace(letter, substitute);
+                    break;
+                }
+            }
+            
+            // If no substitution happened, do regular mutation
+            if (result === word) {
+                result = mutateWord(word, rng);
+            }
+            
+            return result;
+        }
+
+        // Analyze phonetic tendencies - what letters follow naturally
+        function analyzePhoneticTendencies(word) {
+            const tendencies = {};
+            
+            // Common phonetic patterns
+            const patterns = {
+                // After consonants, vowels are likely
+                'b': ['a', 'e', 'i', 'o', 'u', 'r', 'l'],
+                'd': ['a', 'e', 'i', 'o', 'u', 'r'],
+                'f': ['a', 'e', 'i', 'o', 'u', 'r', 'l'],
+                'g': ['a', 'e', 'i', 'o', 'u', 'r', 'l'],
+                'h': ['a', 'e', 'i', 'o', 'u'],
+                'j': ['a', 'e', 'i', 'o', 'u'],
+                'k': ['a', 'e', 'i', 'o', 'u', 'r', 'l'],
+                'l': ['a', 'e', 'i', 'o', 'u', 'd', 't'],
+                'm': ['a', 'e', 'i', 'o', 'u'],
+                'n': ['a', 'e', 'i', 'o', 'u', 'd', 't'],
+                'p': ['a', 'e', 'i', 'o', 'u', 'r', 'l', 'h'],
+                'r': ['a', 'e', 'i', 'o', 'u'],
+                's': ['a', 'e', 'i', 'o', 'u', 't', 'h', 'p'],
+                't': ['a', 'e', 'i', 'o', 'u', 'h', 'r'],
+                'v': ['a', 'e', 'i', 'o', 'u'],
+                'w': ['a', 'e', 'i', 'o', 'u'],
+                'z': ['a', 'e', 'i', 'o', 'u', 'h'],
+                // Tricky letters
+                'q': ['u', 'a', 'e'],
+                'x': ['a', 'e', 'i', 'o', 'u'],
+                // After vowels, consonants are likely
+                'a': ['n', 'r', 't', 'l', 's', 'm'],
+                'e': ['n', 'r', 't', 'l', 's', 'd'],
+                'i': ['n', 't', 's', 'c', 'l'],
+                'o': ['n', 'r', 't', 'l', 's', 'w'],
+                'u': ['n', 'r', 't', 'l', 's', 'm']
+            };
+            
+            // Build tendency map for each position
+            for (let i = 0; i < word.length; i++) {
+                const char = word[i];
+                const nextOptions = patterns[char] || ['a', 'e', 'i'];
+                tendencies[i] = {
+                    after: char,
+                    suggestions: nextOptions,
+                    score: nextOptions.length // More options = better for variants
+                };
+            }
+            
+            return tendencies;
+        }
+
+        // Find best injection points with scores
+        function findBestInjectionPoints(word) {
+            const tendencies = analyzePhoneticTendencies(word);
+            const trickyLetters = ['q', 'x', 'z'];
+            const points = [];
+            
+            for (let i = 0; i < word.length; i++) {
+                const char = word[i];
+                const tendency = tendencies[i];
+                
+                // High priority: after tricky letters
+                if (trickyLetters.includes(char)) {
+                    points.push({
+                        position: i + 1,
+                        afterLetter: char,
+                        suggestions: tendency.suggestions,
+                        score: tendency.score + 10 // Bonus for tricky letters
+                    });
+                }
+                // Medium priority: consonant clusters
+                else if (i > 0 && !'aeiou'.includes(char) && !'aeiou'.includes(word[i-1])) {
+                    points.push({
+                        position: i,
+                        afterLetter: word[i-1],
+                        suggestions: tendency.suggestions,
+                        score: tendency.score + 5
+                    });
+                }
+            }
+            
+            // If no tricky spots, suggest after first consonant
+            if (points.length === 0 && word.length > 0) {
+                for (let i = 0; i < word.length; i++) {
+                    if (!'aeiou'.includes(word[i])) {
+                        const tendency = tendencies[i];
+                        points.push({
+                            position: i + 1,
+                            afterLetter: word[i],
+                            suggestions: tendency.suggestions,
+                            score: tendency.score
+                        });
+                        break;
+                    }
+                }
+            }
+            
+            // Sort by score (best injection points first)
+            points.sort((a, b) => b.score - a.score);
+            return points;
+        }
+
+        // Smart buffer injection at specific position
+        function injectAtPosition(word, position, letter) {
+            return word.slice(0, position) + letter + word.slice(position);
+        }
+
+        // Buffer injection for tricky letters
+        function injectBuffers(word, letter, position = null) {
+            if (position !== null) {
+                return injectAtPosition(word, position, letter);
+            }
+            
+            // Fallback: auto-detect best position
+            const points = findBestInjectionPoints(word);
+            if (points.length > 0) {
+                return injectAtPosition(word, points[0].position, letter);
+            }
+            
+            // Last resort: add at end
+            return word + letter;
+        }
+
+        // Advanced mutation with phoneme substitution
+        function mutateWithSubstitution(word, rng) {
+            let result = word;
+            
+            // Try phoneme substitution on tricky letters
+            for (let [letter, equivalents] of Object.entries(PHONEME_EQUIVALENTS)) {
+                if (word.includes(letter)) {
+                    const substitute = rng.choice(equivalents);
+                    result = word.replace(letter, substitute);
+                    break;
+                }
+            }
+            
+            // If no substitution happened, do regular mutation
+            if (result === word) {
+                result = mutateWord(word, rng);
+            }
+            
+            return result;
+        }
+
+        // Generate variants with fallback strategies
+        function generateVariantBatch(input, count) {
+            const hash = simpleHash(input + displayedCount);
+            const rng = new SeededRandom(hash);
+            const candidates = [];
+            const MAX_ATTEMPTS = count * 15;
+            let attempts = 0;
+            const QUALITY_THRESHOLD = 60;
+
+            while (candidates.length < count && attempts < MAX_ATTEMPTS) {
+                attempts++;
+                const variant = mutateWithSubstitution(input, rng);
+                
+                const isDuplicate = candidates.some(c => c.word === variant) || 
+                                   allVariants.some(v => v.word === variant) ||
+                                   variant === input;
+                
+                if (isPronounceable(variant) && !isDuplicate) {
+                    const score = scoreWordStability(variant);
+                    candidates.push({ word: variant, score: score });
+                    
+                    const highQuality = candidates.filter(c => c.score >= QUALITY_THRESHOLD);
+                    if (highQuality.length >= count) break;
+                }
+            }
+
+            candidates.sort((a, b) => b.score - a.score);
+            const selected = candidates.slice(0, count);
+            
+            log(`Generated ${selected.length} variants (avg score: ${(selected.reduce((sum, c) => sum + c.score, 0) / selected.length || 0).toFixed(1)}) in ${attempts} attempts`);
+            return selected;
+        }
+
+        function generateVariants() {
+            const input = document.getElementById('seedInput').value.trim().toLowerCase();
+            if (!input) {
+                log('ERROR: Empty input');
+                return;
+            }
+
+            // Reset if new seed
+            if (input !== currentSeed) {
+                log(`New seed: ${input}`);
+                currentSeed = input;
+                const seedScore = scoreWordStability(input);
+                allVariants = [{ word: input, score: seedScore }];
+                displayedCount = 0;
+                document.getElementById('variantList').innerHTML = '';
+            }
+
+            // Generate next batch
+            const newVariants = generateVariantBatch(input, 10);
+            allVariants.push(...newVariants);
+            
+            displayVariants(false);
+            
+            // Show advanced search if generation is struggling (< 5 variants)
+            if (newVariants.length < 5 && displayedCount <= 11) {
+                showAdvancedSearch();
+            }
+        }
+
+        function showAdvancedSearch() {
+            const container = document.getElementById('variantList');
+            
+            // Remove existing panel if any
+            const existing = document.getElementById('advSearchPanel');
+            if (existing) existing.remove();
+            
+            // Analyze word and get best injection points
+            const injectionPoints = findBestInjectionPoints(currentSeed);
+            
+            let suggestionHTML = '';
+            if (injectionPoints.length > 0) {
+                const bestPoint = injectionPoints[0];
+                const suggestions = bestPoint.suggestions.slice(0, 8); // Top 8 suggestions
+                
+                suggestionHTML = `
+                    <div class="adv-search-hint">
+                        Best injection point: after '<strong>${bestPoint.afterLetter}</strong>' (position ${bestPoint.position})
+                    </div>
+                    <div class="injection-grid" style="grid-template-columns: repeat(4, 1fr);">
+                        ${suggestions.map(letter => 
+                            `<button class="inject-btn" onclick="injectAndRegenerate('${letter}', ${bestPoint.position})">${bestPoint.afterLetter}+${letter}</button>`
+                        ).join('')}
+                    </div>
+                `;
+            } else {
+                // Fallback to basic vowels
+                suggestionHTML = `
+                    <div class="adv-search-hint">
+                        This word has limited neighbors. Try injecting vowels:
+                    </div>
+                    <div class="injection-grid">
+                        <button class="inject-btn" onclick="injectAndRegenerate('a', null)">+a</button>
+                        <button class="inject-btn" onclick="injectAndRegenerate('e', null)">+e</button>
+                        <button class="inject-btn" onclick="injectAndRegenerate('i', null)">+i</button>
+                        <button class="inject-btn" onclick="injectAndRegenerate('o', null)">+o</button>
+                        <button class="inject-btn" onclick="injectAndRegenerate('u', null)">+u</button>
+                    </div>
+                `;
+            }
+            
+            const panel = document.createElement('div');
+            panel.id = 'advSearchPanel';
+            panel.className = 'adv-search-panel';
+            panel.innerHTML = `
+                <div class="adv-search-header">
+                    <span>⚡</span>
+                    <span>Advanced Search · Phonetic Heatmap</span>
+                </div>
+                ${suggestionHTML}
+                <div class="isolation-notice">
+                    <strong>Lexical Note:</strong> This word exhibits limited phonetic variance—a rare characteristic indicating lexical isolation.
+                </div>
+            `;
+            
+            // Insert before load more button
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            if (loadMoreBtn) {
+                container.insertBefore(panel, loadMoreBtn);
+            } else {
+                container.appendChild(panel);
+            }
+            
+            log(`Advanced search activated with ${injectionPoints.length} injection points analyzed`);
+        }
+
+        function injectAndRegenerate(letter, position) {
+            const input = currentSeed;
+            const buffered = injectBuffers(input, letter, position);
+            
+            log(`Injecting '${letter}' at position ${position} in ${input} → ${buffered}`);
+            
+            // Update search box with buffered version
+            document.getElementById('seedInput').value = buffered;
+            
+            // Reset and regenerate
+            currentSeed = '';
+            allVariants = [];
+            displayedCount = 0;
+            document.getElementById('variantList').innerHTML = '';
+            
+            // Trigger generation with new seed
+            setTimeout(() => {
+                generateVariants();
+            }, 100);
+        }
+
+        function displayVariants(reset = false) {
+            const container = document.getElementById('variantList');
+            
+            if (reset) {
+                container.innerHTML = '';
+                displayedCount = 0;
+            }
+
+            const start = displayedCount;
+            const end = allVariants.length;
+            const toDisplay = allVariants.slice(start, end);
+
+            // Create grid if it doesn't exist
+            let grid = container.querySelector('.variant-grid');
+            if (!grid) {
+                grid = document.createElement('div');
+                grid.className = 'variant-grid';
+                container.appendChild(grid);
+            }
+
+            // Add new variants with quality indicators
+            toDisplay.forEach(item => {
+                const word = item.word;
+                const score = item.score;
+                const stars = Math.min(5, Math.floor(score / 20));
+                const qualityBar = '●'.repeat(stars) + '○'.repeat(5 - stars);
+                
+                const card = document.createElement('div');
+                card.className = 'variant-card';
+                card.onclick = () => showDictionary(word);
+                card.innerHTML = `
+                    <div class="variant-word">${word}</div>
+                    <div class="variant-meta">${qualityBar} · Tap to view</div>
+                `;
+                grid.appendChild(card);
+            });
+
+            displayedCount = allVariants.length;
+
+            // Update or create load more button
+            let loadMoreBtn = document.getElementById('loadMoreBtn');
+            if (loadMoreBtn) loadMoreBtn.remove();
+
+            loadMoreBtn = document.createElement('button');
+            loadMoreBtn.id = 'loadMoreBtn';
+            loadMoreBtn.className = 'load-more-btn';
+            loadMoreBtn.textContent = `Load More (+10)`;
+            loadMoreBtn.onclick = generateVariants;
+            container.appendChild(loadMoreBtn);
+
+            log(`Displayed ${displayedCount} variants total`);
+        }
+
+        function phoneticTransform(word) {
+            const mapping = {
+                'x': 'z',
+                'q': 'k',
+                'c': 'k',
+                'ph': 'f',
+                'th': 'θ',
+                'sh': 'ʃ',
+                'ch': 'tʃ'
+            };
+            let result = word;
+            for (let [key, val] of Object.entries(mapping)) {
+                result = result.replace(new RegExp(key, 'g'), val);
+            }
+            return `/${result}/`;
+        }
+
+        const SENTENCE_TEMPLATES = [
+            // Poetic/abstract contexts - tests soft flow
+            "The ___ shimmered in the dim light.",
+            "She spoke of ___ with quiet reverence.",
+            "Legends tell of ___ appearing in moments of change.",
+            
+            // Academic/technical contexts - tests formal register
+            "Many scholars debated the nature of the ___.",
+            "In the transitional field, the ___ was observed.",
+            "The ancient texts described ___ as a sacred phenomenon.",
+            
+            // Action/dynamic contexts - tests hard consonants
+            "They seized the ___ before dawn broke.",
+            "The ___ erupted without warning.",
+            "Warriors invoked the ___ in battle.",
+            
+            // Emotional/intimate contexts - tests vowel smoothness
+            "They whispered the ___ with trembling voices.",
+            "Her heart carried the weight of ___.",
+            "In silence, the ___ became clear.",
+            
+            // Narrative/story contexts - tests natural embedding
+            "The stranger arrived bearing news of ___.",
+            "Children sang songs about the ___.",
+            "No one could explain the sudden ___.",
+            
+            // Philosophical/contemplative - tests abstract fit
+            "To understand ___ is to glimpse the infinite."
+        ];
+
+        const MEANING_TEMPLATES = {
+            cognitive: [
+                "A term describing a transitional state between articulation and intention.",
+                "An ephemeral concept often perceived but rarely defined.",
+                "The quality of existing between recognition and naming."
+            ],
+            physical: [
+                "A phenomenon manifesting in moments of structural tension.",
+                "The tangible expression of forces in transition.",
+                "A state occurring when matter resists conventional behavior."
+            ],
+            temporal: [
+                "A duration experienced at the threshold of change.",
+                "The interval between what was and what emerges.",
+                "A moment that refuses linear progression."
+            ],
+            ambiguous: [
+                "A state of being that resists conventional categorization.",
+                "The condition of existing in perpetual becoming.",
+                "A phenomenon that dissolves upon direct observation."
+            ]
+        };
+
+        // Semantic gravity - derive meaning domain from phonetic shape
+        function getSemanticDomain(word) {
+            const vowelCount = word.split('').filter(c => 'aeiou'.includes(c)).length;
+            const consonantCount = word.length - vowelCount;
+            const doubles = (word.match(/([aeiou])\1/g) || []).length;
+            const hardConsonants = (word.match(/[kptgbdx]/g) || []).length;
+            
+            // Soft vowels → cognitive/emotional
+            if (vowelCount > consonantCount) return 'cognitive';
+            
+            // Hard consonants → physical/force
+            if (hardConsonants >= 2) return 'physical';
+            
+            // Repeated letters → ambiguity/lingering
+            if (doubles >= 1) return 'ambiguous';
+            
+            // Default to temporal
+            return 'temporal';
+        }
+
+        function getUsageRegister(domain) {
+            const registers = {
+                cognitive: 'abstract',
+                physical: 'technical',
+                temporal: 'poetic',
+                ambiguous: 'academic'
+            };
+            return registers[domain] || 'conversational';
+        }
+
+        function getStressPattern(word) {
+            const syllables = splitSyllables(word);
+            if (syllables.length === 1) return word;
+            
+            // Stress usually on first or second syllable
+            const stressIdx = syllables.length > 2 ? 1 : 0;
+            return syllables.map((s, i) => 
+                i === stressIdx ? s.toUpperCase() : s
+            ).join('-');
+        }
+
+        function generateRelatedForms(word, rng) {
+            const forms = [];
+            const suffixes = ['ic', 'ia', 'en', 'al'];
+            
+            for (let i = 0; i < 3; i++) {
+                const suffix = rng.choice(suffixes);
+                forms.push(word + suffix);
+            }
+            
+            return forms.slice(0, 3);
+        }
+
+        function showDictionary(word) {
+            currentWord = word;
+            const hash = simpleHash(word);
+            const rng = new SeededRandom(hash);
+            const domain = getSemanticDomain(word);
+            const register = getUsageRegister(domain);
+
+            document.getElementById('dictWord').textContent = word;
+            document.getElementById('dictPronunciation').textContent = phoneticTransform(word);
+            document.getElementById('dictPOS').textContent = rng.choice(POS_OPTIONS);
+            
+            // Generate 3 different test sentences from different contexts
+            const usedIndices = new Set();
+            const testSentences = [];
+            
+            while (testSentences.length < 3 && usedIndices.size < SENTENCE_TEMPLATES.length) {
+                const idx = Math.floor(rng.next() * SENTENCE_TEMPLATES.length);
+                if (!usedIndices.has(idx)) {
+                    usedIndices.add(idx);
+                    const sentence = SENTENCE_TEMPLATES[idx].replace('___', word);
+                    testSentences.push(sentence);
+                }
+            }
+            
+            document.getElementById('dictSentences').innerHTML = testSentences
+                .map((s, i) => `<div style="margin-bottom: 12px; padding: 8px; background: var(--surface-light); border-radius: 6px;">${s}</div>`)
+                .join('');
+            
+            const meaning = rng.choice(MEANING_TEMPLATES[domain]);
+            document.getElementById('dictMeaning').textContent = meaning;
+            
+            // Set additional metadata
+            document.getElementById('dictOrigin').textContent = 
+                'Emerged from iterative phonetic convergence';
+            document.getElementById('dictRegister').textContent = register;
+            document.getElementById('dictStress').textContent = getStressPattern(word);
+            
+            const relatedForms = generateRelatedForms(word, rng);
+            document.getElementById('dictRelated').textContent = relatedForms.join(', ');
+
+            updateStarButton();
+            document.getElementById('dictModal').classList.add('active');
+            log(`Opened dictionary for: ${word} (domain: ${domain})`);
+        }
+
+        function closeDictModal() {
+            document.getElementById('dictModal').classList.remove('active');
+        }
+
+        function updateStarButton() {
+            const starred = loadFromStorage('starredWords') || [];
+            const isStarred = starred.some(w => w.word === currentWord);
+            const btn = document.getElementById('starBtn');
+            
+            if (isStarred) {
+                btn.classList.add('starred');
+                btn.innerHTML = '⭐ Starred';
+            } else {
+                btn.classList.remove('starred');
+                btn.innerHTML = '☆ Star This Word';
+            }
+        }
+
+        function toggleStar() {
+            if (!currentWord) return;
+            
+            let starred = loadFromStorage('starredWords') || [];
+            const existingIndex = starred.findIndex(w => w.word === currentWord);
+
+            if (existingIndex >= 0) {
+                starred.splice(existingIndex, 1);
+                log(`Unstarred word: ${currentWord}`);
+            } else {
+                const entry = {
+                    word: currentWord,
+                    pronunciation: document.getElementById('dictPronunciation').textContent,
+                    pos: document.getElementById('dictPOS').textContent,
+                    sentences: document.getElementById('dictSentences').textContent, // Store all sentences as text
+                    meaning: document.getElementById('dictMeaning').textContent,
+                    timestamp: Date.now()
+                };
+                starred.push(entry);
+                log(`Starred word: ${currentWord}`);
+            }
+
+            saveToStorage('starredWords', starred);
+            updateStarButton();
+            updateStarredWords();
+        }
+
+        function updateStarredWords() {
+            const starred = loadFromStorage('starredWords') || [];
+            const container = document.getElementById('starredWords');
+
+            if (starred.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">⭐</div>
+                        <div>No starred words yet</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            const sortedStarred = [...starred].reverse(); // Most recent first
+            
+            sortedStarred.forEach((entry, idx) => {
+                const actualIndex = starred.length - 1 - idx;
+                const item = document.createElement('div');
+                item.className = 'starred-item';
+                item.innerHTML = `
+                    <div onclick='viewStarredWord(${actualIndex})' style="flex: 1; cursor: pointer;">
+                        <div class="starred-word">${entry.word}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">${entry.pos}</div>
+                    </div>
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteStarredWord(${actualIndex});">🗑️</button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function viewStarredWord(idx) {
+            const starred = loadFromStorage('starredWords') || [];
+            if (!starred[idx]) return;
+            
+            const entry = starred[idx];
+            showDictionary(entry.word);
+        }
+
+        function deleteStarredWord(idx) {
+            let starred = loadFromStorage('starredWords') || [];
+            const word = starred[idx].word;
+            starred.splice(idx, 1);
+            saveToStorage('starredWords', starred);
+            updateStarredWords();
+            log(`Deleted starred word: ${word}`);
+        }
+
+        function switchTab(tab) {
+            // Update nav buttons
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            if (tab === 'results') {
+                document.getElementById('resultsTab').classList.add('active');
+            } else if (tab === 'starred') {
+                document.getElementById('starredTab').classList.add('active');
+                updateStarredWords();
+            }
+
+            log(`Switched to ${tab} tab`);
+        }
+
+        function showSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function showChangelog() {
+            document.getElementById('changelogModal').classList.add('active');
+        }
+
+        function closeChangelog() {
+            document.getElementById('changelogModal').classList.remove('active');
+        }
+
+        function toggleDebug() {
+            const panel = document.getElementById('debugPanel');
+            const isChecked = document.getElementById('debugToggle').checked;
+            panel.style.display = isChecked ? 'block' : 'none';
+            if (isChecked) updateDebugPanel();
+            log(`Debug view ${isChecked ? 'enabled' : 'disabled'}`);
+        }
+
+        function clearStorage() {
+            if (confirm('Clear all starred words and data?')) {
+                localStorage.clear();
+                updateStarredWords();
+                log('Storage cleared');
+                closeSettings();
+            }
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            log('Infinite Lexicon v3.2 initialized');
+            
+            const input = document.getElementById('seedInput');
+            
+            // Enter key to generate
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    hideSuggestions();
+                    generateVariants();
+                }
+            });
+            
+            // Show predictions as user types
+            input.addEventListener('input', (e) => {
+                const value = e.target.value.trim().toLowerCase();
+                if (value.length > 0) {
+                    updateSearchSuggestions(value);
+                } else {
+                    hideSuggestions();
+                }
+            });
+            
+            // Hide suggestions when focus lost
+            input.addEventListener('blur', () => {
+                setTimeout(hideSuggestions, 200);
+            });
+            
+            // Show suggestions when focus gained with text
+            input.addEventListener('focus', () => {
+                const value = input.value.trim().toLowerCase();
+                if (value.length > 0) {
+                    updateSearchSuggestions(value);
+                }
+            });
+        });
+
+        function updateSearchSuggestions(word) {
+            if (word.length === 0) {
+                hideSuggestions();
+                return;
+            }
+            
+            // Analyze last letter of current word
+            const lastChar = word[word.length - 1];
+            const tendencies = analyzePhoneticTendencies(word);
+            const lastTendency = tendencies[word.length - 1];
+            
+            if (!lastTendency) {
+                hideSuggestions();
+                return;
+            }
+            
+            const suggestions = lastTendency.suggestions.slice(0, 8);
+            const chipsContainer = document.getElementById('suggestionChips');
+            
+            chipsContainer.innerHTML = suggestions.map(letter => `
+                <div class="suggestion-chip" onclick="appendLetterToSearch('${letter}')">
+                    ${lastChar}+<span class="next-letter">${letter}</span>
+                </div>
+            `).join('');
+            
+            document.getElementById('searchSuggestions').classList.add('active');
+            log(`Showing ${suggestions.length} predictions for '${word}'`);
+        }
+
+        function hideSuggestions() {
+            document.getElementById('searchSuggestions').classList.remove('active');
+        }
+
+        function appendLetterToSearch(letter) {
+            const input = document.getElementById('seedInput');
+            input.value += letter;
+            input.focus();
+            updateSearchSuggestions(input.value.trim().toLowerCase());
+        }
+    </script>
+</body>
+</html>

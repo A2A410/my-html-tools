@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>SelfVote</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#121212;color:#e0e0e0;overflow-x:hidden;touch-action:pan-y;padding-bottom:60px}
+.container{max-width:600px;margin:0 auto;padding:16px}
+.header{background:#1e1e1e;padding:16px;border-radius:12px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.header h1{font-size:24px;margin-bottom:4px;color:#bb86fc}
+.header p{font-size:12px;color:#888;margin-bottom:8px}
+.btn{width:100%;padding:14px;border:none;border-radius:8px;font-size:16px;font-weight:500;cursor:pointer;transition:all .2s;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary{background:#bb86fc;color:#000}
+.btn-primary:active{background:#9965d4;transform:scale(.98)}
+.btn-secondary{background:#333;color:#e0e0e0}
+.btn-secondary:active{background:#444;transform:scale(.98)}
+.btn-danger{background:#cf6679;color:#fff}
+.btn-danger:active{background:#b34a5a;transform:scale(.98)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.card{background:#1e1e1e;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.card-title{font-size:18px;font-weight:600;margin-bottom:12px;color:#fff}
+.input-group{margin-bottom:16px}
+.input-group label{display:block;font-size:14px;color:#aaa;margin-bottom:6px}
+.input-group input,.input-group textarea{width:100%;padding:12px;background:#2c2c2c;border:1px solid #444;border-radius:8px;color:#e0e0e0;font-size:14px;font-family:inherit}
+.input-group input:focus,.input-group textarea:focus{outline:none;border-color:#bb86fc}
+.input-group textarea{resize:vertical;min-height:80px}
+.option-list{margin-bottom:12px}
+.option-item{background:#2c2c2c;padding:12px;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.option-item input{flex:1;background:transparent;border:none;color:#e0e0e0;font-size:14px}
+.option-item input:focus{outline:none}
+.option-item button{background:#cf6679;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer}
+.option-item button:active{background:#b34a5a}
+.decision-card{position:relative;cursor:pointer;transition:all .2s}
+.decision-card:active{transform:scale(.98)}
+.decision-meta{display:flex;gap:12px;font-size:12px;color:#888;margin-top:8px;flex-wrap:wrap}
+.badge{background:#333;padding:4px 8px;border-radius:4px;font-size:11px}
+.badge-active{background:#1b5e20;color:#81c784}
+.badge-locked{background:#4a148c;color:#ce93d8}
+.vote-btn{background:#2c2c2c;border:2px solid #444;color:#e0e0e0;transition:all .2s}
+.vote-btn:active{background:#bb86fc;border-color:#bb86fc;color:#000}
+.vote-btn.selected{background:#bb86fc;border-color:#bb86fc;color:#000}
+.progress-bar{height:8px;background:#2c2c2c;border-radius:4px;overflow:hidden;margin:8px 0}
+.progress-fill{height:100%;background:#bb86fc;transition:width .3s}
+.result-option{margin-bottom:16px}
+.result-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.result-votes{font-size:20px;font-weight:600;color:#bb86fc}
+.opinion-list{max-height:200px;overflow-y:auto;margin-top:12px}
+.opinion-item{background:#2c2c2c;padding:10px;border-radius:6px;margin-bottom:8px;font-size:13px}
+.opinion-date{color:#888;font-size:11px;margin-bottom:4px}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:1000;padding:16px;overflow-y:auto}
+.modal.active{display:flex;align-items:flex-start;justify-content:center;padding-top:40px}
+.modal-content{background:#1e1e1e;border-radius:12px;padding:20px;max-width:500px;width:100%;box-shadow:0 4px 20px rgba(0,0,0,.5);position:relative}
+.modal-close{position:absolute;top:12px;right:12px;background:transparent;border:none;color:#888;font-size:24px;cursor:pointer;padding:4px 8px}
+.modal-close:active{color:#fff}
+.nav-bar{position:fixed;bottom:0;left:0;right:0;background:#1e1e1e;display:flex;justify-content:space-around;padding:12px 0;box-shadow:0 -2px 8px rgba(0,0,0,.3);z-index:100}
+.nav-btn{background:transparent;border:none;color:#888;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:4px 12px}
+.nav-btn.active{color:#bb86fc}
+.nav-btn:active{transform:scale(.95)}
+.view{display:none}
+.view.active{display:block}
+.empty-state{text-align:center;padding:40px 20px;color:#666}
+.empty-state svg{width:80px;height:80px;margin-bottom:16px;opacity:.5}
+.debug-log{background:#000;color:#0f0;font-family:monospace;font-size:10px;padding:12px;border-radius:8px;max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
+.changelog-item{border-left:3px solid #bb86fc;padding-left:12px;margin-bottom:16px}
+.changelog-date{font-size:12px;color:#888;margin-bottom:4px}
+.changelog-text{font-size:14px;line-height:1.5}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.stat-box{background:#2c2c2c;padding:16px;border-radius:8px;text-align:center}
+.stat-value{font-size:28px;font-weight:600;color:#bb86fc;margin-bottom:4px}
+.stat-label{font-size:12px;color:#888}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.5);z-index:2000;display:none}
+.toast.show{display:block;animation:toast-in .3s}
+@keyframes toast-in{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:#1e1e1e}
+::-webkit-scrollbar-thumb{background:#444;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#555}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<h1>🗳️ SelfVote</h1>
+<p>Private decision crystallizer · Vote across time</p>
+<div style="display:flex;gap:8px;margin-top:12px">
+<button class="btn btn-secondary" style="flex:1" onclick="app.exportData()">💾 Export</button>
+<button class="btn btn-secondary" style="flex:1" onclick="app.importData()">📂 Import</button>
+<button class="btn btn-secondary" style="flex:1" onclick="app.showSettings()">⚙️ Settings</button>
+</div>
+</div>
+<div id="homeView" class="view active">
+<button class="btn btn-primary" onclick="app.showCreateModal()">➕ Create Decision</button>
+<div id="decisionList"></div>
+</div>
+<div id="detailView" class="view"></div>
+</div>
+<div class="nav-bar">
+<button class="nav-btn active" onclick="app.switchView('home')">
+<span style="font-size:24px">🏠</span>
+<span>Home</span>
+</button>
+<button class="nav-btn" onclick="app.switchView('archive')">
+<span style="font-size:24px">📦</span>
+<span>Archive</span>
+</button>
+</div>
+<div id="createModal" class="modal">
+<div class="modal-content">
+<button class="modal-close" onclick="app.closeModal('createModal')">×</button>
+<div class="card-title">Create Decision</div>
+<div class="input-group">
+<label>Decision Title</label>
+<input type="text" id="createTitle" placeholder="What do you need to decide?">
+</div>
+<div class="input-group">
+<label>Options (min 2)</label>
+<div id="optionList" class="option-list"></div>
+<button class="btn btn-secondary" onclick="app.addOption()">➕ Add Option</button>
+</div>
+<div class="input-group">
+<label>Decision Duration (days)</label>
+<input type="number" id="createDuration" value="21" min="1">
+</div>
+<div class="input-group">
+<label>Voting Cooldown (hours)</label>
+<input type="number" id="createCooldown" value="24" min="1">
+</div>
+<div class="card" style="margin-bottom:16px">
+<label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+<div>
+<div style="font-weight:600;margin-bottom:4px">Stack Votes</div>
+<div style="font-size:12px;color:#888">If ON: Missed votes accumulate<br>If OFF: Missed votes are skipped</div>
+</div>
+<input type="checkbox" id="stackVotesToggle" style="width:auto;height:20px">
+</label>
+</div>
+<button class="btn btn-primary" onclick="app.createDecision()">Create Decision</button>
+</div>
+</div>
+<div id="settingsModal" class="modal">
+<div class="modal-content">
+<button class="modal-close" onclick="app.closeModal('settingsModal')">×</button>
+<div class="card-title">Settings</div>
+<div class="card">
+<label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+<span>Debug View</span>
+<input type="checkbox" id="debugToggle" onchange="app.toggleDebug()" style="width:auto;height:20px">
+</label>
+</div>
+<div id="debugView" style="display:none;margin-top:12px">
+<div class="card-title" style="font-size:14px">Debug Log</div>
+<div class="debug-log" id="debugLog"></div>
+<button class="btn btn-secondary" onclick="app.clearDebug()">Clear Log</button>
+</div>
+<div class="card">
+<div class="card-title" style="font-size:14px;margin-bottom:8px">Changelog</div>
+<div class="changelog-item">
+<div class="changelog-date">v2 - Stack/Skip Voting System</div>
+<div class="changelog-text">
+• Stack Votes: Accumulate missed voting opportunities<br>
+• Skip Votes: Missed votes are lost (strict timeline)<br>
+• Fixed archive view glitching<br>
+• Archive now hides "Create Decision" button<br>
+• Archive shows completion percentage<br>
+• Backward compatibility with v1 data<br>
+• Enhanced vote availability display
+</div>
+</div>
+<div class="changelog-item">
+<div class="changelog-date">v1 - Initial Release</div>
+<div class="changelog-text">
+• Core decision creation & voting system<br>
+• Daily voting with cooldown enforcement<br>
+• Result visualization with timeline<br>
+• Opinion tracking per vote<br>
+• Local storage persistence<br>
+• Export/Import functionality<br>
+• Archive system for completed decisions<br>
+• Debug logging system<br>
+• Mobile-optimized UI
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+<input type="file" id="importInput" accept=".json" style="display:none" onchange="app.handleImport(event)">
+<script>
+const app={decisions:[],currentDecision:null,debugLog:[],currentView:'home',init(){this.log('App initialized v2');this.load();this.migrateData();this.render();this.checkVotingAvailability();setInterval(()=>this.checkVotingAvailability(),6e4)},log(msg){const t=new Date().toISOString();this.debugLog.push(`[${t}] ${msg}`);const e=document.getElementById('debugLog');if(e){e.textContent=this.debugLog.slice(-100).join('\n');e.scrollTop=e.scrollHeight}},load(){try{const d=localStorage.getItem('selfvote_decisions');if(d){this.decisions=JSON.parse(d);this.log(`Loaded ${this.decisions.length} decisions`)}}catch(e){this.log('Error loading: '+e.message)}},save(){try{localStorage.setItem('selfvote_decisions',JSON.stringify(this.decisions));this.log('Data saved')}catch(e){this.log('Error saving: '+e.message)}},migrateData(){let migrated=false;this.decisions.forEach(d=>{if(d.stackVotes===undefined){d.stackVotes=false;migrated=true}if(d.version===undefined){d.version=1}});if(migrated){this.log('Migrated legacy data to v2');this.save()}},render(){const active=this.decisions.filter(d=>!d.archived&&!d.locked);const archived=this.decisions.filter(d=>d.archived||d.locked);const list=document.getElementById('decisionList');const isArchive=this.currentView==='archive';const data=isArchive?archived:active;const createBtn=document.querySelector('.btn-primary');if(createBtn){createBtn.style.display=isArchive?'none':'block'}if(data.length===0){list.innerHTML=`<div class="empty-state"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg><p>No ${isArchive?'archived':'active'} decisions yet</p><p style="font-size:12px;margin-top:8px">${isArchive?'Completed decisions appear here':'Create your first decision to start'}</p></div>`}else{list.innerHTML=data.map(d=>this.renderDecisionCard(d)).join('')}},renderDecisionCard(d){const now=Date.now();const remaining=Math.max(0,Math.ceil((d.endTime-now)/864e5));const availVotes=this.getAvailableVotes(d);const totalVotes=d.votes.length;const locked=d.locked||now>d.endTime;const stackInfo=d.stackVotes&&availVotes>1?` (+${availVotes-1})`:availVotes>0&&!locked?' ✓':'';return`<div class="card decision-card" onclick="app.showDetail('${d.id}')"><div class="card-title">${d.title}</div><div class="decision-meta"><span class="badge ${locked?'badge-locked':'badge-active'}">${locked?'🔒 Locked':'⏳ Active'}</span><span class="badge">📊 ${totalVotes} votes</span><span class="badge">⏱️ ${remaining}d left</span>${availVotes>0&&!locked?`<span class="badge" style="background:#1b5e20;color:#81c784">Votes: ${availVotes}${stackInfo}</span>`:''}</div></div>`},getAvailableVotes(d){if(d.locked||Date.now()>d.endTime)return 0;const elapsed=Date.now()-d.startTime;const possibleVotes=Math.floor(elapsed/d.cooldown)+1;const missed=possibleVotes-d.votes.length;if(d.stackVotes){return Math.max(1,missed)}else{if(d.votes.length===0)return 1;const lastVote=d.votes[d.votes.length-1];return Date.now()-lastVote.timestamp>=d.cooldown?1:0}},canVote(d){return this.getAvailableVotes(d)>0},showDetail(id){this.currentDecision=this.decisions.find(d=>d.id===id);if(!this.currentDecision)return;this.log('Viewing decision: '+id);const view=document.getElementById('detailView');const d=this.currentDecision;const now=Date.now();const locked=d.locked||now>d.endTime;const availVotes=this.getAvailableVotes(d);const remaining=Math.max(0,Math.ceil((d.endTime-now)/864e5));const maxVotes=Math.floor(d.duration*24/(d.cooldown/36e5));view.innerHTML=`<button class="btn btn-secondary" onclick="app.backToHome()">← Back</button><div class="card"><div class="card-title">${d.title}</div><div class="decision-meta"><span class="badge ${locked?'badge-locked':'badge-active'}">${locked?'🔒 Locked':'⏳ Active'}</span><span class="badge">⏱️ ${remaining}d left</span><span class="badge">📊 ${d.votes.length}/${maxVotes} votes</span>${d.stackVotes?'<span class="badge" style="background:#311b92;color:#b39ddb">📚 Stack Mode</span>':'<span class="badge" style="background:#1a237e;color:#9fa8da">⏭️ Skip Mode</span>'}</div></div>${locked?this.renderResults(d):this.renderVoting(d,availVotes)}<button class="btn btn-danger" onclick="app.deleteDecision('${d.id}')">🗑️ Delete Decision</button>`;this.switchView('detail')},renderVoting(d,availVotes){if(availVotes===0){return`<div class="card"><div class="card-title">Cast Your Vote</div><p style="color:#888;font-size:14px;text-align:center;padding:20px">Next vote available in ${this.getNextVoteTime(d)}</p></div>`}const html=`<div class="card"><div class="card-title">Cast Your Vote</div><p style="color:#888;font-size:14px;margin-bottom:16px">Choose one option and add your opinion${availVotes>1?` (${availVotes} votes available)`:''}</p>${d.options.map((o,i)=>`<button class="btn vote-btn" onclick="app.selectOption(${i})" id="opt${i}">${o}</button>`).join('')}<div class="input-group" style="margin-top:16px"><label>Your Opinion (optional)</label><textarea id="voteOpinion" placeholder="Why did you choose this today?"></textarea></div><button class="btn btn-primary" onclick="app.submitVote()" id="submitVoteBtn" disabled>Submit Vote</button></div>`;return html},getNextVoteTime(d){if(d.votes.length===0)return'now';const last=d.votes[d.votes.length-1];const next=last.timestamp+d.cooldown;const diff=next-Date.now();if(diff<=0)return'now';const h=Math.floor(diff/36e5);const m=Math.floor((diff%36e5)/6e4);return`${h}h ${m}m`},selectOption(i){this.log('Selected option: '+i);document.querySelectorAll('.vote-btn').forEach((b,idx)=>{b.classList.toggle('selected',idx===i)});document.getElementById('submitVoteBtn').disabled=false;this.selectedOption=i},submitVote(){if(this.selectedOption===undefined)return;const opinion=document.getElementById('voteOpinion').value.trim();const vote={optionIndex:this.selectedOption,opinion,timestamp:Date.now()};this.currentDecision.votes.push(vote);this.log('Vote submitted for option '+this.selectedOption);this.save();this.showToast('Vote recorded!');this.showDetail(this.currentDecision.id)},renderResults(d){const counts=d.options.map(()=>0);const opinions=d.options.map(()=>[]);d.votes.forEach(v=>{counts[v.optionIndex]++;if(v.opinion)opinions[v.optionIndex].push({text:v.opinion,date:new Date(v.timestamp).toLocaleDateString()})});const total=d.votes.length;const maxVotes=Math.max(...counts);const winner=counts.indexOf(maxVotes);const maxPossible=Math.floor(d.duration*24/(d.cooldown/36e5));const completion=total>0?Math.round(total/maxPossible*100):0;return`<div class="card"><div class="card-title">Results</div><div class="stats-grid"><div class="stat-box"><div class="stat-value">${total}</div><div class="stat-label">Total Votes</div></div><div class="stat-box"><div class="stat-value">${completion}%</div><div class="stat-label">Completion</div></div></div>${d.options.map((o,i)=>`<div class="result-option"><div class="result-header"><span style="font-weight:600">${i===winner?'🏆 ':''}${o}</span><span class="result-votes">${counts[i]}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${total>0?counts[i]/total*100:0}%"></div></div>${opinions[i].length>0?`<details style="margin-top:8px"><summary style="cursor:pointer;color:#888;font-size:12px">View ${opinions[i].length} opinions</summary><div class="opinion-list">${opinions[i].map(op=>`<div class="opinion-item"><div class="opinion-date">${op.date}</div>${op.text}</div>`).join('')}</div></details>`:''}</div>`).join('')}</div>${!d.archived?`<button class="btn btn-secondary" onclick="app.archiveDecision('${d.id}')">📦 Archive Decision</button>`:''}`},archiveDecision(id){const d=this.decisions.find(d=>d.id===id);if(d){d.archived=true;this.log('Archived decision: '+id);this.save();this.showToast('Decision archived');this.backToHome()}},deleteDecision(id){if(!confirm('Delete this decision? This cannot be undone.'))return;this.decisions=this.decisions.filter(d=>d.id!==id);this.log('Deleted decision: '+id);this.save();this.showToast('Decision deleted');this.backToHome()},showCreateModal(){document.getElementById('createModal').classList.add('active');document.getElementById('optionList').innerHTML='';document.getElementById('stackVotesToggle').checked=false;this.addOption();this.addOption()},closeModal(id){document.getElementById(id).classList.remove('active')},addOption(){const list=document.getElementById('optionList');const idx=list.children.length;const html=`<div class="option-item"><input type="text" placeholder="Option ${idx+1}" id="option${idx}"><button onclick="this.parentElement.remove()">✕</button></div>`;list.insertAdjacentHTML('beforeend',html)},createDecision(){const title=document.getElementById('createTitle').value.trim();const duration=parseInt(document.getElementById('createDuration').value);const cooldown=parseInt(document.getElementById('createCooldown').value)*36e5;const stackVotes=document.getElementById('stackVotesToggle').checked;if(!title)return this.showToast('Enter a title');const options=[];document.querySelectorAll('#optionList input').forEach(inp=>{const v=inp.value.trim();if(v)options.push(v)});if(options.length<2)return this.showToast('Add at least 2 options');const decision={id:Date.now().toString(),title,options,duration,cooldown,stackVotes,startTime:Date.now(),endTime:Date.now()+duration*864e5,votes:[],locked:false,archived:false,version:2};this.decisions.unshift(decision);this.log('Created decision: '+decision.id+' (stack:'+stackVotes+')');this.save();this.closeModal('createModal');this.render();this.showToast('Decision created!')},exportData(){const data=JSON.stringify(this.decisions,null,2);const blob=new Blob([data],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`selfvote_backup_v2_${Date.now()}.json`;a.click();URL.revokeObjectURL(url);this.log('Data exported');this.showToast('Data exported!')},importData(){document.getElementById('importInput').click()},handleImport(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{try{const data=JSON.parse(ev.target.result);if(Array.isArray(data)){this.decisions=data;this.migrateData();this.save();this.render();this.log('Data imported: '+data.length+' decisions');this.showToast('Data imported!')}else{this.showToast('Invalid file format')}}catch(err){this.log('Import error: '+err.message);this.showToast('Import failed')}};reader.readAsText(file)},showSettings(){document.getElementById('settingsModal').classList.add('active')},toggleDebug(){const checked=document.getElementById('debugToggle').checked;document.getElementById('debugView').style.display=checked?'block':'none';this.log('Debug view toggled: '+checked)},clearDebug(){this.debugLog=[];document.getElementById('debugLog').textContent='';this.log('Debug log cleared')},checkVotingAvailability(){this.decisions.forEach(d=>{if(!d.locked&&Date.now()>d.endTime){d.locked=true;this.log('Decision locked: '+d.id)}});this.save();if(this.currentView===this.getCurrentViewName()){this.render()}},switchView(view){this.currentView=view;this.log('Switched to view: '+view);document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));if(view==='home'){document.getElementById('homeView').classList.add('active');document.querySelectorAll('.nav-btn')[0].classList.add('active');this.render()}else if(view==='detail'){document.getElementById('detailView').classList.add('active')}else if(view==='archive'){this.currentView='archive';document.getElementById('homeView').classList.add('active');document.querySelectorAll('.nav-btn')[1].classList.add('active');this.render()}},getCurrentViewName(){const homeActive=document.getElementById('homeView').classList.contains('active');const detailActive=document.getElementById('detailView').classList.contains('active');if(detailActive)return'detail';if(homeActive&&this.currentView==='archive')return'archive';return'home'},backToHome(){this.currentView='home';this.switchView('home')},showToast(msg){const toast=document.getElementById('toast');toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2500)}};window.onload=()=>app.init()
+</script>
+</body>
+</html>

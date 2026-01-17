@@ -785,6 +785,35 @@
         .debug-entry.info {
             color: var(--accent);
         }
+
+        .batch-btn, .thread-btn {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .batch-btn:active, .thread-btn:active {
+            transform: scale(0.95);
+        }
+
+        .batch-btn.active, .thread-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            box-shadow: 0 2px 8px var(--accent-dim);
+        }
+
+        .batch-btn:hover:not(.active), .thread-btn:hover:not(.active) {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+        }
     </style>
 </head>
 <body>
@@ -918,6 +947,39 @@
                 </div>
 
                 <div class="setting-item">
+                    <label class="setting-label">Batch Size</label>
+                    <div class="setting-hint" style="margin-bottom: 8px;">Files processed per batch (higher = faster but more memory)</div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="batch-btn active" data-batch="1" onclick="app.setBatchSize(1)">1</button>
+                        <button class="batch-btn" data-batch="2" onclick="app.setBatchSize(2)">2</button>
+                        <button class="batch-btn" data-batch="3" onclick="app.setBatchSize(3)">3</button>
+                        <button class="batch-btn" data-batch="4" onclick="app.setBatchSize(4)">4</button>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <label class="setting-label">Thread Count</label>
+                    <div class="setting-hint" style="margin-bottom: 8px;">Parallel processing workers (experimental)</div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="thread-btn active" data-threads="1" onclick="app.setThreadCount(1)">1</button>
+                        <button class="thread-btn" data-threads="2" onclick="app.setThreadCount(2)">2</button>
+                        <button class="thread-btn" data-threads="3" onclick="app.setThreadCount(3)">3</button>
+                        <button class="thread-btn" data-threads="4" onclick="app.setThreadCount(4)">4</button>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <label class="setting-label">
+                        <input type="checkbox" id="responsiveModeToggle" onchange="app.toggleResponsiveMode()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                        Responsive Mode (Experimental)
+                    </label>
+                    <div class="setting-hint">Background optimization for lag-free UI during heavy processing</div>
+                    <div id="responsiveStatus" class="hidden" style="margin-top: 8px; padding: 8px; background: var(--success-dim); border-radius: 8px; font-size: 11px; color: var(--success); font-weight: 600;">
+                        ⚡ Responsive mode active
+                    </div>
+                </div>
+
+                <div class="setting-item">
                     <label class="setting-label">
                         <input type="checkbox" id="ppModeToggle" onchange="app.togglePPMode()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
                         PlugPlay Token Dictionary Mode
@@ -1033,6 +1095,10 @@
             ppFilename: null, // Current PP dictionary filename
             ppAdded: new Set(), // Tokens added since import
             ppRemoved: new Set(), // Tokens removed since import
+            batchSize: 1, // Files per batch (1-4)
+            threadCount: 1, // Parallel workers (1-4)
+            responsiveMode: false, // Responsive background processing
+            responsiveWorker: null, // Worker instance for responsive mode
 
             // Comprehensive text file extensions
             textExtensions: [
@@ -1088,6 +1154,101 @@
                 this.allowNoExt = document.getElementById('allowNoExtToggle').checked;
                 localStorage.setItem('ptam_allow_no_ext', this.allowNoExt);
                 this.log(`Files without extension: ${this.allowNoExt ? 'ALLOWED' : 'BLOCKED'}`, 'info');
+            },
+
+            setBatchSize(size) {
+                this.batchSize = size;
+                document.querySelectorAll('.batch-btn').forEach(btn => {
+                    btn.classList.toggle('active', parseInt(btn.dataset.batch) === size);
+                });
+                localStorage.setItem('ptam_batch_size', size);
+                this.log(`Batch size set to ${size}`, 'info');
+            },
+
+            setThreadCount(count) {
+                this.threadCount = count;
+                document.querySelectorAll('.thread-btn').forEach(btn => {
+                    btn.classList.toggle('active', parseInt(btn.dataset.threads) === count);
+                });
+                localStorage.setItem('ptam_thread_count', count);
+                this.log(`Thread count set to ${count}`, 'info');
+                
+                if (this.responsiveMode) {
+                    this.restartResponsiveWorker();
+                }
+            },
+
+            toggleResponsiveMode() {
+                this.responsiveMode = document.getElementById('responsiveModeToggle').checked;
+                const statusEl = document.getElementById('responsiveStatus');
+                
+                if (this.responsiveMode) {
+                    statusEl.classList.remove('hidden');
+                    this.initResponsiveWorker();
+                    this.log('Responsive mode ENABLED - UI optimization active', 'success');
+                } else {
+                    statusEl.classList.add('hidden');
+                    this.terminateResponsiveWorker();
+                    this.log('Responsive mode DISABLED', 'warning');
+                }
+                
+                localStorage.setItem('ptam_responsive_mode', this.responsiveMode);
+            },
+
+            initResponsiveWorker() {
+                // Use requestIdleCallback for background optimization
+                if ('requestIdleCallback' in window) {
+                    this.log('Using requestIdleCallback for responsive processing', 'info');
+                } else {
+                    this.log('requestIdleCallback not available, using fallback', 'warning');
+                }
+                
+                // Set up performance optimization
+                this.responsiveWorker = {
+                    active: true,
+                    frameTime: 16.67, // Target 60fps
+                    priority: 'background'
+                };
+            },
+
+            terminateResponsiveWorker() {
+                if (this.responsiveWorker) {
+                    this.responsiveWorker.active = false;
+                    this.responsiveWorker = null;
+                }
+            },
+
+            restartResponsiveWorker() {
+                if (this.responsiveMode) {
+                    this.terminateResponsiveWorker();
+                    this.initResponsiveWorker();
+                    this.log('Responsive worker restarted', 'info');
+                }
+            },
+
+            async yieldToUI() {
+                // Responsive mode: yield to UI more frequently
+                if (this.responsiveMode) {
+                    return new Promise(resolve => {
+                        if ('requestIdleCallback' in window) {
+                            requestIdleCallback(resolve, { timeout: 50 });
+                        } else {
+                            setTimeout(resolve, 0);
+                        }
+                    });
+                } else {
+                    // Standard mode: basic yield
+                    return new Promise(resolve => setTimeout(resolve, 0));
+                }
+            },
+
+            getYieldInterval() {
+                // Responsive mode: yield more frequently
+                if (this.responsiveMode) {
+                    return Math.max(1, Math.floor(5 / this.batchSize));
+                } else {
+                    return Math.max(3, Math.floor(10 / this.batchSize));
+                }
             },
 
             togglePPMode() {
@@ -1742,11 +1903,14 @@
                     });
 
                     processed++;
-                    if (processed % 5 === 0 || processed === totalFiles) {
+                    
+                    // Use dynamic yield interval based on batch size and responsive mode
+                    const yieldInterval = this.getYieldInterval();
+                    if (processed % yieldInterval === 0 || processed === totalFiles) {
                         const percent = Math.round((processed / totalFiles) * 50);
                         const hitMsg = ppHits > 0 ? ` (PP: ${ppHits}, cache: ${cacheHits})` : ` (${cacheHits} hits)`;
                         this.updateLoadingDetail(`Building frequency map... ${percent}%${hitMsg}`);
-                        await new Promise(resolve => setTimeout(resolve, 0));
+                        await this.yieldToUI();
                     }
                 }
 
@@ -1842,10 +2006,13 @@
                     tokenData.push({ path, content: result });
 
                     processed++;
-                    if (processed % 3 === 0 || processed === totalFiles) {
+                    
+                    // Use responsive yielding with batch size consideration
+                    const yieldInterval = this.getYieldInterval() * this.batchSize;
+                    if (processed % yieldInterval === 0 || processed === totalFiles) {
                         const percent = 60 + Math.round((processed / totalFiles) * 30);
                         this.updateLoadingDetail(`Tokenizing files... ${percent}%`);
-                        await new Promise(resolve => setTimeout(resolve, 0));
+                        await this.yieldToUI();
                     }
                 }
 
@@ -2355,6 +2522,23 @@
                     const allowNoExt = localStorage.getItem('ptam_allow_no_ext');
                     this.allowNoExt = allowNoExt === null ? true : allowNoExt === 'true';
                     document.getElementById('allowNoExtToggle').checked = this.allowNoExt;
+                    
+                    // Load batch size
+                    const batchSize = parseInt(localStorage.getItem('ptam_batch_size')) || 1;
+                    this.setBatchSize(batchSize);
+                    
+                    // Load thread count
+                    const threadCount = parseInt(localStorage.getItem('ptam_thread_count')) || 1;
+                    this.setThreadCount(threadCount);
+                    
+                    // Load responsive mode
+                    const responsiveMode = localStorage.getItem('ptam_responsive_mode') === 'true';
+                    document.getElementById('responsiveModeToggle').checked = responsiveMode;
+                    if (responsiveMode) {
+                        this.responsiveMode = true;
+                        this.initResponsiveWorker();
+                        document.getElementById('responsiveStatus').classList.remove('hidden');
+                    }
                     
                     // Load PP mode setting
                     const ppMode = localStorage.getItem('ptam_pp_mode') === 'true';

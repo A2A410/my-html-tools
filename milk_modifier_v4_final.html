@@ -1,0 +1,2163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MilkDrop Preset Modifier v4</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            overflow-x: hidden;
+            touch-action: pan-y;
+        }
+
+        .container {
+            max-width: 100vw;
+            padding: 12px;
+            padding-bottom: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        .header h1 {
+            font-size: 20px;
+            color: #64ffda;
+            margin-bottom: 4px;
+        }
+
+        .header .version {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .filename-display {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            display: grid;
+            grid-template-columns: auto 1fr auto auto 1fr;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .filename-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filename-value {
+            font-size: 15px;
+            color: #64ffda;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+
+        .filename-separator {
+            font-size: 18px;
+            color: #555;
+            font-weight: 300;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .btn-upload {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            grid-column: 1 / -1;
+        }
+
+        .btn-filename {
+            background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%);
+        }
+
+        .btn-clear {
+            background: #2a2a2a;
+        }
+
+        .btn-preset {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-lock {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: #000;
+            font-weight: 700;
+        }
+
+        .btn-lock.locked {
+            background: linear-gradient(135deg, #ff5252 0%, #f48fb1 100%);
+            color: #fff;
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            grid-column: 1 / -1;
+        }
+
+        .collapsible-content {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+        }
+
+        .card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #2a2a2a;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #64ffda;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .mode-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .mode-card {
+            background: #0f0f0f;
+            border: 2px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .mode-card:active {
+            transform: scale(0.98);
+        }
+
+        .mode-card.selected {
+            border-color: #64ffda;
+            background: #1a2a2a;
+        }
+
+        .mode-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .mode-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #64ffda;
+            margin-bottom: 4px;
+        }
+
+        .mode-desc {
+            font-size: 12px;
+            color: #888;
+            line-height: 1.4;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 8px;
+            margin-top: 4px;
+        }
+
+        .status-safe { background: #1b5e20; color: #69f0ae; }
+        .status-mild { background: #f57f17; color: #ffeb3b; }
+        .status-volatile { background: #e65100; color: #ffab40; }
+        .status-dangerous { background: #b71c1c; color: #ff5252; }
+        .status-extreme { background: #4a148c; color: #ea80fc; }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .stat-box {
+            background: #0f0f0f;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #2a2a2a;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #64ffda;
+        }
+
+        .risk-list {
+            margin-top: 8px;
+        }
+
+        .risk-item {
+            background: #1a1a1a;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 13px;
+            border-left: 3px solid #ff5252;
+        }
+
+        .controls-section {
+            margin-top: 12px;
+        }
+
+        .control-item {
+            margin-bottom: 12px;
+        }
+
+        .control-label {
+            font-size: 13px;
+            color: #aaa;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .control-value {
+            color: #64ffda;
+            font-weight: 600;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #2a2a2a;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #64ffda;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(100, 255, 218, 0.4);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #64ffda;
+            cursor: pointer;
+            border: none;
+        }
+
+        .changelog-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            margin: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 600px;
+            margin: 40px auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+        }
+
+        .changelog-item {
+            padding: 12px;
+            background: #0f0f0f;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 3px solid #64ffda;
+        }
+
+        .debug-console {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30vh;
+            background: #000;
+            border-top: 2px solid #64ffda;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            padding: 12px;
+            z-index: 999;
+        }
+
+        .debug-line {
+            padding: 2px 0;
+            color: #0f0;
+        }
+
+        .debug-error {
+            color: #f00;
+        }
+
+        .debug-warn {
+            color: #ff0;
+        }
+
+        .settings-toggle {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .settings-menu {
+            display: none;
+            position: fixed;
+            top: 64px;
+            right: 12px;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 12px;
+            z-index: 100;
+            min-width: 200px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+        }
+
+        .settings-item {
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+
+        .settings-item:active {
+            background: #2a2a2a;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #64ffda;
+        }
+
+        .spinner {
+            border: 3px solid #2a2a2a;
+            border-top: 3px solid #64ffda;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .filename-input {
+            width: 100%;
+            padding: 12px;
+            background: #0f0f0f;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            color: #64ffda;
+            font-size: 15px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .filename-input:focus {
+            outline: none;
+            border-color: #64ffda;
+        }
+
+        .btn-secondary {
+            background: #2a2a2a;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        .compare-table th {
+            background: #1a1a1a;
+            padding: 10px;
+            text-align: left;
+            font-size: 12px;
+            color: #888;
+            border-bottom: 2px solid #2a2a2a;
+        }
+
+        .compare-table td {
+            padding: 10px;
+            border-bottom: 1px solid #1a1a1a;
+            font-size: 14px;
+        }
+
+        .compare-table .control-name {
+            color: #aaa;
+        }
+
+        .compare-table .old-value {
+            color: #ff9800;
+            font-family: 'Courier New', monospace;
+        }
+
+        .compare-table .new-value {
+            color: #64ffda;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+        }
+
+        .value-change {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .value-change.positive {
+            color: #69f0ae;
+        }
+
+        .value-change.negative {
+            color: #ff9800;
+        }
+
+        .compare-table .value-change {
+            color: #888;
+            font-size: 11px;
+        }
+
+        .compare-table .value-change.positive {
+            color: #69f0ae;
+        }
+
+        .compare-table .value-change.negative {
+            color: #ff5252;
+        }
+
+        .scrollable {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .scrollable::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollable::-webkit-scrollbar-track {
+            background: #0f0f0f;
+        }
+
+        .scrollable::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-toggle" onclick="toggleSettings()">⚙️</div>
+    <div class="settings-menu" id="settingsMenu">
+        <div class="settings-item">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" id="expertMode" onchange="toggleExpertMode()" style="width:16px;height:16px;">
+                <span>Expert Mode</span>
+            </label>
+        </div>
+        <div class="settings-item">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" id="timedApply" onchange="toggleTimedApply()" style="width:16px;height:16px;">
+                <span>Timed Apply (5s)</span>
+            </label>
+        </div>
+        <div class="settings-item" onclick="toggleDebug()">🐛 Debug View</div>
+        <div class="settings-item" onclick="showChangelog()">📋 Changelog</div>
+        <div class="settings-item" onclick="clearStorage()">🗑️ Clear Storage</div>
+        <div class="settings-item" onclick="downloadState()">💾 Export State</div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🥛 MilkDrop Preset Modifier</h1>
+            <div class="version">v4.0 | Mobile Optimized</div>
+        </div>
+
+        <!-- Filename Display -->
+        <div class="filename-display" id="filenameDisplay">
+            <div class="filename-label">author:</div>
+            <div class="filename-value" id="authorValue">unkn</div>
+            <div class="filename-separator">-</div>
+            <div class="filename-label">preset:</div>
+            <div class="filename-value" id="presetNameValue">No file loaded</div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="btn btn-upload" onclick="document.getElementById('fileInput').click()">
+                📁 Upload .milk
+            </button>
+            <input type="file" id="fileInput" accept=".milk" onchange="handleFileUpload(event)" style="display:none;">
+            
+            <button class="btn btn-filename" id="changeFilenameBtn" onclick="showFilenameDialog()" disabled>
+                ✏️ Change Name
+            </button>
+            
+            <button class="btn btn-clear" id="cleanStateBtn" onclick="cleanState()">
+                🗑️ Clean State
+            </button>
+            
+            <button class="btn btn-preset" id="applyPresetBtn" onclick="showPresetModal()" disabled>
+                🎛️ Apply Preset
+            </button>
+            
+            <button class="btn btn-lock" id="lockBtn" onclick="toggleLock()">
+                🔓 Unlocked
+            </button>
+            
+            <button class="btn btn-export" id="exportBtn" onclick="exportMilk()" disabled>
+                💾 Export .milk
+            </button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>Analyzing preset...</div>
+        </div>
+
+        <!-- Analysis Info (Collapsible) -->
+        <div id="analysisSection" class="hidden">
+            <div class="card">
+                <div class="card-title" onclick="toggleSection('analysisDetails')">
+                    📊 Analysis Results
+                    <span style="margin-left:auto;font-size:18px;" id="analysisToggle">▼</span>
+                </div>
+                <div id="analysisDetails" class="collapsible-content">
+                    <div class="analysis-grid">
+                        <div class="stat-box">
+                            <div class="stat-label">Type</div>
+                            <div class="stat-value" id="presetType">-</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Risk Score</div>
+                            <div class="stat-value" id="riskScore">-</div>
+                        </div>
+                    </div>
+                    <div id="riskBadges" style="margin-top:12px;"></div>
+                    <div id="riskFlags" class="risk-list scrollable"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sliders (Main Controls) -->
+        <div id="slidersSection" class="hidden">
+            <div class="card">
+                <div class="card-title">🎚️ Controls</div>
+                <div class="controls-section" id="controlsSection"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preset Selection Modal -->
+    <div class="changelog-modal" id="presetModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="color:#64ffda;">Select Preset Mode</h2>
+                <button class="close-btn" onclick="hidePresetModal()">×</button>
+            </div>
+            <div class="mode-grid" id="modeGrid"></div>
+        </div>
+    </div>
+
+    <!-- Filename Change Modal -->
+    <div class="changelog-modal" id="filenameModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="color:#64ffda;">Change Filename</h2>
+                <button class="close-btn" onclick="hideFilenameDialog()">×</button>
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="font-size:12px;color:#888;margin-bottom:6px;display:block;">AUTHOR</label>
+                <input type="text" id="authorInput" 
+                       oninput="updateFilenamePreview()"
+                       style="width:100%;padding:12px;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:8px;color:#64ffda;font-size:15px;font-family:'Courier New',monospace;"
+                       placeholder="Author name (default: unkn)">
+                <div style="margin-top:4px;font-size:11px;color:#555;">
+                    Leave blank for "unkn"
+                </div>
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="font-size:12px;color:#888;margin-bottom:6px;display:block;">PRESET NAME</label>
+                <input type="text" id="presetNameInput" 
+                       oninput="updateFilenamePreview()"
+                       style="width:100%;padding:12px;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:8px;color:#64ffda;font-size:15px;font-family:'Courier New',monospace;"
+                       placeholder="Preset name (required)">
+            </div>
+            <div style="background:#1a1a1a;padding:12px;border-radius:6px;margin-bottom:16px;border-left:3px solid #64ffda;">
+                <div style="font-size:11px;color:#888;margin-bottom:4px;">RESULT</div>
+                <div id="filenamePreview" style="font-family:'Courier New',monospace;color:#64ffda;font-size:13px;">
+                    unkn - PresetName.milk
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary" onclick="hideFilenameDialog()" style="flex:1;background:#2a2a2a;">Cancel</button>
+                <button class="btn btn-primary" onclick="applyFilenameChange()" style="flex:1;">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparison Modal -->
+    <div class="changelog-modal" id="compareModal">
+        <div class="modal-content" style="max-width:700px;">
+            <div class="modal-header">
+                <h2 style="color:#64ffda;">Preview Changes</h2>
+                <button class="close-btn" onclick="hideCompareModal()">×</button>
+            </div>
+            
+            <div id="timerDisplay" style="background:#1a1a1a;padding:12px;border-radius:8px;margin-bottom:16px;text-align:center;display:none;">
+                <div style="font-size:13px;color:#888;margin-bottom:6px;">Auto-applying in</div>
+                <div id="timerValue" style="font-size:32px;font-weight:700;color:#64ffda;">5</div>
+                <div style="font-size:11px;color:#555;margin-top:4px;">seconds</div>
+            </div>
+
+            <div id="compareContent"></div>
+
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <button class="btn btn-secondary" onclick="hideCompareModal()" style="flex:1;background:#2a2a2a;">Close</button>
+                <button class="btn btn-primary" id="compareApplyBtn" onclick="applyPresetChanges()" style="flex:2;">Apply Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filename Change Modal -->
+    <div class="changelog-modal" id="filenameModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="color:#64ffda;">Change Filename</h2>
+                <button class="close-btn" onclick="hideFilenameDialog()">×</button>
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:13px;color:#888;margin-bottom:8px;">New filename (without .milk extension):</label>
+                <input type="text" id="newFilename" class="filename-input" placeholder="my_preset">
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary" onclick="hideFilenameDialog()" style="flex:1;">Cancel</button>
+                <button class="btn btn-primary" onclick="applyFilenameChange()" style="flex:1;">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compare Before/After Modal -->
+    <div class="changelog-modal" id="compareModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="color:#64ffda;">Compare Changes</h2>
+                <button class="close-btn" onclick="hideCompareModal()">×</button>
+            </div>
+            <div id="compareContent"></div>
+            <div id="timerDisplay" style="text-align:center;font-size:24px;color:#64ffda;margin:16px 0;display:none;">
+                Auto-apply in: <span id="timerValue">5</span>s
+            </div>
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <button class="btn" id="compareCloseBtn" onclick="hideCompareModal()" style="flex:1;background:#2a2a2a;">Close</button>
+                <button class="btn btn-primary" id="compareApplyBtn" onclick="applyPresetChanges()" style="flex:1;">Apply Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="changelog-modal" id="changelogModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="color:#64ffda;">Changelog</h2>
+                <button class="close-btn" onclick="hideChangelog()">×</button>
+            </div>
+            <div id="changelogContent"></div>
+        </div>
+    </div>
+
+    <div class="debug-console" id="debugConsole"></div>
+
+    <script>
+        // Debug logging
+        const DEBUG = {
+            log: (msg, type = 'info') => {
+                const debugConsole = document.getElementById('debugConsole');
+                if (!debugConsole) return;
+                
+                const line = document.createElement('div');
+                line.className = `debug-line ${type === 'error' ? 'debug-error' : type === 'warn' ? 'debug-warn' : ''}`;
+                line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+                debugConsole.appendChild(line);
+                debugConsole.scrollTop = debugConsole.scrollHeight;
+                
+                // Also log to real console
+                if (type === 'error') window.console.error(msg);
+                else if (type === 'warn') window.console.warn(msg);
+                else window.console.log(msg);
+            }
+        };
+
+        // State management
+        let STATE = {
+            originalPreset: null,
+            parsedPreset: null,
+            analysis: null,
+            selectedMode: null,
+            pendingMode: null,
+            expertMode: false,
+            timedApply: false,
+            locked: false,
+            hasEdits: false,
+            author: 'unkn',
+            presetName: null,
+            currentFilename: null,
+            controls: {
+                base_geometry: 1.0,
+                audio_gain: 1.0,
+                motion: 1.0,
+                camera: 1.0,
+                energy: 1.0
+            },
+            originalControls: {
+                base_geometry: 1.0,
+                audio_gain: 1.0,
+                motion: 1.0,
+                camera: 1.0,
+                energy: 1.0
+            },
+            changelog: []
+        };
+
+        let timerInterval = null;
+
+        // Mode definitions
+        const MODES = {
+            SAFE: {
+                icon: '🧊',
+                name: 'SAFE / STABLE',
+                desc: 'Make it visible, calm, and unbreakable',
+                controls: { base_geometry: 1.0, audio_gain: 0.5, motion: 0.4, camera: 0.6, energy: 0.7 }
+            },
+            AUDIO: {
+                icon: '💓',
+                name: 'AUDIO-FOCUSED',
+                desc: 'Let the music drive, but don\'t let it kill',
+                controls: { base_geometry: 1.0, audio_gain: 1.0, motion: 0.7, camera: 0.7, energy: 0.8 }
+            },
+            MOTION: {
+                icon: '🌪️',
+                name: 'MOTION / DYNAMIC',
+                desc: 'Movement first. Spin, drift, pulse',
+                controls: { base_geometry: 1.0, audio_gain: 0.6, motion: 1.0, camera: 0.8, energy: 0.75 }
+            },
+            CLARITY: {
+                icon: '🔍',
+                name: 'VISUAL CLARITY',
+                desc: 'Clean lines, readable shapes, less smear',
+                controls: { base_geometry: 1.1, audio_gain: 0.5, motion: 0.3, camera: 0.5, energy: 0.6 }
+            },
+            SHOW: {
+                icon: '🔥',
+                name: 'HIGH ENERGY / SHOW',
+                desc: 'Max impact, club mode, controlled chaos',
+                controls: { base_geometry: 1.0, audio_gain: 1.0, motion: 0.9, camera: 0.9, energy: 1.0 }
+            }
+        };
+
+        // Parse filename into author and preset name
+        function parseFilename(filename) {
+            // Remove .milk extension
+            const nameWithoutExt = filename.replace(/\.milk$/i, '');
+            
+            // Split by ' - ' (space dash space)
+            const parts = nameWithoutExt.split(' - ');
+            
+            if (parts.length >= 2) {
+                // Has author - preset format
+                return {
+                    author: parts[0].trim() || 'unkn',
+                    presetName: parts.slice(1).join(' - ').trim() || 'Untitled'
+                };
+            } else {
+                // No separator, treat entire name as preset
+                return {
+                    author: 'unkn',
+                    presetName: nameWithoutExt.trim() || 'Untitled'
+                };
+            }
+        }
+
+        // Build filename from author and preset name
+        function buildFilename(author, presetName) {
+            const cleanAuthor = (author || 'unkn').trim();
+            const cleanPreset = (presetName || 'Untitled').trim();
+            return `${cleanAuthor} - ${cleanPreset}.milk`;
+        }
+
+        // File upload handler
+        async function handleFileUpload(event) {
+            try {
+                const file = event.target.files[0];
+                if (!file) {
+                    DEBUG.log('No file selected');
+                    return;
+                }
+
+                // Check file extension
+                if (!file.name.toLowerCase().endsWith('.milk')) {
+                    alert('Invalid file type. Please select a .milk file.');
+                    DEBUG.log('Invalid file extension', 'error');
+                    return;
+                }
+
+                DEBUG.log(`=== FILE UPLOAD: ${file.name} ===`);
+                
+                // Parse filename into author and preset name
+                const parsed = parseFilename(file.name);
+                STATE.author = parsed.author;
+                STATE.presetName = parsed.presetName;
+                STATE.currentFilename = file.name;
+                
+                // Update display
+                document.getElementById('authorValue').textContent = STATE.author;
+                document.getElementById('presetNameValue').textContent = STATE.presetName;
+                document.getElementById('loading').style.display = 'block';
+                
+                DEBUG.log(`Author: ${STATE.author}, Preset: ${STATE.presetName}`);
+
+                try {
+                    const text = await file.text();
+                    DEBUG.log(`File read: ${text.length} characters`);
+                    STATE.originalPreset = text;
+                    
+                    // Parse with full validation
+                    DEBUG.log('Starting parse...');
+                    STATE.parsedPreset = parsePreset(text);
+                    DEBUG.log('Parse complete');
+                    
+                    // If invalid, show error and stop
+                    if (!STATE.parsedPreset.valid) {
+                        DEBUG.log('Preset validation FAILED', 'error');
+                        document.getElementById('loading').style.display = 'none';
+                        
+                        // Show detailed error
+                        showInvalidPresetDialog(STATE.parsedPreset.invalidReasons);
+                        return;
+                    }
+                    
+                    // Analyze valid preset
+                    DEBUG.log('Starting analysis...');
+                    STATE.analysis = analyzePreset(STATE.parsedPreset);
+                    DEBUG.log('Analysis complete');
+                    STATE.hasEdits = false;
+                    
+                    DEBUG.log(`✓ Preset loaded successfully`);
+                    DEBUG.log(`Version: ${STATE.analysis.type}, Risk: ${STATE.analysis.riskScore}`);
+                    
+                    displayAnalysis();
+                    renderSliders();
+                    
+                    document.getElementById('analysisSection').classList.remove('hidden');
+                    document.getElementById('slidersSection').classList.remove('hidden');
+                    document.getElementById('changeFilenameBtn').disabled = false;
+                    document.getElementById('applyPresetBtn').disabled = false;
+                    document.getElementById('loading').style.display = 'none';
+
+                    updateButtonStates();
+                    saveToStorage();
+                    
+                } catch (innerError) {
+                    DEBUG.log(`Error during processing: ${innerError.message}`, 'error');
+                    DEBUG.log(`Stack: ${innerError.stack}`, 'error');
+                    alert(`Processing error: ${innerError.message}\n\nCheck debug console for details.`);
+                    document.getElementById('loading').style.display = 'none';
+                }
+            } catch (outerError) {
+                DEBUG.log(`Fatal error in file upload: ${outerError.message}`, 'error');
+                DEBUG.log(`Stack: ${outerError.stack}`, 'error');
+                alert(`Fatal error: ${outerError.message}\n\nCheck debug console for details.`);
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Show invalid preset dialog
+        function showInvalidPresetDialog(reasons) {
+            const modal = document.getElementById('changelogModal');
+            const content = document.getElementById('changelogContent');
+            
+            content.innerHTML = `
+                <div style="text-align:center;margin-bottom:20px;">
+                    <div style="font-size:48px;margin-bottom:12px;">⚠️</div>
+                    <h3 style="color:#ff5252;margin-bottom:8px;">Invalid Preset File</h3>
+                    <p style="color:#888;font-size:14px;">This file cannot be loaded as a valid MilkDrop preset.</p>
+                </div>
+                <div style="background:#1a0000;border:1px solid #5a0000;border-radius:8px;padding:16px;">
+                    <div style="font-weight:600;color:#ff5252;margin-bottom:12px;">Validation Errors:</div>
+                    ${reasons.map(r => `<div style="padding:8px;margin-bottom:6px;background:#0f0f0f;border-left:3px solid #ff5252;border-radius:4px;">${r}</div>`).join('')}
+                </div>
+                <button class="btn" onclick="hideChangelog()" style="margin-top:20px;">Close</button>
+            `;
+            
+            modal.style.display = 'block';
+        }
+
+        // Parse preset with full validation
+        function parsePreset(text) {
+            DEBUG.log('=== PHASE 0: Starting preset recognition ===');
+            
+            const lines = text.split('\n');
+            const preset = {
+                sections: {},
+                currentSection: null,
+                raw: text,
+                valid: true,
+                invalidReasons: [],
+                parameters: {},
+                waves: { count: 0, enabled: [] },
+                shapes: { count: 0, enabled: [] },
+                hasShaders: false,
+                shaderBlocks: [],
+                perFrameVars: [],
+                perPixelVars: [],
+                audioVars: []
+            };
+
+            let inShaderBlock = false;
+            let currentShader = '';
+            let shaderBraceDepth = 0;
+
+            // PHASE 1: Mandatory checks
+            DEBUG.log('=== PHASE 1: Mandatory validation checks ===');
+            
+            // Check 1: At least one section header
+            const hasSectionHeader = text.match(/^\[preset\d+\]/m);
+            if (!hasSectionHeader) {
+                preset.valid = false;
+                preset.invalidReasons.push('❌ No [presetXX] section header found');
+                DEBUG.log('INVALID: Missing section header', 'error');
+            } else {
+                DEBUG.log('✓ Section header found');
+            }
+
+            // Parse line by line
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                
+                // Skip comments and empty lines
+                if (line.startsWith(';') || line.startsWith('//') || line === '') continue;
+
+                // Section header detection
+                const sectionMatch = line.match(/^\[preset(\d+)\]$/i);
+                if (sectionMatch) {
+                    preset.currentSection = line;
+                    preset.sections[line] = {};
+                    DEBUG.log(`Found section: ${line}`);
+                    continue;
+                }
+
+                // Check for shader block start
+                if (line.includes('shader_body') && line.includes('{')) {
+                    inShaderBlock = true;
+                    shaderBraceDepth = 1;
+                    currentShader = line + '\n';
+                    preset.hasShaders = true;
+                    DEBUG.log('Shader block started');
+                    continue;
+                }
+
+                // Track shader braces
+                if (inShaderBlock) {
+                    currentShader += line + '\n';
+                    shaderBraceDepth += (line.match(/{/g) || []).length;
+                    shaderBraceDepth -= (line.match(/}/g) || []).length;
+                    
+                    if (shaderBraceDepth === 0) {
+                        preset.shaderBlocks.push(currentShader);
+                        inShaderBlock = false;
+                        currentShader = '';
+                        DEBUG.log('Shader block closed');
+                    }
+                    continue;
+                }
+
+                // Key-value parsing
+                const kvMatch = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/);
+                if (kvMatch) {
+                    const [, key, value] = kvMatch;
+                    
+                    if (preset.currentSection) {
+                        preset.sections[preset.currentSection][key] = value.trim();
+                        preset.parameters[key] = value.trim();
+
+                        // Track waves
+                        if (key.startsWith('wavecode_')) {
+                            const waveNum = parseInt(key.match(/wavecode_(\d+)/)?.[1]);
+                            if (!isNaN(waveNum) && waveNum >= 0 && waveNum <= 4) {
+                                preset.waves.count = Math.max(preset.waves.count, waveNum + 1);
+                                if (key.endsWith('_enabled') && value === '1') {
+                                    preset.waves.enabled.push(waveNum);
+                                }
+                            }
+                        }
+
+                        // Track shapes
+                        if (key.startsWith('shapecode_')) {
+                            const shapeNum = parseInt(key.match(/shapecode_(\d+)/)?.[1]);
+                            if (!isNaN(shapeNum) && shapeNum >= 0 && shapeNum <= 4) {
+                                preset.shapes.count = Math.max(preset.shapes.count, shapeNum + 1);
+                                if (key.endsWith('_enabled') && value === '1') {
+                                    preset.shapes.enabled.push(shapeNum);
+                                }
+                            }
+                        }
+
+                        // Track per_frame/per_pixel
+                        if (key.startsWith('per_frame_')) {
+                            preset.perFrameVars.push(key);
+                        }
+                        if (key.startsWith('per_pixel_')) {
+                            preset.perPixelVars.push(key);
+                        }
+
+                        // Track audio variables
+                        if (value.match(/\b(bass|mid|treb|vol)\b/)) {
+                            if (!preset.audioVars.includes(key)) {
+                                preset.audioVars.push(key);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Check 2: Unterminated shader blocks
+            if (inShaderBlock || shaderBraceDepth !== 0) {
+                preset.valid = false;
+                preset.invalidReasons.push('❌ Unterminated shader block (missing closing brace)');
+                DEBUG.log('INVALID: Unterminated shader', 'error');
+            }
+
+            // Check 3: At least one render-affecting parameter
+            const renderParams = ['zoom', 'warp', 'rot', 'fDecay', 'dx', 'dy', 'cx', 'cy', 'sx', 'sy'];
+            const hasRenderParam = renderParams.some(p => preset.parameters[p]) || 
+                                   preset.waves.enabled.length > 0 || 
+                                   preset.shapes.enabled.length > 0 ||
+                                   preset.hasShaders;
+            
+            if (!hasRenderParam) {
+                preset.valid = false;
+                preset.invalidReasons.push('❌ No render-affecting parameters found');
+                DEBUG.log('INVALID: No render parameters', 'error');
+            } else {
+                DEBUG.log('✓ Render parameters found');
+            }
+
+            // Additional shader detection (HLSL keywords)
+            const allText = text.toLowerCase();
+            if (!preset.hasShaders) {
+                if (allText.includes('sampler_') || 
+                    allText.match(/\bfloat[234]\b/) ||
+                    allText.includes('uv') && allText.includes('return')) {
+                    preset.hasShaders = true;
+                    DEBUG.log('Shaders detected via HLSL keywords');
+                }
+            }
+
+            DEBUG.log(`Parsing complete. Valid: ${preset.valid}`);
+            if (!preset.valid) {
+                DEBUG.log(`Invalid reasons: ${preset.invalidReasons.join(', ')}`, 'error');
+            }
+
+            return preset;
+        }
+
+        // Analyze preset with full phase detection
+        function analyzePreset(preset) {
+            DEBUG.log('=== PHASE 2: Detecting preset version ===');
+            
+            const analysis = {
+                type: 'Unknown',
+                version: null,
+                riskScore: 0,
+                risks: [],
+                warnings: [],
+                capabilities: {},
+                limits: {},
+                canApplyModes: {},
+                detectedPatterns: []
+            };
+
+            // First check if invalid
+            if (!preset.valid) {
+                analysis.type = 'INVALID PRESET';
+                analysis.riskScore = 100;
+                analysis.risks = preset.invalidReasons;
+                DEBUG.log('Preset is INVALID', 'error');
+                return analysis;
+            }
+
+            const params = preset.parameters;
+            const paramStr = Object.entries(params).map(([k,v]) => `${k}=${v}`).join(' ');
+
+            // PHASE 2: Version Detection
+            DEBUG.log('Detecting version...');
+
+            // Check for 2.X indicators
+            const has2XWarp = Object.keys(params).some(k => k.match(/^warp_\d+$/));
+            const has2XComp = Object.keys(params).some(k => k.match(/^comp_\d+$/));
+            const hasPerPixel = preset.perPixelVars.length > 0;
+            const hasExtendedIndices = preset.waves.count > 4 || preset.shapes.count > 4;
+
+            if (preset.hasShaders) {
+                analysis.type = 'MilkDrop 2.X (Shader)';
+                analysis.version = '2.X-SHADER';
+                DEBUG.log('✓ Classified as: 2.X with shaders');
+            } else if (has2XWarp || has2XComp || hasPerPixel || hasExtendedIndices) {
+                analysis.type = 'MilkDrop 2.X';
+                analysis.version = '2.X';
+                DEBUG.log('✓ Classified as: 2.X (expression-only)');
+            } else {
+                analysis.type = 'MilkDrop 1.X';
+                analysis.version = '1.X';
+                DEBUG.log('✓ Classified as: 1.X compatible');
+            }
+
+            // PHASE 3: Canonical scan - build capability map
+            DEBUG.log('=== PHASE 3: Building capability map ===');
+            
+            analysis.capabilities = {
+                waves: preset.waves.enabled,
+                shapes: preset.shapes.enabled,
+                perFrame: preset.perFrameVars.length,
+                perPixel: preset.perPixelVars.length,
+                audioVars: preset.audioVars,
+                hasShaders: preset.hasShaders
+            };
+
+            DEBUG.log(`Capabilities: ${preset.waves.enabled.length} waves, ${preset.shapes.enabled.length} shapes, ${preset.perFrameVars.length} per_frame`);
+
+            // PHASE 4 & 5: Risk Detection with Linked Restrictions
+            DEBUG.log('=== PHASE 4-5: Risk detection and restrictions ===');
+
+            // 1. Audio-only geometry
+            const audioGeometryPattern = /\b(rad|x|y|samples|sides)\s*=\s*[^;]*\b(bass|mid|treb|vol)\b/i;
+            const baseGeometryPattern = /\b(rad|x|y)\s*=\s*0?\.\d+/;
+            
+            if (paramStr.match(audioGeometryPattern)) {
+                const hasBaseGeometry = paramStr.match(baseGeometryPattern);
+                if (!hasBaseGeometry) {
+                    analysis.risks.push('Audio-only geometry');
+                    analysis.riskScore += 30;
+                    analysis.detectedPatterns.push('AUDIO_GEOMETRY');
+                    DEBUG.log('⚠️ Audio-only geometry detected', 'warn');
+                } else {
+                    analysis.warnings.push('Geometry uses audio (but has base values)');
+                }
+            }
+
+            // 2. Feedback loops
+            const feedbackPattern = /\b(zoom|rot|warp|dx|dy)\s*=\s*\1/i;
+            if (paramStr.match(feedbackPattern)) {
+                analysis.risks.push('Feedback loop detected');
+                analysis.riskScore += 25;
+                analysis.detectedPatterns.push('FEEDBACK');
+                DEBUG.log('⚠️ Feedback loop detected', 'warn');
+            }
+
+            // 3. Exponential math
+            if (paramStr.match(/\b(pow|exp|log)\s*\(/i)) {
+                analysis.risks.push('Exponential math');
+                analysis.riskScore += 15;
+                analysis.detectedPatterns.push('EXPONENTIAL');
+                DEBUG.log('⚠️ Exponential math detected', 'warn');
+            }
+
+            // 4. Division by audio
+            if (paramStr.match(/\/\s*(bass|mid|treb|vol)\b/i)) {
+                analysis.risks.push('Division by audio');
+                analysis.riskScore += 15;
+                analysis.detectedPatterns.push('DIVISION');
+                DEBUG.log('⚠️ Division by audio detected', 'warn');
+            }
+
+            // 5. No base geometry
+            if (!paramStr.match(/\brad\s*=/i) && preset.shapes.enabled.length === 0) {
+                analysis.risks.push('No base geometry');
+                analysis.riskScore += 10;
+                DEBUG.log('⚠️ No base geometry', 'warn');
+            }
+
+            // 6. Shader complexity (if shaders present)
+            if (preset.hasShaders) {
+                analysis.riskScore += 20;
+                analysis.detectedPatterns.push('SHADER');
+                DEBUG.log('Shaders present (+20 risk)');
+            }
+
+            // 7. Unbounded loops / time drift
+            if (paramStr.match(/\btime\b.*[\+\-\*]/i)) {
+                analysis.warnings.push('Time-based drift detected');
+                DEBUG.log('ℹ️ Time-based operations detected');
+            }
+
+            // 8. Beat detection
+            if (paramStr.match(/\bbeat\b/i)) {
+                analysis.warnings.push('Beat-responsive elements');
+                DEBUG.log('ℹ️ Beat detection in use');
+            }
+
+            // PHASE 6: Compute Limits
+            DEBUG.log('=== PHASE 6: Computing limits ===');
+            analysis.limits = computeLimits(analysis);
+
+            // PHASE 7: Mode Compatibility
+            DEBUG.log('=== PHASE 7: Mode compatibility ===');
+            for (let mode in MODES) {
+                analysis.canApplyModes[mode] = canApplyMode(mode, analysis);
+            }
+
+            DEBUG.log(`=== Analysis complete. Risk score: ${analysis.riskScore} ===`);
+            return analysis;
+        }
+
+        // Compute limits based on version and detected patterns
+        function computeLimits(analysis) {
+            DEBUG.log('Computing dynamic limits...');
+            
+            // STEP 1: Initialize baseline limits by profile
+            let profile = {};
+            
+            if (analysis.version === '1.X') {
+                profile = {
+                    motion: 0.05,
+                    warp: 0.06,
+                    zoom_min: 0.92,
+                    zoom_max: 1.08,
+                    energy: 0.9,
+                    rot: 0.05,
+                    decay_min: 0.80
+                };
+                DEBUG.log('Using LOOSE profile (1.X)');
+            } else if (analysis.version === '2.X') {
+                profile = {
+                    motion: 0.04,
+                    warp: 0.05,
+                    zoom_min: 0.94,
+                    zoom_max: 1.06,
+                    energy: 0.85,
+                    rot: 0.04,
+                    decay_min: 0.85
+                };
+                DEBUG.log('Using NORMAL profile (2.X)');
+            } else if (analysis.version === '2.X-SHADER') {
+                profile = {
+                    motion: 0.03,
+                    warp: 0.025,
+                    zoom_min: 0.97,
+                    zoom_max: 1.03,
+                    energy: 0.7,
+                    rot: 0.03,
+                    decay_min: 0.90
+                };
+                DEBUG.log('Using CONSERVATIVE profile (2.X Shader)');
+            } else {
+                // Default to most conservative
+                profile = {
+                    motion: 0.03,
+                    warp: 0.025,
+                    zoom_min: 0.97,
+                    zoom_max: 1.03,
+                    energy: 0.7,
+                    rot: 0.03,
+                    decay_min: 0.90
+                };
+            }
+
+            // STEP 2: Apply reductions based on detected patterns
+            const patterns = analysis.detectedPatterns || [];
+
+            if (patterns.includes('AUDIO_GEOMETRY')) {
+                profile.base_geometry_min = 0.05;
+                profile.audio_gain_max = 0.6;
+                DEBUG.log('Applied AUDIO_GEOMETRY restrictions');
+            }
+
+            if (patterns.includes('FEEDBACK')) {
+                profile.motion *= 0.5;
+                profile.warp *= 0.7;
+                profile.zoom_max = Math.min(profile.zoom_max, 1.05);
+                DEBUG.log('Applied FEEDBACK restrictions');
+            }
+
+            if (patterns.includes('EXPONENTIAL') || patterns.includes('DIVISION')) {
+                profile.audio_gain_max = Math.min(profile.audio_gain_max || 1.0, 0.5);
+                profile.motion *= 0.7;
+                DEBUG.log('Applied MATH restrictions');
+            }
+
+            if (patterns.includes('SHADER')) {
+                profile.base_geometry_max = (profile.base_geometry_max || 1.5) * 0.5;
+                profile.motion = Math.min(profile.motion, 0.03);
+                profile.warp = Math.min(profile.warp, 0.025);
+                DEBUG.log('Applied SHADER restrictions');
+            }
+
+            // STEP 3: Finalize control limits
+            const limits = {
+                base_geometry: {
+                    min: profile.base_geometry_min || 0.5,
+                    max: profile.base_geometry_max || 1.5
+                },
+                audio_gain: {
+                    min: 0.0,
+                    max: profile.audio_gain_max || 1.0
+                },
+                motion: {
+                    min: 0.0,
+                    max: profile.motion
+                },
+                camera: {
+                    min: profile.zoom_min,
+                    max: profile.zoom_max
+                },
+                energy: {
+                    min: 0.3,
+                    max: profile.energy
+                },
+                // Raw parameter limits for reference
+                warp_max: profile.warp,
+                rot_max: profile.rot,
+                decay_min: profile.decay_min
+            };
+
+            DEBUG.log(`Computed limits: motion=${limits.motion.max}, warp=${limits.warp_max}, zoom=${limits.camera.max}`);
+            return limits;
+        }
+
+        // Check if mode can be applied
+        function canApplyMode(mode, analysis) {
+            if (mode === 'SAFE') return true;
+
+            if (mode === 'AUDIO' && analysis.risks.includes('Division by audio')) {
+                return false;
+            }
+
+            if (mode === 'MOTION' && analysis.type.includes('Shader') && analysis.risks.includes('Feedback loop detected')) {
+                return false;
+            }
+
+            if (mode === 'SHOW') {
+                const hasAll = analysis.type.includes('Shader') && 
+                              analysis.risks.includes('Feedback loop detected') &&
+                              analysis.risks.includes('Audio-only geometry');
+                return !hasAll;
+            }
+
+            return true;
+        }
+
+        // Display analysis
+        function displayAnalysis() {
+            document.getElementById('presetType').textContent = STATE.analysis.type;
+            document.getElementById('riskScore').textContent = STATE.analysis.riskScore;
+
+            // Risk badge
+            let badge = 'Safe';
+            let badgeClass = 'status-safe';
+            if (STATE.analysis.riskScore > 80) { 
+                badge = 'Touch at Own Risk'; 
+                badgeClass = 'status-extreme'; 
+            } else if (STATE.analysis.riskScore > 60) { 
+                badge = 'Dangerous'; 
+                badgeClass = 'status-dangerous'; 
+            } else if (STATE.analysis.riskScore > 40) { 
+                badge = 'Volatile'; 
+                badgeClass = 'status-volatile'; 
+            } else if (STATE.analysis.riskScore > 20) { 
+                badge = 'Mild Risk'; 
+                badgeClass = 'status-mild'; 
+            }
+
+            document.getElementById('riskBadges').innerHTML = `<span class="status-badge ${badgeClass}">${badge}</span>`;
+
+            // Risk flags and warnings
+            const flagsDiv = document.getElementById('riskFlags');
+            flagsDiv.innerHTML = '';
+
+            // Show capabilities
+            const cap = STATE.analysis.capabilities;
+            const capHtml = `
+                <div style="background:#0f0f0f;padding:12px;border-radius:6px;margin-bottom:12px;border:1px solid #2a2a2a;">
+                    <div style="font-size:12px;color:#888;margin-bottom:8px;">DETECTED CAPABILITIES</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
+                        <div>🎵 Waves: ${cap.waves.length}</div>
+                        <div>📐 Shapes: ${cap.shapes.length}</div>
+                        <div>🎬 Per-frame: ${cap.perFrame}</div>
+                        <div>🎨 Per-pixel: ${cap.perPixel}</div>
+                        <div style="grid-column:1/-1;">🔊 Audio vars: ${cap.audioVars.length}</div>
+                        ${cap.hasShaders ? '<div style="grid-column:1/-1;color:#f5576c;">🎨 HLSL Shaders: YES</div>' : ''}
+                    </div>
+                </div>
+            `;
+            flagsDiv.innerHTML = capHtml;
+
+            // Risks
+            if (STATE.analysis.risks.length > 0) {
+                STATE.analysis.risks.forEach(risk => {
+                    const item = document.createElement('div');
+                    item.className = 'risk-item';
+                    item.textContent = `⚠️ ${risk}`;
+                    flagsDiv.appendChild(item);
+                });
+            }
+
+            // Warnings
+            if (STATE.analysis.warnings && STATE.analysis.warnings.length > 0) {
+                STATE.analysis.warnings.forEach(warn => {
+                    const item = document.createElement('div');
+                    item.className = 'risk-item';
+                    item.style.borderLeftColor = '#ff9800';
+                    item.textContent = `ℹ️ ${warn}`;
+                    flagsDiv.appendChild(item);
+                });
+            }
+
+            if (STATE.analysis.risks.length === 0 && (!STATE.analysis.warnings || STATE.analysis.warnings.length === 0)) {
+                const safeMsg = document.createElement('div');
+                safeMsg.style.cssText = 'color:#69f0ae;text-align:center;padding:12px;background:#0a2f0a;border-radius:6px;';
+                safeMsg.textContent = '✓ No major risks detected';
+                flagsDiv.appendChild(safeMsg);
+            }
+        }
+
+        // Render sliders
+        function renderSliders() {
+            const section = document.getElementById('controlsSection');
+            section.innerHTML = '';
+
+            const controls = [
+                { key: 'base_geometry', label: 'Base Geometry' },
+                { key: 'audio_gain', label: 'Audio Gain' },
+                { key: 'motion', label: 'Motion' },
+                { key: 'camera', label: 'Camera' },
+                { key: 'energy', label: 'Energy' }
+            ];
+
+            controls.forEach(control => {
+                const limits = getControlLimits(control.key);
+                const div = document.createElement('div');
+                div.className = 'control-item';
+                
+                const isDisabled = STATE.locked || !STATE.expertMode;
+                
+                div.innerHTML = `
+                    <div class="control-label">
+                        <span>${control.label}</span>
+                        <span class="control-value" id="${control.key}_value">${STATE.controls[control.key].toFixed(2)}</span>
+                    </div>
+                    <input type="range" class="slider" id="${control.key}_slider"
+                           min="${limits.min}" max="${limits.max}" step="0.01" 
+                           value="${STATE.controls[control.key]}" 
+                           oninput="updateControl('${control.key}', this.value)"
+                           ${isDisabled ? 'disabled' : ''}>
+                    <div style="display:flex;justify-content:space-between;font-size:10px;color:#555;margin-top:4px;">
+                        <span>${limits.min}</span>
+                        <span>${limits.max}</span>
+                    </div>
+                `;
+                section.appendChild(div);
+            });
+
+            // Show notice if sliders are disabled
+            if (STATE.locked) {
+                const notice = document.createElement('div');
+                notice.style.cssText = 'text-align:center;color:#ff5252;font-size:12px;padding:12px;background:#1a0000;border-radius:6px;margin-top:12px;border:1px solid #5a0000;';
+                notice.textContent = '🔒 System locked - Unlock to modify sliders';
+                section.appendChild(notice);
+            } else if (!STATE.expertMode) {
+                const notice = document.createElement('div');
+                notice.style.cssText = 'text-align:center;color:#888;font-size:12px;padding:12px;background:#0f0f0f;border-radius:6px;margin-top:12px;';
+                notice.textContent = '🔒 Enable Expert Mode in settings to modify sliders';
+                section.appendChild(notice);
+            }
+        }
+
+        // Get control limits based on analysis
+        function getControlLimits(control) {
+            if (STATE.expertMode) {
+                return { min: 0, max: 2.0 };
+            }
+
+            // Use computed limits from analysis
+            if (STATE.analysis && STATE.analysis.limits && STATE.analysis.limits[control]) {
+                return STATE.analysis.limits[control];
+            }
+
+            // Fallback defaults
+            const defaults = {
+                base_geometry: { min: 0.5, max: 1.5 },
+                audio_gain: { min: 0.0, max: 1.0 },
+                motion: { min: 0.0, max: 1.0 },
+                camera: { min: 0.7, max: 1.1 },
+                energy: { min: 0.3, max: 1.0 }
+            };
+
+            return defaults[control] || { min: 0, max: 1 };
+        }
+
+        // Update control
+        function updateControl(control, value) {
+            if (STATE.locked) {
+                DEBUG.log('Cannot modify - system is locked', 'warn');
+                return;
+            }
+            
+            STATE.controls[control] = parseFloat(value);
+            document.getElementById(`${control}_value`).textContent = parseFloat(value).toFixed(2);
+            STATE.hasEdits = true;
+            document.getElementById('exportBtn').disabled = false;
+            addToChangelog(`${control} = ${parseFloat(value).toFixed(2)}`);
+        }
+
+        // Toggle section
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const toggle = document.getElementById('analysisToggle');
+            section.classList.toggle('collapsed');
+            toggle.textContent = section.classList.contains('collapsed') ? '▶' : '▼';
+        }
+
+        // Clean state
+        function cleanState() {
+            if (STATE.locked) {
+                alert('System is locked. Unlock first to clean state.');
+                return;
+            }
+            
+            if (!STATE.originalPreset || confirm('Clear all data and reset?')) {
+                STATE = {
+                    originalPreset: null,
+                    parsedPreset: null,
+                    analysis: null,
+                    selectedMode: null,
+                    pendingMode: null,
+                    expertMode: document.getElementById('expertMode').checked,
+                    timedApply: document.getElementById('timedApply').checked,
+                    locked: false,
+                    hasEdits: false,
+                    author: 'unkn',
+                    presetName: null,
+                    currentFilename: null,
+                    controls: {
+                        base_geometry: 1.0,
+                        audio_gain: 1.0,
+                        motion: 1.0,
+                        camera: 1.0,
+                        energy: 1.0
+                    },
+                    originalControls: {
+                        base_geometry: 1.0,
+                        audio_gain: 1.0,
+                        motion: 1.0,
+                        camera: 1.0,
+                        energy: 1.0
+                    },
+                    changelog: []
+                };
+
+                document.getElementById('authorValue').textContent = 'unkn';
+                document.getElementById('presetNameValue').textContent = 'No file loaded';
+                document.getElementById('analysisSection').classList.add('hidden');
+                document.getElementById('slidersSection').classList.add('hidden');
+                document.getElementById('changeFilenameBtn').disabled = true;
+                document.getElementById('applyPresetBtn').disabled = true;
+                document.getElementById('exportBtn').disabled = true;
+                document.getElementById('fileInput').value = '';
+                
+                // Reset lock button
+                const lockBtn = document.getElementById('lockBtn');
+                lockBtn.textContent = '🔓 Unlocked';
+                lockBtn.classList.remove('locked');
+
+                updateButtonStates();
+                saveToStorage();
+                DEBUG.log('State cleaned');
+            }
+        }
+
+        // Show preset modal
+        function showPresetModal() {
+            renderModes();
+            document.getElementById('presetModal').style.display = 'block';
+        }
+
+        function hidePresetModal() {
+            document.getElementById('presetModal').style.display = 'none';
+        }
+
+        // Toggle expert mode
+        function toggleExpertMode() {
+            STATE.expertMode = document.getElementById('expertMode').checked;
+            DEBUG.log(`Expert mode: ${STATE.expertMode ? 'ON' : 'OFF'}`);
+            
+            if (STATE.parsedPreset) {
+                renderSliders();
+            }
+
+            updateButtonStates();
+            saveToStorage();
+            toggleSettings();
+        }
+
+        // Export milk
+        function exportMilk() {
+            if (!STATE.hasEdits) {
+                alert('No modifications made yet. Apply a preset or adjust sliders first.');
+                return;
+            }
+
+            DEBUG.log('Exporting modified preset...');
+            const modified = applyModifications();
+            
+            // Build filename using current author and preset name
+            const filename = buildFilename(STATE.author, STATE.presetName);
+            
+            downloadFile(modified, filename);
+            addToChangelog(`Preset exported: ${filename}`);
+        }
+
+        // Render modes
+        function renderModes() {
+            const grid = document.getElementById('modeGrid');
+            grid.innerHTML = '';
+
+            for (let [key, mode] of Object.entries(MODES)) {
+                const canApply = STATE.analysis.canApplyModes[key];
+                const card = document.createElement('div');
+                card.className = 'mode-card';
+                if (!canApply) card.style.opacity = '0.5';
+                
+                card.innerHTML = `
+                    <div class="mode-icon">${mode.icon}</div>
+                    <div class="mode-name">${mode.name}</div>
+                    <div class="mode-desc">${mode.desc}</div>
+                    ${!canApply ? '<div style="color:#ff5252;font-size:11px;margin-top:8px;">⚠️ Cannot apply safely</div>' : ''}
+                `;
+
+                if (canApply) {
+                    card.onclick = () => showCompareModal(key);
+                }
+
+                grid.appendChild(card);
+            }
+        }
+
+        // Toggle lock mode
+        function toggleLock() {
+            STATE.locked = !STATE.locked;
+            const lockBtn = document.getElementById('lockBtn');
+            
+            if (STATE.locked) {
+                lockBtn.textContent = '🔒 Locked';
+                lockBtn.classList.add('locked');
+                DEBUG.log('System LOCKED');
+            } else {
+                lockBtn.textContent = '🔓 Unlocked';
+                lockBtn.classList.remove('locked');
+                DEBUG.log('System UNLOCKED');
+            }
+
+            updateButtonStates();
+            saveToStorage();
+        }
+
+        // Update button states based on lock mode
+        function updateButtonStates() {
+            const locked = STATE.locked;
+            const hasFile = STATE.parsedPreset !== null;
+
+            // These are ALWAYS disabled when locked
+            document.getElementById('applyPresetBtn').disabled = locked || !hasFile;
+            document.getElementById('cleanStateBtn').disabled = locked;
+            
+            // Sliders
+            const sliders = document.querySelectorAll('.slider');
+            sliders.forEach(slider => {
+                if (locked) {
+                    slider.disabled = true;
+                } else {
+                    slider.disabled = !STATE.expertMode;
+                }
+            });
+
+            // These are available even when locked
+            document.getElementById('changeFilenameBtn').disabled = !hasFile;
+            document.getElementById('exportBtn').disabled = !STATE.hasEdits;
+        }
+
+        // Show filename change dialog
+        function showFilenameDialog() {
+            if (!STATE.currentFilename) return;
+            
+            // Populate current values
+            document.getElementById('authorInput').value = STATE.author;
+            document.getElementById('presetNameInput').value = STATE.presetName;
+            updateFilenamePreview();
+            
+            document.getElementById('filenameModal').style.display = 'block';
+            
+            setTimeout(() => {
+                document.getElementById('presetNameInput').select();
+            }, 100);
+        }
+
+        function hideFilenameDialog() {
+            document.getElementById('filenameModal').style.display = 'none';
+        }
+
+        // Update filename preview as user types
+        function updateFilenamePreview() {
+            const author = document.getElementById('authorInput').value.trim() || 'unkn';
+            const presetName = document.getElementById('presetNameInput').value.trim() || 'PresetName';
+            const preview = buildFilename(author, presetName);
+            document.getElementById('filenamePreview').textContent = preview;
+        }
+
+        function applyFilenameChange() {
+            const author = document.getElementById('authorInput').value.trim();
+            const presetName = document.getElementById('presetNameInput').value.trim();
+            
+            if (!presetName) {
+                alert('Preset name is required');
+                return;
+            }
+
+            // Validate characters
+            const invalidChars = /[<>:"/\\|?*]/g;
+            if (invalidChars.test(author) || invalidChars.test(presetName)) {
+                alert('Filename contains invalid characters: < > : " / \\ | ? *');
+                return;
+            }
+
+            // Update state
+            STATE.author = author || 'unkn';
+            STATE.presetName = presetName;
+            STATE.currentFilename = buildFilename(STATE.author, STATE.presetName);
+            
+            // Update display
+            document.getElementById('authorValue').textContent = STATE.author;
+            document.getElementById('presetNameValue').textContent = STATE.presetName;
+            
+            hideFilenameDialog();
+            addToChangelog(`Filename changed to: ${STATE.currentFilename}`);
+            DEBUG.log(`Filename changed: ${STATE.currentFilename}`);
+            saveToStorage();
+        }
+
+        // Toggle timed apply
+        function toggleTimedApply() {
+            STATE.timedApply = document.getElementById('timedApply').checked;
+            DEBUG.log(`Timed apply: ${STATE.timedApply ? 'ON' : 'OFF'}`);
+            saveToStorage();
+            toggleSettings();
+        }
+
+        // Show compare modal
+        function showCompareModal(modeKey) {
+            STATE.pendingMode = modeKey;
+            const mode = MODES[modeKey];
+            const compareContent = document.getElementById('compareContent');
+            
+            // Build comparison table
+            let html = `
+                <div style="background:#0a2f0a;border:1px solid #2a5a2a;border-radius:8px;padding:12px;margin-bottom:16px;">
+                    <div style="font-weight:600;color:#69f0ae;margin-bottom:4px;">${mode.icon} ${mode.name}</div>
+                    <div style="font-size:13px;color:#888;">${mode.desc}</div>
+                </div>
+                <table class="compare-table">
+                    <thead>
+                        <tr>
+                            <th>Control</th>
+                            <th>Current</th>
+                            <th>New</th>
+                            <th>Change</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            const controls = ['base_geometry', 'audio_gain', 'motion', 'camera', 'energy'];
+            controls.forEach(control => {
+                const currentVal = STATE.controls[control];
+                const newVal = mode.controls[control];
+                const diff = newVal - currentVal;
+                const diffPercent = ((diff / currentVal) * 100).toFixed(0);
+                const diffClass = diff > 0 ? 'positive' : diff < 0 ? 'negative' : '';
+                const diffSign = diff > 0 ? '+' : '';
+
+                html += `
+                    <tr>
+                        <td class="control-name">${control.replace('_', ' ').toUpperCase()}</td>
+                        <td class="old-value">${currentVal.toFixed(2)}</td>
+                        <td class="new-value">${newVal.toFixed(2)}</td>
+                        <td class="value-change ${diffClass}">${diffSign}${diff.toFixed(2)} (${diffSign}${diffPercent}%)</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            compareContent.innerHTML = html;
+
+            // Show/hide apply button based on timed apply setting
+            if (STATE.timedApply) {
+                document.getElementById('compareApplyBtn').style.display = 'none';
+                document.getElementById('timerDisplay').style.display = 'block';
+                startApplyTimer();
+            } else {
+                document.getElementById('compareApplyBtn').style.display = 'block';
+                document.getElementById('timerDisplay').style.display = 'none';
+            }
+
+            document.getElementById('compareModal').style.display = 'block';
+        }
+
+        function hideCompareModal() {
+            document.getElementById('compareModal').style.display = 'none';
+            stopApplyTimer();
+            STATE.pendingMode = null;
+        }
+
+        function startApplyTimer() {
+            let timeLeft = 5;
+            document.getElementById('timerValue').textContent = timeLeft;
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timerValue').textContent = timeLeft;
+
+                if (timeLeft <= 0) {
+                    stopApplyTimer();
+                    applyPresetChanges();
+                }
+            }, 1000);
+        }
+
+        function stopApplyTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function applyPresetChanges() {
+            if (!STATE.pendingMode) return;
+
+            const mode = MODES[STATE.pendingMode];
+            STATE.selectedMode = STATE.pendingMode;
+            STATE.controls = { ...mode.controls };
+            STATE.hasEdits = true;
+
+            renderSliders();
+            hideCompareModal();
+            hidePresetModal();
+
+            document.getElementById('exportBtn').disabled = false;
+            addToChangelog(`Applied ${mode.name} mode`);
+            DEBUG.log(`Mode applied: ${STATE.pendingMode}`);
+            updateButtonStates();
+        }
+
+        // Apply modifications
+        function applyModifications() {
+            // For now, return original with comment header
+            const header = `; Modified by MilkDrop Modifier v1\n; Mode: ${STATE.selectedMode || 'Manual'}\n; Risk Score: ${STATE.analysis.riskScore}\n\n`;
+            return header + STATE.originalPreset;
+        }
+
+        // Download file
+        function downloadFile(content, filename) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            DEBUG.log(`Downloaded: ${filename}`);
+        }
+
+        // Changelog
+        function addToChangelog(entry) {
+            STATE.changelog.push({ time: new Date().toLocaleTimeString(), entry });
+            saveToStorage();
+        }
+
+        function showChangelog() {
+            const content = document.getElementById('changelogContent');
+            content.innerHTML = '';
+            
+            if (STATE.changelog.length === 0) {
+                content.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No changes yet</div>';
+            } else {
+                STATE.changelog.forEach(log => {
+                    const item = document.createElement('div');
+                    item.className = 'changelog-item';
+                    item.innerHTML = `<div style="color:#888;font-size:11px;">${log.time}</div><div>${log.entry}</div>`;
+                    content.appendChild(item);
+                });
+            }
+
+            document.getElementById('changelogModal').style.display = 'block';
+        }
+
+        function hideChangelog() {
+            document.getElementById('changelogModal').style.display = 'none';
+        }
+
+        // Settings
+        function toggleSettings() {
+            const menu = document.getElementById('settingsMenu');
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function toggleDebug() {
+            const debugConsole = document.getElementById('debugConsole');
+            if (debugConsole.style.display === 'none') {
+                debugConsole.style.display = 'block';
+                DEBUG.log('Debug console opened');
+            } else {
+                debugConsole.style.display = 'none';
+            }
+            toggleSettings();
+        }
+
+        function clearStorage() {
+            if (confirm('Clear all saved data?')) {
+                localStorage.clear();
+                STATE.changelog = [];
+                DEBUG.log('Storage cleared');
+            }
+            toggleSettings();
+        }
+
+        function downloadState() {
+            const state = JSON.stringify(STATE, null, 2);
+            downloadFile(state, 'state.json');
+            toggleSettings();
+        }
+
+        // Storage
+        function saveToStorage() {
+            try {
+                localStorage.setItem('milkmod_state', JSON.stringify({
+                    analysis: STATE.analysis,
+                    selectedMode: STATE.selectedMode,
+                    expertMode: STATE.expertMode,
+                    timedApply: STATE.timedApply,
+                    locked: STATE.locked,
+                    hasEdits: STATE.hasEdits,
+                    currentFilename: STATE.currentFilename,
+                    controls: STATE.controls,
+                    changelog: STATE.changelog
+                }));
+            } catch (e) {
+                DEBUG.log('Failed to save to storage', 'error');
+            }
+        }
+
+        function loadFromStorage() {
+            try {
+                const saved = localStorage.getItem('milkmod_state');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    STATE.changelog = data.changelog || [];
+                    STATE.expertMode = data.expertMode || false;
+                    STATE.timedApply = data.timedApply || false;
+                    STATE.locked = data.locked || false;
+                    
+                    document.getElementById('expertMode').checked = STATE.expertMode;
+                    document.getElementById('timedApply').checked = STATE.timedApply;
+                    
+                    if (STATE.locked) {
+                        const lockBtn = document.getElementById('lockBtn');
+                        lockBtn.textContent = '🔒 Locked';
+                        lockBtn.classList.add('locked');
+                    }
+                    
+                    DEBUG.log('State loaded from storage');
+                }
+            } catch (e) {
+                DEBUG.log('Failed to load from storage', 'error');
+            }
+        }
+
+        // Close modals on outside click
+        window.onclick = function(event) {
+            if (event.target === document.getElementById('changelogModal')) {
+                hideChangelog();
+            }
+            if (event.target === document.getElementById('presetModal')) {
+                hidePresetModal();
+            }
+            if (event.target === document.getElementById('filenameModal')) {
+                hideFilenameDialog();
+            }
+            if (event.target === document.getElementById('compareModal')) {
+                hideCompareModal();
+            }
+            const settingsMenu = document.getElementById('settingsMenu');
+            if (!event.target.closest('.settings-toggle') && !event.target.closest('.settings-menu')) {
+                settingsMenu.style.display = 'none';
+            }
+        }
+
+        // Handle Enter key in filename input
+        document.addEventListener('DOMContentLoaded', () => {
+            const filenameInput = document.getElementById('newFilename');
+            if (filenameInput) {
+                filenameInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        applyFilenameChange();
+                    }
+                });
+            }
+        });
+
+        // Initialize
+        window.onerror = function(message, source, lineno, colno, error) {
+            DEBUG.log(`GLOBAL ERROR: ${message} at ${lineno}:${colno}`, 'error');
+            if (error && error.stack) {
+                DEBUG.log(`Stack: ${error.stack}`, 'error');
+            }
+            return false; // Let default handler run too
+        };
+
+        window.onunhandledrejection = function(event) {
+            DEBUG.log(`UNHANDLED PROMISE REJECTION: ${event.reason}`, 'error');
+        };
+
+        DEBUG.log('MilkDrop Modifier v4 initialized');
+        DEBUG.log('System ready. Upload a .milk file to begin.');
+        loadFromStorage();
+    </script>
+</body>
+</html>
