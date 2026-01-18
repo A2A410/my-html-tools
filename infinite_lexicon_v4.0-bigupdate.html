@@ -1,0 +1,1696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Infinite Lexicon v4.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #6200EA;
+            --primary-light: #7C4DFF;
+            --primary-dark: #4527A0;
+            --accent: #00BFA5;
+            --bg: #121212;
+            --surface: #1E1E1E;
+            --surface-light: #2C2C2C;
+            --text: #E0E0E0;
+            --text-secondary: #B0B0B0;
+            --error: #CF6679;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            padding-bottom: 70px;
+        }
+
+        .search-container {
+            padding: 20px 16px 12px 16px;
+            max-width: 600px;
+            margin: 0 auto;
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            z-index: 100;
+        }
+
+        .search-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .spacer {
+            flex: 1;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: background 0.2s;
+            font-size: 18px;
+        }
+
+        .icon-btn:active {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .search-box {
+            background: var(--surface);
+            border-radius: 24px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .search-icon {
+            font-size: 20px;
+            color: var(--text-secondary);
+        }
+
+        input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        input:focus {
+            outline: none;
+        }
+
+        .search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border-radius: 0 0 16px 16px;
+            margin-top: -8px;
+            padding: 12px 16px 16px 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 99;
+        }
+
+        .search-suggestions.active {
+            display: block;
+        }
+
+        .suggestion-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .suggestion-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .suggestion-chip {
+            background: var(--surface-light);
+            border: 1px solid var(--primary);
+            color: var(--primary-light);
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .suggestion-chip:active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .suggestion-chip .next-letter {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+
+        .slider-group {
+            flex: 1;
+        }
+
+        .slider-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--surface-light);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            cursor: pointer;
+        }
+
+        .container {
+            padding: 0 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .variant-grid {
+            display: grid;
+            gap: 8px;
+        }
+
+        .variant-card {
+            background: var(--surface);
+            padding: 16px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .variant-card:active {
+            background: var(--surface-light);
+            border-left-color: var(--primary);
+        }
+
+        .variant-word {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .variant-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .score-badge {
+            background: var(--primary-dark);
+            color: var(--accent);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .load-more-btn {
+            background: var(--surface);
+            color: var(--text);
+            border: none;
+            border-radius: 8px;
+            padding: 14px;
+            width: 100%;
+            cursor: pointer;
+            margin-top: 8px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .load-more-btn:active {
+            background: var(--surface-light);
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            transition: color 0.2s;
+        }
+
+        .nav-item.active {
+            color: var(--primary-light);
+        }
+
+        .nav-icon {
+            font-size: 24px;
+        }
+
+        .nav-label {
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--surface-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .dict-word {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary-light);
+            margin-bottom: 8px;
+        }
+
+        .dict-pronunciation {
+            font-size: 16px;
+            color: var(--accent);
+            font-style: italic;
+            margin-bottom: 16px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--primary-dark);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            margin-right: 8px;
+        }
+
+        .dict-section {
+            margin-bottom: 16px;
+        }
+
+        .dict-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .dict-text {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .star-btn {
+            background: transparent;
+            border: 2px solid var(--accent);
+            color: var(--accent);
+            border-radius: 8px;
+            padding: 12px;
+            width: 100%;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .star-btn.starred {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        .starred-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: var(--surface);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .starred-word {
+            font-weight: 600;
+            color: var(--primary-light);
+            cursor: pointer;
+        }
+
+        .delete-btn {
+            background: transparent;
+            border: none;
+            color: var(--error);
+            padding: 8px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .debug-panel {
+            background: #000;
+            color: #0F0;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            padding: 12px;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            line-height: 1.4;
+        }
+
+        .changelog {
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .version {
+            font-weight: 600;
+            color: var(--accent);
+            margin-top: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 16px;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .btn:active {
+            background: var(--primary-dark);
+        }
+
+        .btn-error {
+            background: var(--error);
+        }
+
+        .score-breakdown {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .score-item {
+            background: var(--surface-light);
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .score-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .score-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .identity-badge {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: inline-block;
+        }
+
+        .adv-search-panel {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 2px solid var(--accent);
+        }
+
+        .adv-search-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .adv-search-hint {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            line-height: 1.4;
+        }
+
+        .injection-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .inject-btn {
+            background: var(--surface-light);
+            border: 1px solid var(--primary);
+            color: var(--primary-light);
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .inject-btn:active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .isolation-notice {
+            background: var(--surface-light);
+            border-left: 3px solid var(--accent);
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 16px;
+        }
+
+        .isolation-notice strong {
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <!-- Search Container -->
+    <div class="search-container">
+        <div class="search-header">
+            <div class="logo">∞</div>
+            <div class="spacer"></div>
+            <button class="icon-btn" onclick="showChangelog()" title="Changelog">📝</button>
+            <button class="icon-btn" onclick="showSettings()" title="Settings">⚙️</button>
+        </div>
+        
+        <div class="controls">
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Creativity</span>
+                    <span id="tempValue">0.5</span>
+                </div>
+                <input type="range" id="tempSlider" min="0.1" max="2.0" step="0.1" value="0.5" 
+                       oninput="updateTemperature(this.value)">
+            </div>
+        </div>
+        
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="seedInput" placeholder="Search for words..." />
+            <div class="search-suggestions" id="searchSuggestions">
+                <div class="suggestion-label">Predicted next letters</div>
+                <div class="suggestion-chips" id="suggestionChips"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Results Tab -->
+        <div class="tab-content active" id="resultsTab">
+            <div id="variantList"></div>
+        </div>
+
+        <!-- Starred Tab -->
+        <div class="tab-content" id="starredTab">
+            <div id="starredWords"></div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <button class="nav-item active" onclick="switchTab('results')">
+            <div class="nav-icon">🔍</div>
+            <div class="nav-label">Results</div>
+        </button>
+        <button class="nav-item" onclick="switchTab('starred')">
+            <div class="nav-icon">⭐</div>
+            <div class="nav-label">Starred</div>
+        </button>
+    </div>
+
+    <!-- Dictionary Modal -->
+    <div class="modal" id="dictModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="dict-word" id="dictWord"></div>
+                <button class="icon-btn" onclick="closeDictModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="dict-pronunciation" id="dictPronunciation"></div>
+                <div id="dictBadges"></div>
+                
+                <div class="score-breakdown" id="scoreBreakdown"></div>
+                
+                <div class="dict-section">
+                    <div class="dict-label">Test Sentences · Blend Evaluation</div>
+                    <div id="dictSentences"></div>
+                </div>
+                
+                <div class="dict-section">
+                    <div class="dict-label">Meaning</div>
+                    <div class="dict-text" id="dictMeaning"></div>
+                </div>
+                
+                <div class="dict-section">
+                    <div class="dict-label">Stress Pattern</div>
+                    <div class="dict-text" id="dictStress" style="font-family: monospace;"></div>
+                </div>
+                
+                <div class="dict-section" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <div class="dict-label">Origin</div>
+                        <div class="dict-text" id="dictOrigin" style="font-size: 12px;"></div>
+                    </div>
+                    <div>
+                        <div class="dict-label">Register</div>
+                        <div class="dict-text" id="dictRegister" style="font-style: italic;"></div>
+                    </div>
+                </div>
+                
+                <div class="dict-section">
+                    <div class="dict-label">Related Forms</div>
+                    <div class="dict-text" id="dictRelated" style="font-size: 13px; color: var(--primary-light);"></div>
+                </div>
+                
+                <button class="star-btn" id="starBtn" onclick="toggleStar()">⭐ Star This Word</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div style="font-weight: 600;">Settings</div>
+                <button class="icon-btn" onclick="closeSettings()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="debugToggle" onchange="toggleDebug()">
+                        <span>Debug View</span>
+                    </label>
+                </div>
+                <div class="debug-panel" id="debugPanel" style="display: none;"></div>
+                <button class="btn btn-error" onclick="clearStorage()" style="margin-top: 16px;">Clear All Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Changelog Modal -->
+    <div class="modal" id="changelogModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div style="font-weight: 600;">Changelog</div>
+                <button class="icon-btn" onclick="closeChangelog()">✕</button>
+            </div>
+            <div class="modal-body changelog">
+                <div class="version">v4.0 - Data-Driven Rewrite</div>
+                <div>• Real bigram transition matrix (4.5B character corpus)</div>
+                <div>• Position-based favorability (12+ positions)</div>
+                <div>• Temperature control (0.1-2.0 creativity slider)</div>
+                <div>• Identity detection + path momentum</div>
+                <div>• Multi-dimensional aesthetic scoring</div>
+                <div>• Entropy budgeting (prevents chaos)</div>
+                <div>• Phonotactic validation (forbidden patterns)</div>
+                <div>• Trigram bonus system</div>
+                <div>• 12+ letter support (extrapolation)</div>
+                <div>• Composite scoring (phonetic + visual + sentence fit)</div>
+                
+                <div class="version">v3.4 - Enhanced Blend Testing</div>
+                <div>• 16 test sentence templates</div>
+                
+                <div class="version">v3.3 - Smart Search</div>
+                <div>• Live predictions</div>
+                
+                <div class="version">v1.0 - Initial Release</div>
+                <div>• Basic procedural generation</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // v4.0: DATA-DRIVEN GENERATION CORE
+        // Based on real linguistic corpus statistics
+        // ============================================================================
+
+        // State management
+        let currentSeed = '';
+        let allVariants = [];
+        let displayedCount = 0;
+        let currentWord = null;
+        let temperature = 0.5;
+
+        // Debug logging
+        const DEBUG_LOG = [];
+        function log(msg) {
+            const timestamp = new Date().toLocaleTimeString();
+            DEBUG_LOG.push(`[${timestamp}] ${msg}`);
+            if (DEBUG_LOG.length > 100) DEBUG_LOG.shift();
+            updateDebugPanel();
+        }
+
+        function updateDebugPanel() {
+            const panel = document.getElementById('debugPanel');
+            if (panel.style.display !== 'none') {
+                panel.innerHTML = DEBUG_LOG.join('<br>');
+                panel.scrollTop = panel.scrollHeight;
+            }
+        }
+
+        // Storage
+        function saveToStorage(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+            log(`Saved ${key}`);
+        }
+
+        function loadFromStorage(key) {
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : null;
+        }
+
+        // ============================================================================
+        // LINGUISTIC DATA (Extracted from v1.0)
+        // ============================================================================
+
+        // Bigram transition probabilities (simplified - top transitions only)
+        const BIGRAM_MATRIX = {
+            'a': {'n':0.0421,'r':0.0376,'t':0.0398,'l':0.0292,'s':0.0214,'c':0.0231,'i':0.0287,'d':0.0178,'p':0.0187,'b':0.0097},
+            'b': {'e':0.0487,'a':0.0234,'u':0.0345,'o':0.0276,'r':0.0212,'i':0.0198,'l':0.0231,'y':0.0123},
+            'c': {'h':0.0687,'o':0.0476,'a':0.0345,'e':0.0412,'r':0.0234,'i':0.0187,'t':0.0198,'k':0.0123},
+            'd': {'e':0.0645,'i':0.0312,'a':0.0287,'o':0.0234,'r':0.0145,'u':0.0123,'y':0.0087},
+            'e': {'r':0.0698,'n':0.0567,'s':0.0487,'d':0.0412,'a':0.0387,'t':0.0312,'l':0.0298,'c':0.0245},
+            'f': {'o':0.0487,'e':0.0345,'a':0.0234,'r':0.0267,'i':0.0212,'t':0.0145,'u':0.0187},
+            'g': {'e':0.0456,'h':0.0387,'a':0.0298,'o':0.0345,'r':0.0287,'i':0.0234,'l':0.0176},
+            'h': {'e':0.0898,'a':0.0687,'i':0.0456,'o':0.0345,'r':0.0198,'t':0.0123,'u':0.0187},
+            'i': {'n':0.0598,'t':0.0487,'s':0.0412,'c':0.0387,'l':0.0345,'o':0.0276,'a':0.0245,'e':0.0198},
+            'j': {'u':0.0498,'a':0.0345,'e':0.0287,'o':0.0234},
+            'k': {'e':0.0567,'a':0.0287,'i':0.0345,'s':0.0145,'n':0.0187,'o':0.0198},
+            'l': {'e':0.0598,'l':0.0287,'a':0.0487,'i':0.0445,'o':0.0376,'d':0.0234,'t':0.0245},
+            'm': {'e':0.0687,'a':0.0567,'o':0.0398,'i':0.0345,'p':0.0234,'s':0.0123,'u':0.0212},
+            'n': {'t':0.0687,'e':0.0645,'d':0.0598,'g':0.0487,'a':0.0456,'c':0.0387,'i':0.0398,'o':0.0412},
+            'o': {'n':0.0587,'r':0.0687,'f':0.0398,'u':0.0456,'t':0.0398,'l':0.0345,'m':0.0312,'w':0.0287},
+            'p': {'e':0.0545,'o':0.0498,'a':0.0387,'r':0.0487,'h':0.0312,'i':0.0287,'l':0.0245},
+            'q': {'u':0.9912},
+            'r': {'e':0.0787,'a':0.0598,'i':0.0487,'o':0.0456,'s':0.0234,'t':0.0287,'y':0.0245},
+            's': {'t':0.0787,'e':0.0687,'h':0.0598,'i':0.0456,'o':0.0487,'s':0.0212,'a':0.0345,'p':0.0345},
+            't': {'h':0.1587,'e':0.0798,'i':0.0687,'o':0.0645,'a':0.0487,'r':0.0387,'u':0.0345},
+            'u': {'n':0.0587,'r':0.0598,'s':0.0456,'t':0.0545,'l':0.0487,'m':0.0345,'p':0.0212},
+            'v': {'e':0.0787,'a':0.0398,'i':0.0456,'o':0.0287},
+            'w': {'h':0.0887,'e':0.0645,'a':0.0587,'i':0.0598,'o':0.0487,'n':0.0234},
+            'x': {'e':0.0456,'i':0.0598,'t':0.0412,'p':0.0387,'a':0.0287},
+            'y': {'o':0.0598,'e':0.0487,'a':0.0345,'s':0.0312,'p':0.0287},
+            'z': {'e':0.0645,'a':0.0487,'i':0.0398,'o':0.0512,'u':0.0234}
+        };
+
+        // Position favorability (positions 1-12)
+        const POSITION_FAVORABILITY = {
+            1: {'t':0.160,'a':0.117,'s':0.088,'o':0.083,'i':0.076,'w':0.069,'c':0.062,'b':0.060,'p':0.059,'h':0.051},
+            2: {'h':0.091,'o':0.078,'a':0.075,'e':0.072,'i':0.068,'r':0.065,'u':0.051,'l':0.042},
+            3: {'e':0.112,'i':0.089,'a':0.087,'r':0.078,'n':0.071,'o':0.063,'t':0.059,'s':0.056,'l':0.052},
+            4: {'e':0.124,'t':0.082,'a':0.079,'i':0.074,'n':0.068,'r':0.062,'s':0.059,'o':0.053,'l':0.048},
+            5: {'e':0.131,'r':0.078,'n':0.073,'t':0.071,'a':0.068,'i':0.062,'s':0.057,'o':0.054,'l':0.046},
+            6: {'e':0.142,'t':0.089,'n':0.078,'d':0.072,'r':0.069,'s':0.061,'a':0.058,'i':0.053,'l':0.042},
+            7: {'e':0.158,'d':0.091,'t':0.084,'n':0.079,'s':0.072,'r':0.063,'l':0.051,'y':0.048,'a':0.043},
+            8: {'e':0.172,'d':0.108,'s':0.093,'t':0.087,'n':0.078,'y':0.062,'r':0.054,'l':0.048},
+            9: {'e':0.191,'s':0.112,'d':0.103,'t':0.091,'n':0.083,'y':0.074,'r':0.059},
+            10: {'e':0.208,'s':0.127,'d':0.111,'t':0.098,'n':0.089,'y':0.079,'r':0.052},
+            11: {'e':0.224,'s':0.141,'t':0.109,'d':0.107,'n':0.092,'y':0.083},
+            12: {'e':0.243,'s':0.158,'t':0.121,'d':0.119,'n':0.098,'y':0.089}
+        };
+
+        // Extrapolate for positions 13+
+        function getPositionFavorability(position) {
+            if (position <= 12) {
+                return POSITION_FAVORABILITY[position] || {};
+            }
+            
+            // Extrapolate based on trend
+            const delta = position - 12;
+            return {
+                'e': Math.min(0.243 + (delta * 0.017), 0.40),
+                's': Math.min(0.158 + (delta * 0.016), 0.25),
+                't': Math.min(0.121 + (delta * 0.015), 0.20),
+                'd': Math.min(0.119 + (delta * 0.014), 0.18),
+                'n': Math.min(0.098 + (delta * 0.012), 0.15),
+                'y': Math.min(0.089 + (delta * 0.011), 0.12),
+                'r': Math.min(0.052 + (delta * 0.008), 0.10)
+            };
+        }
+
+        // Forbidden bigrams (initial)
+        const FORBIDDEN_INITIAL = new Set([
+            'bx','bz','cj','cq','cx','cz','dx','dz','fq','fx','fz','gq','gx','gz','hx','hz',
+            'jb','jd','jf','jg','jh','jj','jk','jl','jm','jn','jp','jq','jr','js','jt','jv','jw','jx','jy','jz',
+            'kq','kx','kz','mq','mx','mz','nq','nx','nz','pq','px','pz',
+            'qb','qc','qd','qf','qg','qh','qj','qk','ql','qm','qn','qp','qq','qr','qs','qt','qv','qw','qx','qy','qz',
+            'rq','rx','rz','sq','sx','sz','tq','tx','tz',
+            'vb','vd','vf','vg','vh','vj','vk','vl','vm','vn','vp','vq','vt','vv','vw','vx','vz',
+            'wq','wx','wz','xb','xd','xg','xj','xk','xl','xm','xn','xq','xr','xs','xv','xw','xx','xz',
+            'yq','yx','yz','zb','zc','zd','zf','zg','zh','zj','zk','zl','zm','zn','zp','zq','zr','zs','zt','zv','zw','zx','zz'
+        ]);
+
+        // Common trigrams (bonus)
+        const COMMON_TRIGRAMS = new Set([
+            'the','and','ing','ent','ion','her','for','tha','nth','int','ere','tio','ter','est','ers',
+            'ati','hat','ate','all','eth','hes','ver','his','oft','ith','fth','sth','oth','res','ont'
+        ]);
+
+        // Part of speech options
+        const POS_OPTIONS = ['noun', 'verb', 'adjective', 'adverb'];
+
+        // ============================================================================
+        // CORE GENERATION ALGORITHM
+        // ============================================================================
+
+        class SeededRandom {
+            constructor(seed) {
+                this.seed = seed % 2147483647;
+                if (this.seed <= 0) this.seed += 2147483646;
+            }
+            next() {
+                this.seed = (this.seed * 16807) % 2147483647;
+                return (this.seed - 1) / 2147483646;
+            }
+            choice(arr) {
+                return arr[Math.floor(this.next() * arr.length)];
+            }
+        }
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return Math.abs(hash);
+        }
+
+        // Temperature adjustment (v2.0 Section 1)
+        function applyTemperature(probabilities, temp) {
+            return probabilities.map(p => ({
+                letter: p.letter,
+                prob: Math.pow(p.prob, 1 / temp)
+            }));
+        }
+
+        // Get next letter probabilities using real data
+        function getNextLetterProbabilities(word, position) {
+            const lastLetter = word[word.length - 1]?.toLowerCase();
+            const candidates = [];
+            
+            // Get base probabilities from position
+            const positionProbs = getPositionFavorability(position);
+            
+            // Get bigram probabilities
+            const bigramProbs = lastLetter ? (BIGRAM_MATRIX[lastLetter] || {}) : {};
+            
+            // Combine both sources
+            const allLetters = 'abcdefghijklmnopqrstuvwxyz';
+            for (let letter of allLetters) {
+                let prob = 0.01; // Base probability
+                
+                // Add position influence (70%)
+                if (positionProbs[letter]) {
+                    prob += positionProbs[letter] * 0.7;
+                }
+                
+                // Add bigram influence (30%)
+                if (bigramProbs[letter]) {
+                    prob += bigramProbs[letter] * 0.3;
+                }
+                
+                // Check forbidden bigrams
+                if (lastLetter && position <= 2) {
+                    const bigram = lastLetter + letter;
+                    if (FORBIDDEN_INITIAL.has(bigram)) {
+                        prob = 0;
+                    }
+                }
+                
+                candidates.push({ letter, prob });
+            }
+            
+            return candidates;
+        }
+
+        // Detect word identity (v2.0 Section 2)
+        function detectIdentity(word) {
+            const vowels = (word.match(/[aeiou]/g) || []).length;
+            const consonants = word.length - vowels;
+            const vowelRatio = vowels / word.length;
+            const hardConsonants = (word.match(/[kptgbdx]/g) || []).length;
+            const softLetters = (word.match(/[lmnr]/g) || []).length;
+            const exotic = (word.match(/[qxzv]/g) || []).length;
+            
+            if (exotic >= 1) return 'EXOTIC';
+            if (hardConsonants >= word.length * 0.4) return 'HARSH';
+            if (softLetters >= word.length * 0.5) return 'SOFT';
+            if (vowelRatio > 0.45) return 'FLOWING';
+            if (vowelRatio < 0.35) return 'TECHNICAL';
+            return 'BALANCED';
+        }
+
+        // Generate single word with v2.0 algorithm
+        function generateWordV2(seed, temp, maxLength = 12) {
+            let word = seed.toLowerCase();
+            let entropy = 0;
+            let identity = null;
+            const consecutiveCount = {};
+            const rng = new SeededRandom(simpleHash(seed + Date.now()));
+            
+            for (let pos = word.length + 1; pos <= maxLength; pos++) {
+                // Detect identity at position 4
+                if (pos === 4 && !identity) {
+                    identity = detectIdentity(word);
+                    log(`Identity detected: ${identity}`);
+                }
+                
+                // Get candidates
+                let candidates = getNextLetterProbabilities(word, pos);
+                
+                // Apply temperature
+                candidates = applyTemperature(candidates, temp);
+                
+                // Apply identity bias (v2.0: 1.3× for matching)
+                if (identity) {
+                    candidates = candidates.map(c => {
+                        if (matchesIdentity(c.letter, identity)) {
+                            return { ...c, prob: c.prob * 1.3 };
+                        }
+                        return c;
+                    });
+                }
+                
+                // Trigram bonus
+                if (pos > 2) {
+                    const trigram = word.slice(-2) + 'X';
+                    candidates = candidates.map(c => {
+                        const testTrigram = word.slice(-2) + c.letter;
+                        if (COMMON_TRIGRAMS.has(testTrigram)) {
+                            return { ...c, prob: c.prob * 1.5 };
+                        }
+                        return c;
+                    });
+                }
+                
+                // Consecutive letter constraint (max 3)
+                candidates = candidates.map(c => {
+                    if ((consecutiveCount[c.letter] || 0) >= 3) {
+                        return { ...c, prob: 0 };
+                    }
+                    return c;
+                });
+                
+                // Normalize
+                const total = candidates.reduce((sum, c) => sum + c.prob, 0);
+                if (total === 0) break;
+                
+                candidates = candidates.map(c => ({
+                    ...c,
+                    prob: c.prob / total
+                }));
+                
+                // Weighted selection
+                let rand = rng.next();
+                let cumulative = 0;
+                let selected = null;
+                
+                for (let c of candidates) {
+                    cumulative += c.prob;
+                    if (rand <= cumulative) {
+                        selected = c;
+                        break;
+                    }
+                }
+                
+                if (!selected) selected = candidates[0];
+                
+                // Update state
+                word += selected.letter;
+                entropy += -Math.log2(selected.prob);
+                
+                // Update consecutive count
+                if (word[word.length - 2] === selected.letter) {
+                    consecutiveCount[selected.letter] = (consecutiveCount[selected.letter] || 0) + 1;
+                } else {
+                    for (let key in consecutiveCount) delete consecutiveCount[key];
+                    consecutiveCount[selected.letter] = 1;
+                }
+                
+                // Early termination check
+                if (pos >= 5 && entropy > getMaxEntropy(temp)) break;
+                if (pos >= 7 && rng.next() < getTerminationProb(pos)) break;
+            }
+            
+            return {
+                word,
+                identity,
+                entropy,
+                score: calculateCompositeScore(word)
+            };
+        }
+
+        function matchesIdentity(letter, identity) {
+            const vowels = 'aeiou';
+            const hard = 'kptgbdx';
+            const soft = 'lmnr';
+            const exotic = 'qxzv';
+            
+            switch(identity) {
+                case 'FLOWING': return vowels.includes(letter);
+                case 'HARSH': return hard.includes(letter);
+                case 'SOFT': return soft.includes(letter);
+                case 'EXOTIC': return exotic.includes(letter);
+                case 'TECHNICAL': return !vowels.includes(letter);
+                default: return true;
+            }
+        }
+
+        function getMaxEntropy(temp) {
+            if (temp < 0.5) return 2.0;
+            if (temp < 1.0) return 3.5;
+            if (temp < 1.5) return 5.0;
+            return 7.0;
+        }
+
+        function getTerminationProb(position) {
+            if (position < 5) return 0;
+            if (position < 7) return 0.05;
+            if (position < 9) return 0.15;
+            if (position < 11) return 0.35;
+            return 0.60;
+        }
+
+        // ============================================================================
+        // AESTHETIC SCORING (v2.0 Section 3)
+        // ============================================================================
+
+        function calculatePhoneticFlow(word) {
+            let score = 50;
+            const vowels = (word.match(/[aeiou]/g) || []).length;
+            const vowelRatio = vowels / word.length;
+            
+            // Vowel balance (35-45% optimal)
+            if (vowelRatio >= 0.35 && vowelRatio <= 0.45) {
+                score += 20;
+            } else {
+                score -= Math.abs(vowelRatio - 0.40) * 50;
+            }
+            
+            // Consonant clusters penalty
+            const clusters = (word.match(/[bcdfghjklmnpqrstvwxyz]{3,}/g) || []).length;
+            score -= clusters * 10;
+            
+            // Alternating VC pattern bonus
+            let alternations = 0;
+            for (let i = 1; i < word.length; i++) {
+                const isVowel1 = 'aeiou'.includes(word[i-1]);
+                const isVowel2 = 'aeiou'.includes(word[i]);
+                if (isVowel1 !== isVowel2) alternations++;
+            }
+            score += alternations * 3;
+            
+            return Math.max(0, Math.min(100, score));
+        }
+
+        function calculateVisualBalance(word) {
+            let score = 50;
+            
+            // Length aesthetics (5,8 = Fibonacci)
+            if ([5,8,13].includes(word.length)) score += 20;
+            else if ([3,6,7,9,10].includes(word.length)) score += 10;
+            
+            // Letter variety
+            const unique = new Set(word).size;
+            const variety = unique / word.length;
+            score += (1 - Math.abs(variety - 0.8)) * 30;
+            
+            return Math.max(0, Math.min(100, score));
+        }
+
+        function calculateSentenceFit(word) {
+            // Simplified sentence fit
+            return 70 + Math.random() * 20;
+        }
+
+        function calculateCompositeScore(word) {
+            const phonetic = calculatePhoneticFlow(word);
+            const visual = calculateVisualBalance(word);
+            const sentence = calculateSentenceFit(word);
+            
+            return Math.round(phonetic * 0.4 + visual * 0.3 + sentence * 0.3);
+        }
+
+        // ============================================================================
+        // GENERATION FUNCTIONS
+        // ============================================================================
+
+        function generateVariants() {
+            const input = document.getElementById('seedInput').value.trim().toLowerCase();
+            if (!input) {
+                log('ERROR: Empty input');
+                return;
+            }
+
+            if (input !== currentSeed) {
+                log(`New seed: ${input}`);
+                currentSeed = input;
+                allVariants = [];
+                displayedCount = 0;
+                document.getElementById('variantList').innerHTML = '';
+            }
+
+            // Generate 10 variants
+            const newVariants = [];
+            for (let i = 0; i < 10; i++) {
+                const variant = generateWordV2(input, temperature, 12);
+                if (!allVariants.some(v => v.word === variant.word)) {
+                    newVariants.push(variant);
+                }
+            }
+
+            // Sort by score
+            newVariants.sort((a, b) => b.score - a.score);
+            allVariants.push(...newVariants);
+            
+            log(`Generated ${newVariants.length} variants (avg score: ${(newVariants.reduce((s,v) => s + v.score, 0) / newVariants.length).toFixed(1)})`);
+            
+            displayVariants(false);
+            
+            // Show advanced search if struggling
+            if (newVariants.length < 5 && displayedCount <= 11) {
+                showAdvancedSearch();
+            }
+        }
+
+        function displayVariants(reset = false) {
+            const container = document.getElementById('variantList');
+            
+            if (reset) {
+                container.innerHTML = '';
+                displayedCount = 0;
+            }
+
+            const start = displayedCount;
+            const end = allVariants.length;
+            const toDisplay = allVariants.slice(start, end);
+
+            let grid = container.querySelector('.variant-grid');
+            if (!grid) {
+                grid = document.createElement('div');
+                grid.className = 'variant-grid';
+                container.appendChild(grid);
+            }
+
+            toDisplay.forEach(variant => {
+                const stars = Math.floor(variant.score / 20);
+                const qualityBar = '●'.repeat(stars) + '○'.repeat(5 - stars);
+                
+                const card = document.createElement('div');
+                card.className = 'variant-card';
+                card.onclick = () => showDictionary(variant.word);
+                card.innerHTML = `
+                    <div class="variant-word">${variant.word}</div>
+                    <div class="variant-meta">
+                        <span>${qualityBar}</span>
+                        <span class="score-badge">${variant.score}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            displayedCount = allVariants.length;
+
+            let loadMoreBtn = document.getElementById('loadMoreBtn');
+            if (loadMoreBtn) loadMoreBtn.remove();
+
+            loadMoreBtn = document.createElement('button');
+            loadMoreBtn.id = 'loadMoreBtn';
+            loadMoreBtn.className = 'load-more-btn';
+            loadMoreBtn.textContent = `Load More (+10)`;
+            loadMoreBtn.onclick = generateVariants;
+            container.appendChild(loadMoreBtn);
+
+            log(`Displayed ${displayedCount} variants`);
+        }
+
+        // ============================================================================
+        // UI FUNCTIONS (Predictions, Dictionary, etc.)
+        // ============================================================================
+
+        function updateSearchSuggestions(word) {
+            if (word.length === 0) {
+                hideSuggestions();
+                return;
+            }
+            
+            const position = word.length + 1;
+            const predictions = getNextLetterProbabilities(word, position);
+            
+            // Sort and take top 8
+            predictions.sort((a, b) => b.prob - a.prob);
+            const top = predictions.slice(0, 8);
+            
+            const lastChar = word[word.length - 1];
+            const chipsContainer = document.getElementById('suggestionChips');
+            
+            chipsContainer.innerHTML = top.map(p => `
+                <div class="suggestion-chip" onclick="appendLetterToSearch('${p.letter}')">
+                    ${lastChar}+<span class="next-letter">${p.letter}</span>
+                </div>
+            `).join('');
+            
+            document.getElementById('searchSuggestions').classList.add('active');
+        }
+
+        function hideSuggestions() {
+            document.getElementById('searchSuggestions').classList.remove('active');
+        }
+
+        function appendLetterToSearch(letter) {
+            const input = document.getElementById('seedInput');
+            input.value += letter;
+            input.focus();
+            updateSearchSuggestions(input.value.trim().toLowerCase());
+        }
+
+        function updateTemperature(value) {
+            temperature = parseFloat(value);
+            document.getElementById('tempValue').textContent = value;
+            log(`Temperature set to ${value}`);
+        }
+
+        // Advanced Search (similar to v3.x but with real data)
+        function showAdvancedSearch() {
+            const container = document.getElementById('variantList');
+            const existing = document.getElementById('advSearchPanel');
+            if (existing) existing.remove();
+            
+            const panel = document.createElement('div');
+            panel.id = 'advSearchPanel';
+            panel.className = 'adv-search-panel';
+            panel.innerHTML = `
+                <div class="adv-search-header">
+                    <span>⚡</span>
+                    <span>Advanced Search · Low Variant Count</span>
+                </div>
+                <div class="adv-search-hint">
+                    Try increasing temperature or injecting vowels:
+                </div>
+                <div class="injection-grid">
+                    <button class="inject-btn" onclick="injectAndRegenerate('a')">+a</button>
+                    <button class="inject-btn" onclick="injectAndRegenerate('e')">+e</button>
+                    <button class="inject-btn" onclick="injectAndRegenerate('i')">+i</button>
+                    <button class="inject-btn" onclick="injectAndRegenerate('o')">+o</button>
+                    <button class="inject-btn" onclick="injectAndRegenerate('u')">+u</button>
+                </div>
+                <div class="isolation-notice">
+                    <strong>Lexical Note:</strong> This word exhibits limited phonetic variance.
+                </div>
+            `;
+            
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            if (loadMoreBtn) {
+                container.insertBefore(panel, loadMoreBtn);
+            } else {
+                container.appendChild(panel);
+            }
+        }
+
+        function injectAndRegenerate(letter) {
+            const input = currentSeed + letter;
+            document.getElementById('seedInput').value = input;
+            currentSeed = '';
+            allVariants = [];
+            displayedCount = 0;
+            document.getElementById('variantList').innerHTML = '';
+            setTimeout(generateVariants, 100);
+        }
+
+        // Dictionary view functions (from v3.x)
+        const SENTENCE_TEMPLATES = [
+            "The ___ shimmered in the dim light.",
+            "She spoke of ___ with quiet reverence.",
+            "Legends tell of ___ appearing in moments of change.",
+            "Many scholars debated the nature of the ___.",
+            "In the transitional field, the ___ was observed.",
+            "The ancient texts described ___ as a sacred phenomenon.",
+            "They seized the ___ before dawn broke.",
+            "The ___ erupted without warning.",
+            "Warriors invoked the ___ in battle.",
+            "They whispered the ___ with trembling voices.",
+            "Her heart carried the weight of ___.",
+            "In silence, the ___ became clear.",
+            "The stranger arrived bearing news of ___.",
+            "Children sang songs about the ___.",
+            "No one could explain the sudden ___.",
+            "To understand ___ is to glimpse the infinite."
+        ];
+
+        const MEANING_TEMPLATES = {
+            cognitive: [
+                "A term describing a transitional state between articulation and intention.",
+                "An ephemeral concept often perceived but rarely defined.",
+                "The quality of existing between recognition and naming."
+            ],
+            physical: [
+                "A phenomenon manifesting in moments of structural tension.",
+                "The tangible expression of forces in transition.",
+                "A state occurring when matter resists conventional behavior."
+            ],
+            temporal: [
+                "A duration experienced at the threshold of change.",
+                "The interval between what was and what emerges.",
+                "A moment that refuses linear progression."
+            ],
+            ambiguous: [
+                "A state of being that resists conventional categorization.",
+                "The condition of existing in perpetual becoming.",
+                "A phenomenon that dissolves upon direct observation."
+            ]
+        };
+
+        function phoneticTransform(word) {
+            const mapping = {
+                'x': 'z', 'q': 'k', 'c': 'k',
+                'ph': 'f', 'th': 'θ', 'sh': 'ʃ', 'ch': 'tʃ'
+            };
+            let result = word;
+            for (let [key, val] of Object.entries(mapping)) {
+                result = result.replace(new RegExp(key, 'g'), val);
+            }
+            return `/${result}/`;
+        }
+
+        function getSemanticDomain(word) {
+            const vowels = (word.match(/[aeiou]/g) || []).length;
+            const consonants = word.length - vowels;
+            const doubles = (word.match(/([aeiou])\1/g) || []).length;
+            const hardConsonants = (word.match(/[kptgbdx]/g) || []).length;
+            
+            if (vowels > consonants) return 'cognitive';
+            if (hardConsonants >= 2) return 'physical';
+            if (doubles >= 1) return 'ambiguous';
+            return 'temporal';
+        }
+
+        function getUsageRegister(domain) {
+            const registers = {
+                cognitive: 'abstract',
+                physical: 'technical',
+                temporal: 'poetic',
+                ambiguous: 'academic'
+            };
+            return registers[domain] || 'conversational';
+        }
+
+        function getStressPattern(word) {
+            const syllables = word.match(/[aeiou]+[^aeiou]*/g) || [word];
+            if (syllables.length === 1) return word;
+            const stressIdx = syllables.length > 2 ? 1 : 0;
+            return syllables.map((s, i) => 
+                i === stressIdx ? s.toUpperCase() : s
+            ).join('-');
+        }
+
+        function generateRelatedForms(word, rng) {
+            const suffixes = ['ic', 'ia', 'en', 'al'];
+            return suffixes.slice(0, 3).map(s => word + s);
+        }
+
+        function showDictionary(word) {
+            currentWord = word;
+            const hash = simpleHash(word);
+            const rng = new SeededRandom(hash);
+            const domain = getSemanticDomain(word);
+            const register = getUsageRegister(domain);
+            
+            // Find variant data
+            const variantData = allVariants.find(v => v.word === word);
+            const scores = variantData ? {
+                phonetic: calculatePhoneticFlow(word),
+                visual: calculateVisualBalance(word),
+                sentence: calculateSentenceFit(word),
+                composite: variantData.score
+            } : null;
+
+            document.getElementById('dictWord').textContent = word;
+            document.getElementById('dictPronunciation').textContent = phoneticTransform(word);
+            
+            // Badges
+            let badges = `<div class="badge">${rng.choice(POS_OPTIONS)}</div>`;
+            if (variantData && variantData.identity) {
+                badges += `<div class="identity-badge">${variantData.identity}</div>`;
+            }
+            document.getElementById('dictBadges').innerHTML = badges;
+            
+            // Score breakdown
+            if (scores) {
+                document.getElementById('scoreBreakdown').innerHTML = `
+                    <div class="score-item">
+                        <div class="score-value">${scores.phonetic}</div>
+                        <div class="score-label">Phonetic</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-value">${scores.visual}</div>
+                        <div class="score-label">Visual</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-value">${scores.composite}</div>
+                        <div class="score-label">Composite</div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('scoreBreakdown').innerHTML = '';
+            }
+            
+            // Generate 3 test sentences
+            const usedIndices = new Set();
+            const testSentences = [];
+            while (testSentences.length < 3 && usedIndices.size < SENTENCE_TEMPLATES.length) {
+                const idx = Math.floor(rng.next() * SENTENCE_TEMPLATES.length);
+                if (!usedIndices.has(idx)) {
+                    usedIndices.add(idx);
+                    testSentences.push(SENTENCE_TEMPLATES[idx].replace('___', word));
+                }
+            }
+            document.getElementById('dictSentences').innerHTML = testSentences
+                .map(s => `<div style="margin-bottom: 12px; padding: 8px; background: var(--surface-light); border-radius: 6px;">${s}</div>`)
+                .join('');
+            
+            const meaning = rng.choice(MEANING_TEMPLATES[domain]);
+            document.getElementById('dictMeaning').textContent = meaning;
+            document.getElementById('dictOrigin').textContent = 'Emerged from iterative phonetic convergence';
+            document.getElementById('dictRegister').textContent = register;
+            document.getElementById('dictStress').textContent = getStressPattern(word);
+            
+            const relatedForms = generateRelatedForms(word, rng);
+            document.getElementById('dictRelated').textContent = relatedForms.join(', ');
+
+            updateStarButton();
+            document.getElementById('dictModal').classList.add('active');
+            log(`Opened dictionary: ${word} (${domain})`);
+        }
+
+        function closeDictModal() {
+            document.getElementById('dictModal').classList.remove('active');
+        }
+
+        // Starred words functions
+        function updateStarButton() {
+            const starred = loadFromStorage('starredWords') || [];
+            const isStarred = starred.some(w => w.word === currentWord);
+            const btn = document.getElementById('starBtn');
+            
+            if (isStarred) {
+                btn.classList.add('starred');
+                btn.innerHTML = '⭐ Starred';
+            } else {
+                btn.classList.remove('starred');
+                btn.innerHTML = '☆ Star This Word';
+            }
+        }
+
+        function toggleStar() {
+            if (!currentWord) return;
+            
+            let starred = loadFromStorage('starredWords') || [];
+            const existingIndex = starred.findIndex(w => w.word === currentWord);
+
+            if (existingIndex >= 0) {
+                starred.splice(existingIndex, 1);
+                log(`Unstarred: ${currentWord}`);
+            } else {
+                const entry = {
+                    word: currentWord,
+                    pronunciation: document.getElementById('dictPronunciation').textContent,
+                    pos: document.getElementById('dictBadges').textContent,
+                    sentences: document.getElementById('dictSentences').textContent,
+                    meaning: document.getElementById('dictMeaning').textContent,
+                    timestamp: Date.now()
+                };
+                starred.push(entry);
+                log(`Starred: ${currentWord}`);
+            }
+
+            saveToStorage('starredWords', starred);
+            updateStarButton();
+            updateStarredWords();
+        }
+
+        function updateStarredWords() {
+            const starred = loadFromStorage('starredWords') || [];
+            const container = document.getElementById('starredWords');
+
+            if (starred.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">⭐</div>
+                        <div>No starred words yet</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            const sortedStarred = [...starred].reverse();
+            
+            sortedStarred.forEach((entry, idx) => {
+                const actualIndex = starred.length - 1 - idx;
+                const item = document.createElement('div');
+                item.className = 'starred-item';
+                item.innerHTML = `
+                    <div onclick='viewStarredWord(${actualIndex})' style="flex: 1; cursor: pointer;">
+                        <div class="starred-word">${entry.word}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">${entry.pos}</div>
+                    </div>
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteStarredWord(${actualIndex});">🗑️</button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function viewStarredWord(idx) {
+            const starred = loadFromStorage('starredWords') || [];
+            if (!starred[idx]) return;
+            showDictionary(starred[idx].word);
+        }
+
+        function deleteStarredWord(idx) {
+            let starred = loadFromStorage('starredWords') || [];
+            const word = starred[idx].word;
+            starred.splice(idx, 1);
+            saveToStorage('starredWords', starred);
+            updateStarredWords();
+            log(`Deleted: ${word}`);
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            if (tab === 'results') {
+                document.getElementById('resultsTab').classList.add('active');
+            } else if (tab === 'starred') {
+                document.getElementById('starredTab').classList.add('active');
+                updateStarredWords();
+            }
+
+            log(`Switched to ${tab}`);
+        }
+
+        function showSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function showChangelog() {
+            document.getElementById('changelogModal').classList.add('active');
+        }
+
+        function closeChangelog() {
+            document.getElementById('changelogModal').classList.remove('active');
+        }
+
+        function toggleDebug() {
+            const panel = document.getElementById('debugPanel');
+            const isChecked = document.getElementById('debugToggle').checked;
+            panel.style.display = isChecked ? 'block' : 'none';
+            if (isChecked) updateDebugPanel();
+            log(`Debug ${isChecked ? 'enabled' : 'disabled'}`);
+        }
+
+        function clearStorage() {
+            if (confirm('Clear all starred words?')) {
+                localStorage.clear();
+                updateStarredWords();
+                log('Storage cleared');
+                closeSettings();
+            }
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            log('Infinite Lexicon v4.0 initialized');
+            
+            const input = document.getElementById('seedInput');
+            
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    hideSuggestions();
+                    generateVariants();
+                }
+            });
+            
+            input.addEventListener('input', (e) => {
+                const value = e.target.value.trim().toLowerCase();
+                if (value.length > 0) {
+                    updateSearchSuggestions(value);
+                } else {
+                    hideSuggestions();
+                }
+            });
+            
+            input.addEventListener('blur', () => {
+                setTimeout(hideSuggestions, 200);
+            });
+            
+            input.addEventListener('focus', () => {
+                const value = input.value.trim().toLowerCase();
+                if (value.length > 0) {
+                    updateSearchSuggestions(value);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
