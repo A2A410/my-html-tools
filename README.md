@@ -22,7 +22,7 @@ Publicly accessible for testing and exploration.
 
 ## About
 
-A collection of small HTML tools intended to be deployed and accessed via a web server.
+A collection of small HTML tools intended to be deployed and accessed via a web server or from Github Pages.
 
 ---
 
