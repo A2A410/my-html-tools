@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Trypothesia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #121212;
+            color: #e0e0e0;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #canvasContainer {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #bubbleCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: #1a1a1a;
+        }
+
+        /* Controls Panel */
+        #controlsPanel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, #1e1e1e 0%, #1e1e1e 95%, transparent 100%);
+            transform: translateY(calc(100% - 48px));
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+            max-height: 80vh;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+        }
+
+        #controlsPanel.open {
+            transform: translateY(0);
+        }
+
+        #controlsHeader {
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: #2c2c2c;
+            border-bottom: 1px solid #404040;
+            user-select: none;
+        }
+
+        #controlsHeader::before {
+            content: '';
+            width: 40px;
+            height: 4px;
+            background: #666;
+            border-radius: 2px;
+        }
+
+        #controlsContent {
+            padding: 16px;
+            overflow-y: auto;
+            max-height: calc(80vh - 48px);
+        }
+
+        .control-group {
+            margin-bottom: 24px;
+            background: #252525;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .control-label {
+            font-size: 14px;
+            color: #b0b0b0;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-value {
+            color: #64b5f6;
+            font-weight: 500;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: #404040;
+            outline: none;
+            border-radius: 2px;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #64b5f6;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #64b5f6;
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            background: #333;
+            color: #e0e0e0;
+            border: 1px solid #555;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            text-align: center;
+            user-select: none;
+        }
+
+        .btn:active {
+            background: #404040;
+            transform: scale(0.98);
+        }
+
+        .btn.active {
+            background: #64b5f6;
+            color: #000;
+            border-color: #64b5f6;
+        }
+
+        /* Top Controls */
+        #topControls {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            gap: 8px;
+            z-index: 99;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(44, 44, 44, 0.9);
+            border: 1px solid #555;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #e0e0e0;
+            font-size: 18px;
+            backdrop-filter: blur(10px);
+        }
+
+        .icon-btn:active {
+            background: rgba(64, 64, 64, 0.9);
+            transform: scale(0.95);
+        }
+
+        /* Debug View */
+        #debugView {
+            position: fixed;
+            top: 64px;
+            right: 16px;
+            width: 280px;
+            max-height: 300px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            overflow-y: auto;
+            display: none;
+            backdrop-filter: blur(10px);
+            z-index: 98;
+        }
+
+        #debugView.show {
+            display: block;
+        }
+
+        .debug-line {
+            color: #4fc3f7;
+            margin: 2px 0;
+            word-break: break-all;
+        }
+
+        /* Changelog */
+        #changelog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 400px;
+            max-height: 60vh;
+            background: #1e1e1e;
+            border: 1px solid #444;
+            border-radius: 12px;
+            padding: 20px;
+            display: none;
+            overflow-y: auto;
+            z-index: 200;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+        }
+
+        #changelog.show {
+            display: block;
+        }
+
+        .changelog-header {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            color: #64b5f6;
+        }
+
+        .changelog-section {
+            margin-bottom: 12px;
+        }
+
+        .changelog-type {
+            font-weight: 500;
+            color: #81c784;
+            margin-bottom: 4px;
+        }
+
+        .changelog-type.removed { color: #e57373; }
+        .changelog-type.fixed { color: #ffd54f; }
+
+        .changelog-item {
+            font-size: 12px;
+            color: #b0b0b0;
+            margin-left: 12px;
+            margin-bottom: 2px;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            z-index: 150;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Canvas Container -->
+    <div id="canvasContainer">
+        <canvas id="bubbleCanvas"></canvas>
+    </div>
+
+    <!-- Top Controls -->
+    <div id="topControls">
+        <div class="icon-btn" id="refreshBtn" title="Refresh">⟳</div>
+        <div class="icon-btn" id="saveBtn" title="Save Settings">💾</div>
+        <div class="icon-btn" id="loadBtn" title="Load Settings">📁</div>
+        <div class="icon-btn" id="debugBtn" title="Debug View">🐛</div>
+        <div class="icon-btn" id="changelogBtn" title="Changelog">📋</div>
+    </div>
+
+    <!-- Debug View -->
+    <div id="debugView">
+        <div style="color: #64b5f6; margin-bottom: 8px; font-weight: bold;">Debug Log</div>
+        <div id="debugContent"></div>
+    </div>
+
+    <!-- Controls Panel -->
+    <div id="controlsPanel">
+        <div id="controlsHeader"></div>
+        <div id="controlsContent">
+            <!-- Bubble Source -->
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Bubble Source</span>
+                    <span class="control-value" id="sourceValue">Middle</span>
+                </div>
+                <div class="button-group">
+                    <div class="btn" data-source="middle">Middle</div>
+                    <div class="btn" data-source="top">Top</div>
+                    <div class="btn" data-source="bottom">Bottom</div>
+                    <div class="btn" data-source="left">Left</div>
+                    <div class="btn" data-source="right">Right</div>
+                    <div class="btn" data-source="most">*Most</div>
+                </div>
+            </div>
+
+            <!-- Max Bubbles -->
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Max Bubbles</span>
+                    <span class="control-value" id="maxBubblesValue">50</span>
+                </div>
+                <input type="range" id="maxBubbles" min="10" max="200" value="50" step="5">
+            </div>
+
+            <!-- Bubble Lifetime -->
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Bubble Lifetime (seconds)</span>
+                    <span class="control-value" id="lifetimeValue">3.0</span>
+                </div>
+                <input type="range" id="lifetime" min="1" max="10" value="3" step="0.5">
+            </div>
+
+            <!-- Bubble Routing -->
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Bubble Routing (spread tendency)</span>
+                    <span class="control-value" id="routingValue">50</span>
+                </div>
+                <input type="range" id="routing" min="0" max="100" value="50" step="5">
+            </div>
+
+            <!-- Bubble Gravity -->
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Bubble Gravity</span>
+                    <span class="control-value" id="gravityValue">To Bottom</span>
+                </div>
+                <div class="button-group">
+                    <div class="btn" data-gravity="bottom">Bottom</div>
+                    <div class="btn" data-gravity="up">Up</div>
+                    <div class="btn" data-gravity="left">Left</div>
+                    <div class="btn" data-gravity="right">Right</div>
+                    <div class="btn" data-gravity="center">Center</div>
+                    <div class="btn" data-gravity="outward">Outward</div>
+                </div>
+            </div>
+
+            <!-- Bubble World -->
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Bubble World (medium size)</span>
+                    <span class="control-value" id="worldValue">4x</span>
+                </div>
+                <div class="button-group">
+                    <div class="btn" data-world="2">2x</div>
+                    <div class="btn" data-world="4">4x</div>
+                    <div class="btn" data-world="8">8x</div>
+                    <div class="btn" data-world="16">16x</div>
+                    <div class="btn" data-world="32">32x</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Changelog Modal -->
+    <div class="overlay" id="changelogOverlay"></div>
+    <div id="changelog">
+        <div class="changelog-header">Changelog v1</div>
+        <div class="changelog-section">
+            <div class="changelog-type">Added:</div>
+            <div class="changelog-item">~1-50: Canvas bubble-void visualization</div>
+            <div class="changelog-item">~51-100: Live control system (source, max, lifetime, routing, gravity, world)</div>
+            <div class="changelog-item">~101-150: Material UI styled controls panel</div>
+            <div class="changelog-item">~151-200: Save/load to localStorage</div>
+            <div class="changelog-item">~201-250: Debug view with runtime logging</div>
+            <div class="changelog-item">~251-300: Refresh button functionality</div>
+            <div class="changelog-item">~301-350: Mobile-optimized touch controls</div>
+            <div class="changelog-item">~351-400: Medium gush-back effect on bubble pop</div>
+            <div class="changelog-item">~401-450: Bubble avoidance routing system</div>
+        </div>
+    </div>
+
+    <script>
+        // Debug logging system - logs runtime events to debug view
+        const debugLog = (msg) => {
+            const debugContent = document.getElementById('debugContent');
+            const timestamp = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.className = 'debug-line';
+            line.textContent = `[${timestamp}] ${msg}`;
+            debugContent.insertBefore(line, debugContent.firstChild);
+            if (debugContent.children.length > 50) debugContent.lastChild.remove();
+            console.log(msg);
+        };
+
+        // Canvas and context initialization
+        const canvas = document.getElementById('bubbleCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // State management object - holds all simulation parameters
+        const state = {
+            source: 'middle',
+            maxBubbles: 50,
+            lifetime: 3,
+            routing: 50,
+            gravity: 'bottom',
+            world: 4,
+            bubbles: [],
+            mediumParticles: [],
+            spawnTimer: 0
+        };
+
+        // Bubble class - represents individual bubble with void properties
+        class Bubble {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 2;
+                this.maxRadius = 20 + Math.random() * 40;
+                this.age = 0;
+                this.lifetime = state.lifetime;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.opacity = 0;
+                debugLog(`Bubble spawned at (${x.toFixed(0)}, ${y.toFixed(0)})`);
+            }
+
+            update(dt, bubbles) {
+                this.age += dt;
+                
+                // Growth phase - bubble expands creating void
+                const growthRate = this.maxRadius / (this.lifetime * 0.7);
+                if (this.age < this.lifetime * 0.7) {
+                    this.radius += growthRate * dt;
+                    this.opacity = Math.min(1, this.age / 0.5);
+                } else {
+                    // Pop phase - medium converges to fill void
+                    this.opacity = Math.max(0, 1 - (this.age - this.lifetime * 0.7) / (this.lifetime * 0.3));
+                }
+
+                // Apply gravity force based on selected direction
+                this.applyGravity();
+                
+                // Routing - bubble steers away from others based on routing strength
+                this.applyRouting(bubbles);
+                
+                this.x += this.vx * dt * 60;
+                this.y += this.vy * dt * 60;
+                
+                // Keep bubbles within world bounds (world multiplier affects visible area)
+                const worldWidth = canvas.width * state.world;
+                const worldHeight = canvas.height * state.world;
+                this.x = Math.max(0, Math.min(worldWidth, this.x));
+                this.y = Math.max(0, Math.min(worldHeight, this.y));
+            }
+
+            applyGravity() {
+                const force = 0.5;
+                const centerX = canvas.width * state.world / 2;
+                const centerY = canvas.height * state.world / 2;
+                
+                switch(state.gravity) {
+                    case 'bottom': this.vy += force; break;
+                    case 'up': this.vy -= force; break;
+                    case 'left': this.vx -= force; break;
+                    case 'right': this.vx += force; break;
+                    case 'center':
+                        const dx = centerX - this.x;
+                        const dy = centerY - this.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist > 0) {
+                            this.vx += (dx / dist) * force;
+                            this.vy += (dy / dist) * force;
+                        }
+                        break;
+                    case 'outward':
+                        const odx = this.x - centerX;
+                        const ody = this.y - centerY;
+                        const odist = Math.sqrt(odx*odx + ody*ody);
+                        if (odist > 0) {
+                            this.vx += (odx / odist) * force;
+                            this.vy += (ody / odist) * force;
+                        }
+                        break;
+                }
+                
+                // Apply velocity dampening
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+            }
+
+            applyRouting(bubbles) {
+                const routingStrength = state.routing / 100;
+                const avoidRadius = this.radius * 3;
+                
+                bubbles.forEach(other => {
+                    if (other === this) return;
+                    const dx = this.x - other.x;
+                    const dy = this.y - other.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (dist < avoidRadius && dist > 0) {
+                        const force = (1 - dist / avoidRadius) * routingStrength * 2;
+                        this.vx += (dx / dist) * force;
+                        this.vy += (dy / dist) * force;
+                    }
+                });
+            }
+
+            draw() {
+                const viewX = this.x / state.world;
+                const viewY = this.y / state.world;
+                const viewRadius = this.radius / state.world;
+                
+                // Draw void rim - dark edge where medium is displaced
+                ctx.beginPath();
+                ctx.arc(viewX, viewY, viewRadius, 0, Math.PI * 2);
+                const rimGradient = ctx.createRadialGradient(viewX, viewY, viewRadius * 0.8, viewX, viewY, viewRadius);
+                rimGradient.addColorStop(0, `rgba(0, 0, 0, 0)`);
+                rimGradient.addColorStop(0.85, `rgba(20, 20, 20, ${this.opacity * 0.6})`);
+                rimGradient.addColorStop(1, `rgba(40, 40, 40, ${this.opacity})`);
+                ctx.fillStyle = rimGradient;
+                ctx.fill();
+                
+                // Draw bubble void - the empty space
+                ctx.beginPath();
+                ctx.arc(viewX, viewY, viewRadius * 0.75, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(10, 10, 15, ${this.opacity * 0.9})`;
+                ctx.fill();
+                
+                // Subtle highlight for depth
+                ctx.beginPath();
+                ctx.arc(viewX - viewRadius * 0.3, viewY - viewRadius * 0.3, viewRadius * 0.2, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(60, 60, 70, ${this.opacity * 0.3})`;
+                ctx.fill();
+            }
+
+            isDead() {
+                return this.age >= this.lifetime;
+            }
+
+            onPop() {
+                // Create medium particles that rush back to fill the void
+                const particleCount = Math.floor(this.radius / 2);
+                for (let i = 0; i < particleCount; i++) {
+                    const angle = (Math.PI * 2 * i) / particleCount;
+                    state.mediumParticles.push({
+                        x: this.x + Math.cos(angle) * this.radius,
+                        y: this.y + Math.cos(angle) * this.radius,
+                        targetX: this.x,
+                        targetY: this.y,
+                        life: 1,
+                        size: 2 + Math.random() * 2
+                    });
+                }
+                debugLog(`Bubble popped - ${particleCount} medium particles generated`);
+            }
+        }
+
+        // Spawn bubble at source location
+        function spawnBubble() {
+            if (state.bubbles.length >= state.maxBubbles) return;
+            
+            let x, y;
+            const w = canvas.width * state.world;
+            const h = canvas.height * state.world;
+            
+            // Determine spawn position based on source setting
+            switch(state.source) {
+                case 'middle': x = w/2; y = h/2; break;
+                case 'top': x = Math.random() * w; y = 0; break;
+                case 'bottom': x = Math.random() * w; y = h; break;
+                case 'left': x = 0; y = Math.random() * h; break;
+                case 'right': x = w; y = Math.random() * h; break;
+                case 'most': 
+                    // Spawn from random edges
+                    const edge = Math.floor(Math.random() * 4);
+                    if (edge === 0) { x = Math.random() * w; y = 0; }
+                    else if (edge === 1) { x = Math.random() * w; y = h; }
+                    else if (edge === 2) { x = 0; y = Math.random() * h; }
+                    else { x = w; y = Math.random() * h; }
+                    break;
+            }
+            
+            state.bubbles.push(new Bubble(x, y));
+        }
+
+        // Update medium particles that rush back after bubble pops
+        function updateMediumParticles(dt) {
+            state.mediumParticles = state.mediumParticles.filter(p => {
+                p.life -= dt * 2;
+                if (p.life <= 0) return false;
+                
+                const dx = p.targetX - p.x;
+                const dy = p.targetY - p.y;
+                p.x += dx * dt * 5;
+                p.y += dy * dt * 5;
+                
+                return true;
+            });
+        }
+
+        // Draw medium particles
+        function drawMediumParticles() {
+            state.mediumParticles.forEach(p => {
+                const viewX = p.x / state.world;
+                const viewY = p.y / state.world;
+                const viewSize = p.size / state.world;
+                
+                ctx.beginPath();
+                ctx.arc(viewX, viewY, viewSize, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(80, 80, 90, ${p.life * 0.6})`;
+                ctx.fill();
+            });
+        }
+
+        // Main animation loop
+        let lastTime = performance.now();
+        function animate(currentTime) {
+            const dt = Math.min((currentTime - lastTime) / 1000, 0.1);
+            lastTime = currentTime;
+            
+            // Clear canvas with dark background
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Spawn new bubbles based on timer
+            state.spawnTimer += dt;
+            if (state.spawnTimer > 0.1) {
+                spawnBubble();
+                state.spawnTimer = 0;
+            }
+            
+            // Update and draw bubbles
+            state.bubbles.forEach(bubble => bubble.update(dt, state.bubbles));
+            state.bubbles = state.bubbles.filter(bubble => {
+                if (bubble.isDead()) {
+                    bubble.onPop();
+                    return false;
+                }
+                return true;
+            });
+            
+            updateMediumParticles(dt);
+            drawMediumParticles();
+            state.bubbles.forEach(bubble => bubble.draw());
+            
+            requestAnimationFrame(animate);
+        }
+
+        // Resize canvas to match window
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            debugLog(`Canvas resized: ${canvas.width}x${canvas.height}`);
+        }
+
+        // Initialize application
+        function init() {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Load saved settings from localStorage
+            loadSettings();
+            
+            // Set initial active buttons
+            document.querySelector(`[data-source="${state.source}"]`).classList.add('active');
+            document.querySelector(`[data-gravity="${state.gravity}"]`).classList.add('active');
+            document.querySelector(`[data-world="${state.world}"]`).classList.add('active');
+            
+            // Start animation
+            requestAnimationFrame(animate);
+            debugLog('Trypothesia initialized');
+        }
+
+        // Controls panel toggle
+        const controlsPanel = document.getElementById('controlsPanel');
+        const controlsHeader = document.getElementById('controlsHeader');
+        controlsHeader.addEventListener('click', () => {
+            controlsPanel.classList.toggle('open');
+            debugLog(`Controls panel ${controlsPanel.classList.contains('open') ? 'opened' : 'closed'}`);
+        });
+
+        // Bubble source buttons
+        document.querySelectorAll('[data-source]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-source]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.source = btn.dataset.source;
+                document.getElementById('sourceValue').textContent = btn.textContent;
+                debugLog(`Source changed to: ${state.source}`);
+            });
+        });
+
+        // Gravity buttons
+        document.querySelectorAll('[data-gravity]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-gravity]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.gravity = btn.dataset.gravity;
+                document.getElementById('gravityValue').textContent = `To ${btn.textContent}`;
+                debugLog(`Gravity changed to: ${state.gravity}`);
+            });
+        });
+
+        // World size buttons
+        document.querySelectorAll('[data-world]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-world]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.world = parseInt(btn.dataset.world);
+                document.getElementById('worldValue').textContent = `${state.world}x`;
+                debugLog(`World size changed to: ${state.world}x`);
+            });
+        });
+
+        // Range sliders
+        document.getElementById('maxBubbles').addEventListener('input', (e) => {
+            state.maxBubbles = parseInt(e.target.value);
+            document.getElementById('maxBubblesValue').textContent = state.maxBubbles;
+        });
+
+        document.getElementById('lifetime').addEventListener('input', (e) => {
+            state.lifetime = parseFloat(e.target.value);
+            document.getElementById('lifetimeValue').textContent = state.lifetime.toFixed(1);
+        });
+
+        document.getElementById('routing').addEventListener('input', (e) => {
+            state.routing = parseInt(e.target.value);
+            document.getElementById('routingValue').textContent = state.routing;
+        });
+
+        // Save settings to localStorage
+        function saveSettings() {
+            const settings = {
+                source: state.source,
+                maxBubbles: state.maxBubbles,
+                lifetime: state.lifetime,
+                routing: state.routing,
+                gravity: state.gravity,
+                world: state.world
+            };
+            localStorage.setItem('trypothesia_settings', JSON.stringify(settings));
+            debugLog('Settings saved to localStorage');
+            alert('Settings saved!');
+        }
+
+        // Load settings from localStorage
+        function loadSettings() {
+            const saved = localStorage.getItem('trypothesia_settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                state.source = settings.source || 'middle';
+                state.maxBubbles = settings.maxBubbles || 50;
+                state.lifetime = settings.lifetime || 3;
+                state.routing = settings.routing || 50;
+                state.gravity = settings.gravity || 'bottom';
+                state.world = settings.world || 4;
+                
+                // Update UI
+                document.getElementById('maxBubbles').value = state.maxBubbles;
+                document.getElementById('maxBubblesValue').textContent = state.maxBubbles;
+                document.getElementById('lifetime').value = state.lifetime;
+                document.getElementById('lifetimeValue').textContent = state.lifetime.toFixed(1);
+                document.getElementById('routing').value = state.routing;
+                document.getElementById('routingValue').textContent = state.routing;
+                document.getElementById('sourceValue').textContent = state.source.charAt(0).toUpperCase() + state.source.slice(1);
+                document.getElementById('gravityValue').textContent = `To ${state.gravity.charAt(0).toUpperCase() + state.gravity.slice(1)}`;
+                document.getElementById('worldValue').textContent = `${state.world}x`;
+                
+                debugLog('Settings loaded from localStorage');
+            }
+        }
+
+        // Top control buttons
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            state.bubbles = [];
+            state.mediumParticles = [];
+            debugLog('Simulation refreshed - all bubbles cleared');
+        });
+
+        document.getElementById('saveBtn').addEventListener('click', saveSettings);
+        
+        document.getElementById('loadBtn').addEventListener('click', () => {
+            loadSettings();
+            alert('Settings loaded!');
+        });
+
+        document.getElementById('debugBtn').addEventListener('click', () => {
+            document.getElementById('debugView').classList.toggle('show');
+        });
+
+        document.getElementById('changelogBtn').addEventListener('click', () => {
+            document.getElementById('changelog').classList.add('show');
+            document.getElementById('changelogOverlay').classList.add('show');
+        });
+
+        document.getElementById('changelogOverlay').addEventListener('click', () => {
+            document.getElementById('changelog').classList.remove('show');
+            document.getElementById('changelogOverlay').classList.remove('show');
+        });
+
+        // Start application
+        init();
+    </script>
+</body>
+</html>
