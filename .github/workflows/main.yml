@@ -51,7 +51,7 @@ jobs:
       - name: Build with Gradle
         run: |
           cd apk
-          ./gradlew assembleRelease
+          bash ./gradlew assembleRelease
 
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
