@@ -1,0 +1,104 @@
+/* Material-like UI library - CSS-only core tokens + components
+   Ready-to-use: include this CSS and the optional JS for interactive components.
+   Minimal comments per user preference.
+*/
+
+:root{
+  --mui-primary:#6200ee;
+  --mui-primary-dark:#3700b3;
+  --mui-secondary:#03dac6;
+  --mui-error:#b00020;
+  --mui-bg:#0f0f1a;
+  --mui-surface:#1e1e1e;
+  --mui-on-surface:#e6e1e5;
+  --mui-muted:rgba(255,255,255,0.08);
+
+  --radius-sm:6px;
+  --radius-md:12px;
+  --radius-lg:18px;
+
+  --space-xs:6px;
+  --space-sm:12px;
+  --space-md:16px;
+  --space-lg:24px;
+
+  --shadow-1:0 1px 3px rgba(0,0,0,.12);
+  --shadow-2:0 8px 28px rgba(0,0,0,.36);
+
+  --font-sans:Roboto,system-ui,-apple-system,'Segoe UI',Arial;
+  --trans-fast:160ms ease;
+}
+
+/* Base reset */
+.mui-root{box-sizing:border-box;font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+.mui-root *{box-sizing:inherit}
+
+/* Layout helpers */
+.mui-container{max-width:980px;margin:0 auto;padding:var(--space-lg)}
+.mui-row{display:flex;gap:var(--space-md);flex-wrap:wrap}
+
+/* Appbar */
+.mui-appbar{display:flex;align-items:center;gap:12px;padding:10px;background:linear-gradient(90deg,var(--mui-surface),#15151a);border-radius:10px;box-shadow:var(--shadow-2)}
+.mui-appbar .mui-title{font-weight:500;font-size:16px;color:var(--mui-on-surface)}
+
+/* Buttons */
+.mui-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:8px 12px;border-radius:8px;border:0;font-weight:500;cursor:pointer;transition:transform .08s,var(--trans-fast);background:transparent;color:var(--mui-on-surface)}
+.mui-btn:active{transform:scale(.99)}
+.mui-btn--filled{background:var(--mui-primary);color:#fff;box-shadow:var(--shadow-1)}
+.mui-btn--filled.secondary{background:var(--mui-secondary);color:#000}
+.mui-btn--outlined{background:transparent;border:1px solid rgba(255,255,255,.06);color:var(--mui-on-surface)}
+.mui-iconbtn{width:40px;height:40px;border-radius:10px;display:inline-grid;place-items:center;background:transparent;border:0;color:var(--mui-on-surface)}
+
+/* Cards */
+.mui-card{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:var(--space-md);border-radius:var(--radius-md);box-shadow:var(--shadow-2);min-width:200px;color:var(--mui-on-surface)}
+.mui-card .mui-card-title{font-weight:600;margin-bottom:6px}
+.mui-card .mui-card-body{color:rgba(255,255,255,.78)}
+
+/* Badges */
+.mui-badge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:12px;background:var(--mui-muted);color:var(--mui-on-surface)}
+.mui-badge.hot{background:var(--mui-primary);color:#fff}
+.mui-badge.cold{background:var(--mui-secondary);color:#000}
+
+/* Inputs */
+.mui-textfield{display:flex;flex-direction:column;gap:6px}
+.mui-textfield label{font-size:13px;color:rgba(255,255,255,.6)}
+.mui-textfield input,.mui-textfield textarea{background:transparent;border:1px solid rgba(255,255,255,.06);padding:10px;border-radius:8px;color:var(--mui-on-surface);outline:0;min-height:40px}
+.mui-textfield textarea{resize:vertical}
+
+/* Slider */
+.mui-slider{width:100%}
+.mui-slider input[type=range]{width:100%;-webkit-appearance:none;background:transparent;height:28px}
+.mui-slider input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:linear-gradient(90deg,var(--mui-primary),var(--mui-secondary))}
+.mui-slider input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;height:18px;width:18px;border-radius:50%;background:#fff;margin-top:-6px;box-shadow:var(--shadow-1)}
+
+/* Switch */
+.mui-switch{width:44px;height:26px;border-radius:999px;background:rgba(255,255,255,.06);display:inline-flex;align-items:center;padding:3px;position:relative;cursor:pointer}
+.mui-switch .mui-knob{width:20px;height:20px;border-radius:50%;background:#fff;transition:transform var(--trans-fast)}
+.mui-switch.mui-on{background:linear-gradient(90deg,var(--mui-primary),var(--mui-primary-dark))}
+.mui-switch.mui-on .mui-knob{transform:translateX(18px)}
+
+/* Dialog/backdrop */
+.mui-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:20px;z-index:1200}
+.mui-backdrop.mui-open{display:flex}
+.mui-dialog{background:var(--mui-surface);padding:18px;border-radius:14px;min-width:280px;max-width:720px;box-shadow:var(--shadow-2);color:var(--mui-on-surface)}
+
+/* Snackbar */
+.mui-snackbar{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#222;padding:10px 14px;border-radius:8px;box-shadow:var(--shadow-1);display:flex;gap:8px;align-items:center;color:#fff;z-index:1300}
+.mui-snackbar.mui-hidden{display:none}
+
+/* Drawer */
+.mui-drawer{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(180deg,var(--mui-surface),#111);border-top-left-radius:14px;border-top-right-radius:14px;padding:14px;transform:translateY(105%);transition:transform var(--trans-fast);z-index:1250}
+.mui-drawer.mui-open{transform:translateY(0)}
+
+/* Tabs */
+.mui-tabs{display:flex;gap:8px;border-radius:999px;background:rgba(255,255,255,.02);padding:6px}
+.mui-tab{padding:8px 12px;border-radius:999px;cursor:pointer;color:var(--mui-on-surface)}
+.mui-tab.mui-active{background:linear-gradient(90deg,var(--mui-primary),var(--mui-secondary));color:#fff}
+
+/* Utilities */
+.mui-hidden{display:none}
+.mui-muted{color:rgba(255,255,255,.5)}
+/* Responsive */
+@media(min-width:720px){
+  .mui-container{padding:32px}
+}
