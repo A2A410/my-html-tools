@@ -1,0 +1,2069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="PTAM Merger - Mobile-optimized file merger">
+    <meta name="theme-color" content="#6366f1">
+    <title>PTAM Merger Mobile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #252538;
+            --text-primary: #e8e8f0;
+            --text-secondary: #a8a8b8;
+            --text-tertiary: #707080;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --accent-dim: rgba(99, 102, 241, 0.15);
+            --success: #10b981;
+            --success-dim: rgba(16, 185, 129, 0.15);
+            --danger: #ef4444;
+            --danger-dim: rgba(239, 68, 68, 0.15);
+            --warning: #f59e0b;
+            --warning-dim: rgba(245, 158, 11, 0.15);
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 8px 48px rgba(0, 0, 0, 0.5);
+        }
+
+        body.light-mode {
+            --bg-primary: #fafafa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f5f5f5;
+            --text-primary: #0f0f1a;
+            --text-secondary: #404050;
+            --text-tertiary: #808090;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(0, 0, 0, 0.08);
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 8px 48px rgba(0, 0, 0, 0.12);
+        }
+
+        html, body { height: 100%; overflow-x: hidden; }
+
+        body {
+            font-family: 'Syne', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .logo {
+            font-size: 24px; font-weight: 800; letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-actions { display: flex; gap: 8px; }
+
+        .icon-btn {
+            width: 44px; height: 44px; border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 20px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .icon-btn:active { transform: scale(0.92); background: var(--accent); border-color: var(--accent); }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+        .stat-card {
+            background: var(--bg-tertiary);
+            border-radius: 12px; padding: 12px 8px;
+            text-align: center; border: 1px solid var(--border);
+        }
+
+        .stat-value {
+            font-size: 20px; font-weight: 700; color: var(--accent);
+            font-family: 'JetBrains Mono', monospace; line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+            color: var(--text-tertiary); margin-top: 4px;
+        }
+
+        .container {
+            flex: 1; overflow-y: auto;
+            padding: 20px; padding-bottom: 100px;
+        }
+
+        .upload-zone {
+            background: var(--bg-secondary);
+            border: 2px dashed var(--border);
+            border-radius: 20px; padding: 48px 24px;
+            text-align: center; margin-bottom: 24px;
+            cursor: pointer; transition: all 0.3s ease;
+            touch-action: manipulation;
+        }
+
+        .upload-zone:active {
+            transform: scale(0.98);
+            background: var(--accent-dim);
+            border-color: var(--accent);
+        }
+
+        .upload-icon { font-size: 64px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .upload-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+
+        .upload-hint { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+
+        #fileInput { display: none; }
+
+        .file-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+
+        .file-card {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 16px; padding: 16px;
+            display: flex; justify-content: space-between; align-items: center; gap: 12px;
+            transition: all 0.2s ease; animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .file-info { flex: 1; min-width: 0; }
+
+        .file-name {
+            font-size: 14px; font-weight: 600; color: var(--text-primary);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px;
+        }
+
+        .file-meta {
+            display: flex; gap: 8px; flex-wrap: wrap;
+            font-size: 11px; color: var(--text-tertiary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .file-type {
+            padding: 2px 6px;
+            background: var(--accent-dim);
+            color: var(--accent);
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .file-type.zip { background: var(--warning-dim); color: var(--warning); }
+        .file-type.binary { background: var(--danger-dim); color: var(--danger); }
+
+        .remove-btn {
+            width: 40px; height: 40px; border-radius: 10px;
+            border: none; background: var(--danger-dim); color: var(--danger);
+            font-size: 18px; cursor: pointer; flex-shrink: 0;
+            transition: all 0.2s ease; touch-action: manipulation;
+        }
+
+        .remove-btn:active { transform: scale(0.9); background: var(--danger); color: white; }
+
+        .bottom-actions {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 16px 20px;
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+            z-index: 90;
+        }
+
+        .filename-input {
+            width: 100%; padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .filename-input:focus {
+            outline: none; border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+
+        .merge-btn {
+            width: 100%; padding: 16px;
+            border: none; border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white; font-size: 16px; font-weight: 700;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 16px var(--accent-dim);
+            touch-action: manipulation;
+        }
+
+        .merge-btn:disabled { opacity: 0.5; cursor: not-allowed; background: var(--bg-tertiary); box-shadow: none; }
+        .merge-btn:active:not(:disabled) { transform: scale(0.98); box-shadow: 0 2px 8px var(--accent-dim); }
+
+        .alert {
+            position: fixed; top: 20px; left: 20px; right: 20px;
+            padding: 16px; border-radius: 12px; border: 1px solid;
+            display: flex; align-items: center; gap: 12px;
+            z-index: 1000; animation: alertSlide 0.3s ease;
+            box-shadow: var(--shadow-lg); backdrop-filter: blur(20px);
+        }
+
+        @keyframes alertSlide {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .alert.success { background: var(--success-dim); border-color: var(--success); color: var(--success); }
+        .alert.error { background: var(--danger-dim); border-color: var(--danger); color: var(--danger); }
+        .alert.warning { background: var(--warning-dim); border-color: var(--warning); color: var(--warning); }
+
+        .alert-icon { font-size: 24px; flex-shrink: 0; }
+        .alert-text { flex: 1; font-size: 14px; font-weight: 600; }
+
+        .alert-close {
+            width: 32px; height: 32px; border-radius: 8px;
+            border: none; background: transparent; font-size: 20px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            color: inherit; opacity: 0.7; transition: opacity 0.2s ease;
+        }
+
+        .alert-close:active { opacity: 1; }
+
+        .modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8); z-index: 200; display: none;
+            align-items: center; justify-content: center;
+            padding: 20px; backdrop-filter: blur(10px);
+        }
+
+        .modal.active { display: flex; animation: fadeIn 0.2s ease; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--bg-secondary); border-radius: 20px;
+            padding: 24px; max-width: 500px; width: 100%;
+            max-height: 80vh; overflow-y: auto;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            animation: modalSlide 0.3s ease;
+        }
+
+        @keyframes modalSlide {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 20px;
+        }
+
+        .modal-title { font-size: 20px; font-weight: 700; }
+
+        .modal-close {
+            width: 40px; height: 40px; border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            font-size: 24px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-primary); transition: all 0.2s ease;
+        }
+
+        .modal-close:active { transform: scale(0.9); background: var(--danger); color: white; }
+
+        .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+
+        .modal-btn {
+            flex: 1; padding: 14px; border-radius: 12px;
+            border: none; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .modal-btn.primary {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+        }
+
+        .modal-btn.secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .modal-btn:active { transform: scale(0.96); }
+
+        .preview-content {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px; padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px; line-height: 1.6;
+            max-height: 300px; overflow-y: auto;
+            white-space: pre-wrap; word-break: break-all;
+            color: var(--text-secondary);
+        }
+
+        .loading {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.9); z-index: 300; display: none;
+            align-items: center; justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .loading.active { display: flex; }
+
+        .loading-content { text-align: center; padding: 32px; }
+
+        .spinner {
+            width: 60px; height: 60px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+        .loading-detail { font-size: 13px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; }
+
+        .hidden { display: none !important; }
+
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-tertiary); }
+        .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+        .empty-text { font-size: 14px; font-weight: 600; }
+
+        .debug-console {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px; margin-top: 20px;
+            max-height: 300px; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        .debug-header {
+            padding: 12px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 12px;
+        }
+
+        .debug-log {
+            flex: 1; overflow-y: auto; padding: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px; line-height: 1.5;
+            color: var(--text-secondary); max-height: 250px;
+        }
+
+        .debug-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .debug-entry:last-child { border-bottom: none; }
+        .debug-entry.error { color: var(--danger); }
+        .debug-entry.warning { color: var(--warning); }
+        .debug-entry.success { color: var(--success); }
+        .debug-entry.info { color: var(--accent); }
+
+        .setting-item { margin-bottom: 20px; }
+
+        .setting-label {
+            display: block; font-size: 14px; font-weight: 600;
+            margin-bottom: 8px; color: var(--text-primary);
+            cursor: pointer; display: flex; align-items: center;
+        }
+
+        .setting-hint {
+            font-size: 12px; color: var(--text-tertiary);
+            margin-top: 4px; margin-left: 26px;
+        }
+
+        .setting-select {
+            width: 100%; padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'Syne', sans-serif;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .setting-select:focus {
+            outline: none; border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+
+        .about-content { text-align: center; padding: 20px 0; }
+
+        .about-logo {
+            font-size: 48px; font-weight: 800;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+        }
+
+        .about-acronym {
+            background: var(--bg-tertiary);
+            border-radius: 12px; padding: 16px;
+            margin-bottom: 20px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .about-acronym div { padding: 4px 0; font-size: 14px; }
+
+        .about-version { font-size: 18px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+        .about-year { font-size: 16px; color: var(--text-secondary); margin-bottom: 20px; }
+
+        .about-credits {
+            background: var(--bg-tertiary);
+            border-radius: 12px; padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .about-credits div { padding: 4px 0; }
+
+        .expert-review-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+        }
+
+        .expert-file-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .expert-file-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .expert-file-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            word-break: break-all;
+            flex: 1;
+            margin-right: 12px;
+        }
+
+        .expert-remove-btn {
+            background: var(--danger-dim);
+            color: var(--danger);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .expert-remove-btn:active {
+            transform: scale(0.95);
+            background: var(--danger);
+            color: white;
+        }
+
+        .expert-diagnostics {
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        .expert-diag-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .expert-diag-row:last-child {
+            border-bottom: none;
+        }
+
+        .expert-diag-label {
+            color: var(--text-tertiary);
+        }
+
+        .expert-diag-value {
+            font-weight: 600;
+        }
+
+        .expert-diag-value.pass {
+            color: var(--success);
+        }
+
+        .expert-diag-value.fail {
+            color: var(--danger);
+        }
+
+        .expert-diag-value.warning {
+            color: var(--warning);
+        }
+
+        .expert-preview {
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            max-height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--text-tertiary);
+            margin-bottom: 12px;
+        }
+
+        .expert-status {
+            font-size: 12px;
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .expert-status.pending {
+            background: var(--accent-dim);
+            color: var(--accent);
+        }
+
+        .expert-status.cleaned {
+            background: var(--success-dim);
+            color: var(--success);
+        }
+
+        .expert-status.rejected {
+            background: var(--danger-dim);
+            color: var(--danger);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-top">
+            <div class="logo">PTAM</div>
+            <div class="header-actions">
+                <button class="icon-btn" id="themeBtn" onclick="app.toggleTheme()" title="Toggle theme">🌙</button>
+                <button class="icon-btn" id="settingsBtn" onclick="app.openModal('settingsModal')" title="Settings">⚙️</button>
+                <button class="icon-btn" id="refreshBtn" onclick="app.showRefreshConfirm()" title="Refresh">🔄</button>
+                <button class="icon-btn" id="saveBtn" onclick="app.saveState()" title="Save">💾</button>
+            </div>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="statFiles">0</div>
+                <div class="stat-label">Files</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statSize">0B</div>
+                <div class="stat-label">Size</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statText">0</div>
+                <div class="stat-label">Text</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statBinary">0</div>
+                <div class="stat-label">Binary</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="upload-zone" id="uploadZone">
+            <div class="upload-icon">📁</div>
+            <div class="upload-title">Tap to select files</div>
+            <div class="upload-hint">Text files + ZIP archives • Local processing<br>All data stays on your device</div>
+        </div>
+        <input type="file" id="fileInput" multiple accept="*">
+
+        <div class="file-list" id="fileList">
+            <div class="empty-state">
+                <div class="empty-icon">📄</div>
+                <div class="empty-text">No files added yet</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-actions">
+        <input 
+            type="text" 
+            class="filename-input" 
+            id="filenameInput" 
+            placeholder="Enter filename..."
+            value="merged"
+        >
+        <button class="merge-btn" id="mergeBtn" onclick="app.merge()" disabled>
+            <span>⚡</span>
+            <span>Merge Files</span>
+        </button>
+    </div>
+
+    <div id="alertContainer"></div>
+
+    <div class="modal" id="previewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Preview Merged File</div>
+                <button class="modal-close" onclick="app.closeModal('previewModal')">×</button>
+            </div>
+            <div class="preview-content" id="previewContent"></div>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="app.closeModal('previewModal')">Close</button>
+                <button class="modal-btn primary" onclick="app.downloadMerged()">📥 Download</button>
+                <button class="modal-btn primary" onclick="app.copyMerged()">📋 Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="refreshModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Clear All Files?</div>
+                <button class="modal-close" onclick="app.closeModal('refreshModal')">×</button>
+            </div>
+            <p style="margin-bottom: 20px; color: var(--text-secondary); font-size: 14px;">This will remove all added files and reset the app. Continue?</p>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="app.closeModal('refreshModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="app.confirmRefresh()">Clear All</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Settings</div>
+                <button class="modal-close" onclick="app.closeModal('settingsModal')">×</button>
+            </div>
+            
+            <div class="setting-item">
+                <label class="setting-label">
+                    <input type="checkbox" id="debugViewToggle" onchange="app.toggleDebugView()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                    Enable Debug View
+                </label>
+                <div class="setting-hint">Shows detailed logs for file processing</div>
+            </div>
+
+            <div class="setting-item">
+                <label class="setting-label">
+                    <input type="checkbox" id="responsiveModeToggle" onchange="app.toggleResponsiveMode()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                    Responsive Mode
+                </label>
+                <div class="setting-hint">Background optimization for lag-free UI during processing</div>
+                <div id="responsiveStatus" class="hidden" style="margin-top: 8px; padding: 8px; background: var(--success-dim); border-radius: 8px; font-size: 11px; color: var(--success); font-weight: 600;">
+                    ⚡ Responsive mode active
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <label class="setting-label">
+                    <input type="checkbox" id="expertModeToggle" onchange="app.toggleExpertMode()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                    Expert Mode
+                </label>
+                <div class="setting-hint">Manual review and advanced recovery for rejected files with granular control and diagnostic scoring</div>
+                <div id="expertStatus" class="hidden" style="margin-top: 8px; padding: 8px; background: var(--warning-dim); border-radius: 8px; font-size: 11px; color: var(--warning); font-weight: 600;">
+                    🔬 Expert mode enabled - rejected files will be reviewed
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <label class="setting-label">
+                    <input type="checkbox" id="allPassToggle" onchange="app.toggleAllPass()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                    All Pass Mode
+                </label>
+                <div class="setting-hint">Accept all file types including binaries - disables expert mode and validation</div>
+                <div id="allPassStatus" class="hidden" style="margin-top: 8px; padding: 8px; background: var(--danger-dim); border-radius: 8px; font-size: 11px; color: var(--danger); font-weight: 600;">
+                    ⚠️ All Pass active - binary files will be base64 encoded
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <label class="setting-label">
+                    <input type="checkbox" id="detailedModeToggle" onchange="app.toggleDetailedMode()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                    Detailed Mode
+                </label>
+                <div class="setting-hint">Shows full ZIP paths, adds directory structure map, enhanced extraction markers for future PTAM tools</div>
+                <div id="detailedStatus" class="hidden" style="margin-top: 8px; padding: 8px; background: var(--accent-dim); border-radius: 8px; font-size: 11px; color: var(--accent); font-weight: 600;">
+                    📋 Detailed mode enabled - enhanced metadata
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <label class="setting-label" style="display: block; margin-bottom: 8px;">
+                    Chunking Strategy
+                </label>
+                <select id="chunkingSelect" class="setting-select" onchange="app.updateChunking()">
+                    <option value="off">Off - Process all at once</option>
+                    <option value="32768">32 KB chunks</option>
+                    <option value="65536">64 KB chunks</option>
+                    <option value="131072">128 KB chunks</option>
+                    <option value="262144">256 KB chunks</option>
+                    <option value="524288">512 KB chunks</option>
+                    <option value="1048576">1024 KB chunks</option>
+                    <option value="2097152">2048 KB chunks</option>
+                    <option value="50%">50% immediate / 50% deferred</option>
+                    <option value="99%">99% immediate / 1% deferred</option>
+                </select>
+                <div class="setting-hint">Control processing batch size - higher values = faster but less responsive UI</div>
+            </div>
+
+            <div id="debugConsole" class="debug-console hidden">
+                <div class="debug-header">
+                    <span style="font-weight: 600;">Debug Console</span>
+                    <button onclick="app.clearDebug()" style="background: var(--danger-dim); color: var(--danger); border: none; padding: 4px 8px; border-radius: 6px; font-size: 11px; cursor: pointer;">Clear</button>
+                </div>
+                <div id="debugLog" class="debug-log"></div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="app.openModal('aboutModal'); app.closeModal('settingsModal')">About</button>
+                <button class="modal-btn primary" onclick="app.closeModal('settingsModal')">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="aboutModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">About</div>
+                <button class="modal-close" onclick="app.closeModal('aboutModal')">×</button>
+            </div>
+            
+            <div class="about-content">
+                <div class="about-logo">PTAM</div>
+                
+                <div class="about-acronym">
+                    <div>- Plain</div>
+                    <div>- Text</div>
+                    <div>- Archive</div>
+                    <div>- Merger</div>
+                </div>
+                
+                <div class="about-version">Official v4</div>
+                <div class="about-year">2025</div>
+                
+                <div class="about-credits">
+                    <div>- A2A410@GITHUB</div>
+                    <div>- JAI</div>
+                    <div>- 1234 -</div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn primary" onclick="app.closeModal('aboutModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="expertReviewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Expert Review - Rejected Files</div>
+                <button class="modal-close" onclick="app.closeExpertReview()">×</button>
+            </div>
+            
+            <p style="margin-bottom: 16px; color: var(--text-secondary); font-size: 13px;">
+                These files were rejected during initial scan. Review diagnostics and decide whether to skip or attempt advanced recovery.
+            </p>
+
+            <div id="expertReviewList" class="expert-review-list"></div>
+
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="app.expertSkipAll()">Skip All</button>
+                <button class="modal-btn primary" onclick="app.expertProcessAll()">Process Selection</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading" id="loading">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div class="loading-text">Processing Files</div>
+            <div class="loading-detail" id="loadingDetail">Please wait...</div>
+        </div>
+    </div>
+
+    <script>
+        const app = {
+            files: [],
+            mergedContent: null,
+            debugEnabled: false,
+            responsiveMode: false,
+            expertMode: false,
+            allPassMode: false,
+            detailedMode: false,
+            chunkingStrategy: 'off',
+            rejectedFiles: [],
+            filenameModified: false,
+            directoryStructure: new Map(),
+            
+            binaryExts: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'ico', 'mp4', 'mp3', 'wav', 'avi', 'mov', 'pdf', 'exe', 'dll', 'so', 'bin', 'dat', 'woff', 'woff2', 'ttf', 'eot'],
+            
+            init() {
+                this.loadState();
+                this.setupEventListeners();
+                this.updateUI();
+            },
+
+            setupEventListeners() {
+                const fileInput = document.getElementById('fileInput');
+                const uploadZone = document.getElementById('uploadZone');
+                const filenameInput = document.getElementById('filenameInput');
+
+                uploadZone.addEventListener('click', () => fileInput.click());
+
+                uploadZone.addEventListener('touchstart', (e) => {
+                    e.currentTarget.style.transform = 'scale(0.98)';
+                    e.currentTarget.style.background = 'var(--accent-dim)';
+                    e.currentTarget.style.borderColor = 'var(--accent)';
+                });
+
+                uploadZone.addEventListener('touchend', (e) => {
+                    e.currentTarget.style.transform = '';
+                    e.currentTarget.style.background = '';
+                    e.currentTarget.style.borderColor = '';
+                });
+
+                fileInput.addEventListener('change', (e) => {
+                    this.handleFiles(e.target.files);
+                    e.target.value = '';
+                });
+
+                filenameInput.addEventListener('input', () => {
+                    this.filenameModified = true;
+                });
+
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            this.closeModal(modal.id);
+                        }
+                    });
+                });
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        document.querySelectorAll('.modal.active').forEach(modal => {
+                            this.closeModal(modal.id);
+                        });
+                    }
+                });
+
+                window.addEventListener('beforeunload', (e) => {
+                    if (this.files.length > 0 && !this.mergedContent) {
+                        e.preventDefault();
+                        e.returnValue = '';
+                    }
+                });
+            },
+
+            log(message, type = 'info') {
+                if (!this.debugEnabled) return;
+                
+                const debugLog = document.getElementById('debugLog');
+                if (!debugLog) return;
+
+                const entry = document.createElement('div');
+                entry.className = `debug-entry ${type}`;
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                debugLog.appendChild(entry);
+                debugLog.scrollTop = debugLog.scrollHeight;
+            },
+
+            clearDebug() {
+                const debugLog = document.getElementById('debugLog');
+                if (debugLog) debugLog.innerHTML = '';
+            },
+
+            toggleDebugView() {
+                this.debugEnabled = document.getElementById('debugViewToggle').checked;
+                const debugConsole = document.getElementById('debugConsole');
+                if (this.debugEnabled) {
+                    debugConsole.classList.remove('hidden');
+                    this.log('Debug view enabled', 'success');
+                } else {
+                    debugConsole.classList.add('hidden');
+                }
+                localStorage.setItem('ptam_debug', this.debugEnabled);
+            },
+
+            toggleResponsiveMode() {
+                this.responsiveMode = document.getElementById('responsiveModeToggle').checked;
+                const statusEl = document.getElementById('responsiveStatus');
+                
+                if (this.responsiveMode) {
+                    statusEl.classList.remove('hidden');
+                    this.log('Responsive mode ON', 'success');
+                } else {
+                    statusEl.classList.add('hidden');
+                    this.log('Responsive mode OFF', 'warning');
+                }
+                
+                localStorage.setItem('ptam_responsive_mode', this.responsiveMode);
+            },
+
+            toggleExpertMode() {
+                if (this.allPassMode) {
+                    document.getElementById('expertModeToggle').checked = false;
+                    this.showAlert('Expert mode disabled in All Pass mode', 'warning');
+                    return;
+                }
+                
+                this.expertMode = document.getElementById('expertModeToggle').checked;
+                const statusEl = document.getElementById('expertStatus');
+                
+                if (this.expertMode) {
+                    statusEl.classList.remove('hidden');
+                    this.log('Expert mode ON', 'success');
+                } else {
+                    statusEl.classList.add('hidden');
+                    this.log('Expert mode OFF', 'warning');
+                }
+                
+                localStorage.setItem('ptam_expert_mode', this.expertMode);
+            },
+
+            toggleAllPass() {
+                this.allPassMode = document.getElementById('allPassToggle').checked;
+                const statusEl = document.getElementById('allPassStatus');
+                
+                if (this.allPassMode) {
+                    this.expertMode = false;
+                    document.getElementById('expertModeToggle').checked = false;
+                    document.getElementById('expertStatus').classList.add('hidden');
+                    statusEl.classList.remove('hidden');
+                    this.log('All Pass mode ON - binary encoding enabled', 'warning');
+                } else {
+                    statusEl.classList.add('hidden');
+                    this.log('All Pass mode OFF', 'success');
+                }
+                
+                localStorage.setItem('ptam_all_pass', this.allPassMode);
+            },
+
+            toggleDetailedMode() {
+                this.detailedMode = document.getElementById('detailedModeToggle').checked;
+                const statusEl = document.getElementById('detailedStatus');
+                
+                if (this.detailedMode) {
+                    statusEl.classList.remove('hidden');
+                    this.log('Detailed mode ON - enhanced markers', 'success');
+                } else {
+                    statusEl.classList.add('hidden');
+                    this.log('Detailed mode OFF', 'info');
+                }
+                
+                localStorage.setItem('ptam_detailed_mode', this.detailedMode);
+            },
+
+            updateChunking() {
+                this.chunkingStrategy = document.getElementById('chunkingSelect').value;
+                this.log(`Chunking: ${this.chunkingStrategy}`, 'info');
+                localStorage.setItem('ptam_chunking', this.chunkingStrategy);
+            },
+
+            getChunkSize() {
+                const val = this.chunkingStrategy;
+                if (val === 'off') return null;
+                if (val === '50%' || val === '99%') return val;
+                return parseInt(val);
+            },
+
+            async yieldToUI() {
+                if (this.responsiveMode) {
+                    return new Promise(resolve => {
+                        if ('requestIdleCallback' in window) {
+                            requestIdleCallback(resolve, { timeout: 50 });
+                        } else {
+                            setTimeout(resolve, 0);
+                        }
+                    });
+                } else {
+                    return new Promise(resolve => setTimeout(resolve, 0));
+                }
+            },
+
+            analyzeFile(content, filename) {
+                const sample = content.substring(0, 5000);
+                
+                const utf8Chars = sample.match(/[\x20-\x7E\n\r\t]/g) || [];
+                const utf8Score = (utf8Chars.length / sample.length) * 100;
+                
+                const hasEncryptionMarkers = /-----BEGIN [A-Z]+ KEY-----/i.test(sample) ||
+                                            /^[A-Za-z0-9+/=]{40,}$/m.test(sample) ||
+                                            sample.includes('ENCRYPTED');
+                
+                const nullBytes = (sample.match(/\x00/g) || []).length;
+                const binaryScore = (nullBytes / sample.length) * 100;
+                
+                const ext = filename.split('.').pop().toLowerCase();
+                const knownTextExt = ['txt', 'js', 'css', 'html', 'json', 'xml', 'md', 'log', 'csv', 'yml', 'yaml', 'py', 'java', 'c', 'cpp', 'h', 'php', 'rb', 'go', 'rs', 'sql'];
+                const recognizedFormat = knownTextExt.includes(ext);
+                
+                return {
+                    utf8Score: utf8Score.toFixed(1),
+                    isReadable: utf8Score >= 80,
+                    isEncrypted: hasEncryptionMarkers,
+                    binaryPercentage: binaryScore.toFixed(1),
+                    recognizedFormat,
+                    contentLength: content.length,
+                    reason: this.getRejectReason(utf8Score, hasEncryptionMarkers, binaryScore, recognizedFormat)
+                };
+            },
+
+            getRejectReason(utf8Score, isEncrypted, binaryScore, recognizedFormat) {
+                if (isEncrypted) return 'Encrypted content detected';
+                if (binaryScore > 10) return `Binary data (${binaryScore.toFixed(0)}% null bytes)`;
+                if (utf8Score < 80) return `Low UTF-8 score (${utf8Score.toFixed(0)}%)`;
+                if (!recognizedFormat) return 'Unrecognized file format';
+                return 'Failed readability check';
+            },
+
+            async cleanFileContent(content, filename) {
+                this.log(`Cleaning: ${filename}`, 'info');
+                
+                let cleaned = content
+                    .split('')
+                    .filter(char => {
+                        const code = char.charCodeAt(0);
+                        return (code >= 32 && code <= 126) || 
+                               code === 9 || code === 10 || code === 13 ||
+                               (code >= 128 && code <= 255);
+                    })
+                    .join('');
+                
+                cleaned = cleaned.replace(/\n{4,}/g, '\n\n\n').trim();
+                
+                const retentionRatio = (cleaned.length / content.length) * 100;
+                this.log(`Cleaned ${filename}: ${retentionRatio.toFixed(1)}% retained`, retentionRatio >= 20 ? 'success' : 'warning');
+                
+                return {
+                    content: cleaned,
+                    originalSize: content.length,
+                    cleanedSize: cleaned.length,
+                    retentionRatio: retentionRatio,
+                    viable: retentionRatio >= 20
+                };
+            },
+
+            isTextReadable(content) {
+                if (!content || content.length === 0) return false;
+                const sample = content.substring(0, 1000);
+                const printable = sample.match(/[\x20-\x7E\n\r\t]/g);
+                const printableRatio = printable ? printable.length / sample.length : 0;
+                return printableRatio > 0.8;
+            },
+
+            async readFileAsArrayBuffer(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsArrayBuffer(file);
+                });
+            },
+
+            arrayBufferToBase64(buffer) {
+                let binary = '';
+                const bytes = new Uint8Array(buffer);
+                const len = bytes.byteLength;
+                for (let i = 0; i < len; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                return btoa(binary);
+            },
+
+            buildDirectoryTree(zipEntries, zipName) {
+                const tree = { name: zipName, type: 'zip', children: [] };
+                const pathMap = new Map();
+                pathMap.set('', tree);
+
+                zipEntries.forEach(entry => {
+                    const parts = entry.path.split('/').filter(p => p);
+                    let currentPath = '';
+                    
+                    parts.forEach((part, idx) => {
+                        const parentPath = currentPath;
+                        currentPath = currentPath ? `${currentPath}/${part}` : part;
+                        
+                        if (!pathMap.has(currentPath)) {
+                            const isFile = idx === parts.length - 1;
+                            const node = {
+                                name: part,
+                                type: isFile ? 'file' : 'folder',
+                                path: currentPath
+                            };
+                            
+                            if (isFile) {
+                                node.size = entry.size;
+                            } else {
+                                node.children = [];
+                            }
+                            
+                            const parent = pathMap.get(parentPath);
+                            if (parent && parent.children) {
+                                parent.children.push(node);
+                            }
+                            
+                            pathMap.set(currentPath, node);
+                        }
+                    });
+                });
+
+                return tree;
+            },
+
+            treeToString(node, indent = 0) {
+                const prefix = '  '.repeat(indent);
+                const icon = node.type === 'file' ? '📄' : node.type === 'folder' ? '📁' : '📦';
+                let result = `${prefix}${icon} ${node.name}`;
+                
+                if (node.type === 'file' && node.size !== undefined) {
+                    result += ` (${this.formatSize(node.size)})`;
+                }
+                
+                result += '\n';
+                
+                if (node.children) {
+                    node.children.forEach(child => {
+                        result += this.treeToString(child, indent + 1);
+                    });
+                }
+                
+                return result;
+            },
+
+            async handleFiles(fileList) {
+                const newFiles = Array.from(fileList);
+                
+                if (newFiles.length === 0) return;
+
+                this.showLoading('Reading files...');
+                this.log(`Processing ${newFiles.length} file(s)`, 'info');
+
+                const chunkSize = this.getChunkSize();
+                let processImmediately = newFiles.length;
+                
+                if (typeof chunkSize === 'string' && chunkSize.includes('%')) {
+                    const percent = parseInt(chunkSize) / 100;
+                    processImmediately = Math.ceil(newFiles.length * percent);
+                    this.log(`Chunking: ${processImmediately}/${newFiles.length} immediate`, 'info');
+                }
+
+                let addedCount = 0;
+                let zipCount = 0;
+                let skippedCount = 0;
+                let binaryCount = 0;
+                this.rejectedFiles = [];
+
+                for (let i = 0; i < newFiles.length; i++) {
+                    const file = newFiles[i];
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    
+                    this.updateLoadingDetail(`Processing ${i + 1}/${newFiles.length}: ${file.name}`);
+                    
+                    if (this.files.some(f => f.name === file.name && f.size === file.size)) {
+                        this.log(`Duplicate: ${file.name}`, 'warning');
+                        skippedCount++;
+                        continue;
+                    }
+
+                    if (ext === 'zip') {
+                        try {
+                            this.log(`Loading ZIP: ${file.name}`, 'info');
+                            const zip = await JSZip.loadAsync(file);
+                            const zipEntries = [];
+                            const zipRejected = [];
+                            
+                            for (const [path, entry] of Object.entries(zip.files)) {
+                                if (entry.dir) continue;
+                                
+                                const fileName = this.detailedMode ? path : path.split('/').pop();
+                                const fileExt = fileName.split('.').pop().toLowerCase();
+                                
+                                if (!this.allPassMode && this.binaryExts.includes(fileExt)) {
+                                    this.log(`Skipped binary in ZIP: ${path}`, 'warning');
+                                    continue;
+                                }
+                                
+                                try {
+                                    let content;
+                                    let isBinary = false;
+                                    
+                                    if (this.allPassMode && this.binaryExts.includes(fileExt)) {
+                                        const arrayBuffer = await entry.async('arraybuffer');
+                                        content = this.arrayBufferToBase64(arrayBuffer);
+                                        isBinary = true;
+                                        this.log(`Base64 encoded: ${path}`, 'info');
+                                    } else {
+                                        content = await entry.async('text');
+                                    }
+                                    
+                                    if (isBinary || this.allPassMode || this.isTextReadable(content)) {
+                                        zipEntries.push({
+                                            path: path,
+                                            name: fileName,
+                                            size: content.length,
+                                            content: content,
+                                            isBinary: isBinary,
+                                            originalExt: fileExt
+                                        });
+                                    } else if (this.expertMode) {
+                                        const analysis = this.analyzeFile(content, path);
+                                        zipRejected.push({
+                                            path: path,
+                                            name: fileName,
+                                            content: content,
+                                            analysis: analysis,
+                                            source: `${file.name}/${path}`,
+                                            isZipEntry: true
+                                        });
+                                        this.log(`Rejected for review: ${path} (${analysis.reason})`, 'warning');
+                                    } else {
+                                        this.log(`Unreadable in ZIP: ${path}`, 'warning');
+                                    }
+                                } catch (err) {
+                                    this.log(`Failed to read ${path}: ${err.message}`, 'error');
+                                }
+                                
+                                await this.yieldToUI();
+                            }
+                            
+                            if (zipEntries.length > 0) {
+                                const fileData = {
+                                    file: file,
+                                    name: file.name,
+                                    size: file.size,
+                                    type: 'zip',
+                                    zipEntries: zipEntries,
+                                    lastModified: file.lastModified
+                                };
+                                
+                                if (this.detailedMode) {
+                                    const tree = this.buildDirectoryTree(zipEntries, file.name);
+                                    fileData.directoryTree = tree;
+                                    this.directoryStructure.set(file.name, tree);
+                                }
+                                
+                                this.files.push(fileData);
+                                zipCount++;
+                                this.log(`✓ Loaded ZIP: ${file.name} (${zipEntries.length} files)`, 'success');
+                            }
+                            
+                            if (zipRejected.length > 0) {
+                                this.rejectedFiles.push(...zipRejected);
+                            }
+                            
+                            if (zipEntries.length === 0 && zipRejected.length === 0) {
+                                this.log(`ZIP empty or no text files: ${file.name}`, 'warning');
+                                skippedCount++;
+                            }
+                        } catch (error) {
+                            this.log(`✗ Failed ZIP: ${file.name} - ${error.message}`, 'error');
+                            skippedCount++;
+                        }
+                        continue;
+                    }
+
+                    const textExtensions = ['txt', 'js', 'jsx', 'ts', 'tsx', 'css', 'html', 'json', 'xml', 'md', 'log', 'csv', 'yml', 'yaml', 'py', 'java', 'c', 'cpp', 'h', 'php', 'rb', 'go', 'rs', 'sql'];
+                    const isText = textExtensions.includes(ext) || file.type.startsWith('text/');
+                    const isBinaryExt = this.binaryExts.includes(ext);
+
+                    if (this.allPassMode || isText) {
+                        try {
+                            let content;
+                            let isBinary = false;
+                            
+                            if (this.allPassMode && (isBinaryExt || !isText)) {
+                                const arrayBuffer = await this.readFileAsArrayBuffer(file);
+                                content = this.arrayBufferToBase64(arrayBuffer);
+                                isBinary = true;
+                                binaryCount++;
+                                this.log(`Base64 encoded: ${file.name}`, 'info');
+                            } else {
+                                content = await this.readFileAsText(file);
+                            }
+                            
+                            if (isBinary || this.allPassMode || this.isTextReadable(content)) {
+                                this.files.push({
+                                    file: file,
+                                    name: file.name,
+                                    size: file.size,
+                                    type: isBinary ? 'binary' : 'text',
+                                    content: content,
+                                    lastModified: file.lastModified,
+                                    isBinary: isBinary,
+                                    originalExt: ext
+                                });
+                                addedCount++;
+                                this.log(`✓ Loaded: ${file.name}`, 'success');
+                            } else if (this.expertMode) {
+                                const analysis = this.analyzeFile(content, file.name);
+                                this.rejectedFiles.push({
+                                    file: file,
+                                    name: file.name,
+                                    content: content,
+                                    analysis: analysis,
+                                    source: file.name,
+                                    isZipEntry: false
+                                });
+                                this.log(`Rejected for review: ${file.name} (${analysis.reason})`, 'warning');
+                            } else {
+                                this.log(`✗ Binary/unreadable: ${file.name}`, 'error');
+                                skippedCount++;
+                            }
+                        } catch (error) {
+                            this.log(`✗ Read error: ${file.name} - ${error.message}`, 'error');
+                            skippedCount++;
+                        }
+                    } else {
+                        this.log(`✗ Unsupported type: ${file.name} (.${ext})`, 'warning');
+                        skippedCount++;
+                    }
+                    
+                    if (i % 3 === 0) {
+                        await this.yieldToUI();
+                    }
+                }
+
+                this.hideLoading();
+                
+                if (this.expertMode && this.rejectedFiles.length > 0) {
+                    this.showExpertReview();
+                } else {
+                    this.updateUI();
+                    this.saveState();
+                    
+                    let msg = [];
+                    if (addedCount > 0) msg.push(`${addedCount} text`);
+                    if (binaryCount > 0) msg.push(`${binaryCount} binary`);
+                    if (zipCount > 0) msg.push(`${zipCount} ZIP`);
+                    if (skippedCount > 0) msg.push(`${skippedCount} skipped`);
+                    
+                    if (msg.length > 0) {
+                        this.showAlert(`Added: ${msg.join(', ')}`, skippedCount > 0 ? 'warning' : 'success');
+                        this.log(`Summary: ${msg.join(', ')}`, 'info');
+                    } else {
+                        this.showAlert('No valid files loaded', 'error');
+                    }
+                }
+            },
+
+            showExpertReview() {
+                this.log(`Opening expert review for ${this.rejectedFiles.length} files`, 'info');
+                
+                const listEl = document.getElementById('expertReviewList');
+                listEl.innerHTML = '';
+                
+                this.rejectedFiles.forEach((rejected, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'expert-file-card';
+                    card.dataset.index = index;
+                    
+                    const analysis = rejected.analysis;
+                    const preview = rejected.content.substring(0, 200);
+                    
+                    card.innerHTML = `
+                        <div class="expert-file-header">
+                            <div class="expert-file-name">${this.escapeHtml(rejected.source)}</div>
+                            <button class="expert-remove-btn" onclick="app.removeFromExpertReview(${index})">Remove</button>
+                        </div>
+                        
+                        <div class="expert-diagnostics">
+                            <div class="expert-diag-row">
+                                <span class="expert-diag-label">UTF-8 Score:</span>
+                                <span class="expert-diag-value ${analysis.isReadable ? 'pass' : 'fail'}">${analysis.utf8Score}%</span>
+                            </div>
+                            <div class="expert-diag-row">
+                                <span class="expert-diag-label">Encrypted:</span>
+                                <span class="expert-diag-value ${analysis.isEncrypted ? 'fail' : 'pass'}">${analysis.isEncrypted ? 'Yes' : 'No'}</span>
+                            </div>
+                            <div class="expert-diag-row">
+                                <span class="expert-diag-label">Binary Data:</span>
+                                <span class="expert-diag-value ${parseFloat(analysis.binaryPercentage) > 10 ? 'warning' : 'pass'}">${analysis.binaryPercentage}%</span>
+                            </div>
+                            <div class="expert-diag-row">
+                                <span class="expert-diag-label">Format:</span>
+                                <span class="expert-diag-value ${analysis.recognizedFormat ? 'pass' : 'warning'}">${analysis.recognizedFormat ? 'Recognized' : 'Unknown'}</span>
+                            </div>
+                            <div class="expert-diag-row">
+                                <span class="expert-diag-label">Reason:</span>
+                                <span class="expert-diag-value fail">${analysis.reason}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="expert-preview">${this.escapeHtml(preview)}${rejected.content.length > 200 ? '...' : ''}</div>
+                        
+                        <div class="expert-status pending" data-status="pending">
+                            Pending Review
+                        </div>
+                    `;
+                    
+                    listEl.appendChild(card);
+                });
+                
+                this.openModal('expertReviewModal');
+            },
+
+            removeFromExpertReview(index) {
+                const card = document.querySelector(`[data-index="${index}"]`);
+                if (card) {
+                    card.remove();
+                    this.rejectedFiles[index] = null;
+                }
+                this.log(`Removed file from expert review at index ${index}`, 'info');
+            },
+
+            expertSkipAll() {
+                this.log('Skipping all rejected files', 'warning');
+                this.rejectedFiles = [];
+                this.closeModal('expertReviewModal');
+                this.updateUI();
+                this.saveState();
+                this.showAlert('All rejected files skipped', 'warning');
+            },
+
+            async expertProcessAll() {
+                this.closeModal('expertReviewModal');
+                this.showLoading('Processing rejected files...');
+                
+                let addedCount = 0;
+                let cleanedCount = 0;
+                let rejectedCount = 0;
+                
+                for (let i = 0; i < this.rejectedFiles.length; i++) {
+                    const rejected = this.rejectedFiles[i];
+                    if (!rejected) continue;
+                    
+                    this.updateLoadingDetail(`Analyzing ${i + 1}/${this.rejectedFiles.length}: ${rejected.name || rejected.path}`);
+                    this.log(`Re-analyzing: ${rejected.source}`, 'info');
+                    
+                    const cleaned = await this.cleanFileContent(rejected.content, rejected.source);
+                    
+                    if (cleaned.viable) {
+                        if (rejected.isZipEntry) {
+                            this.files.push({
+                                file: null,
+                                name: `${rejected.source} (cleaned)`,
+                                size: cleaned.cleanedSize,
+                                type: 'text',
+                                content: cleaned.content,
+                                lastModified: Date.now(),
+                                wasRejected: true,
+                                retentionRatio: cleaned.retentionRatio
+                            });
+                        } else {
+                            this.files.push({
+                                file: rejected.file,
+                                name: `${rejected.name} (cleaned)`,
+                                size: cleaned.cleanedSize,
+                                type: 'text',
+                                content: cleaned.content,
+                                lastModified: rejected.file.lastModified,
+                                wasRejected: true,
+                                retentionRatio: cleaned.retentionRatio
+                            });
+                        }
+                        cleanedCount++;
+                        this.log(`✓ Recovered: ${rejected.source} (${cleaned.retentionRatio.toFixed(1)}% retained)`, 'success');
+                    } else {
+                        rejectedCount++;
+                        this.log(`✗ Rejected: ${rejected.source} (only ${cleaned.retentionRatio.toFixed(1)}% recoverable)`, 'error');
+                    }
+                    
+                    await this.yieldToUI();
+                }
+                
+                this.hideLoading();
+                this.updateUI();
+                this.saveState();
+                
+                this.showAlert(`Expert review complete: ${cleanedCount} recovered, ${rejectedCount} rejected`, 'success');
+                this.log(`Expert review summary: ${cleanedCount} recovered, ${rejectedCount} rejected`, 'success');
+            },
+
+            closeExpertReview() {
+                this.expertSkipAll();
+            },
+
+            readFileAsText(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsText(file, 'UTF-8');
+                });
+            },
+
+            removeFile(index) {
+                const file = this.files[index];
+                this.files.splice(index, 1);
+                this.updateUI();
+                this.saveState();
+                this.showAlert(`Removed ${file.name}`, 'success');
+                this.log(`Removed file: ${file.name}`, 'info');
+            },
+
+            async merge() {
+                if (this.files.length === 0) return;
+
+                this.showLoading('Merging files...');
+                this.log('Starting merge operation', 'info');
+
+                try {
+                    const parts = [];
+                    let processedCount = 0;
+                    let totalItems = 0;
+
+                    this.files.forEach(fileData => {
+                        if (fileData.type === 'zip') {
+                            totalItems += fileData.zipEntries.length;
+                        } else {
+                            totalItems++;
+                        }
+                    });
+
+                    this.log(`Total items to merge: ${totalItems}`, 'info');
+
+                    if (this.detailedMode) {
+                        parts.push('╔════════════════════════════════════════════════════════════╗');
+                        parts.push('║              PTAM v4 - DETAILED MODE ACTIVE                ║');
+                        parts.push('╚════════════════════════════════════════════════════════════╝');
+                        parts.push('');
+                        parts.push('[PTAM_METADATA]');
+                        parts.push(`VERSION=4`);
+                        parts.push(`TIMESTAMP=${new Date().toISOString()}`);
+                        parts.push(`TOTAL_FILES=${totalItems}`);
+                        parts.push(`DETAILED_MODE=true`);
+                        parts.push(`[/PTAM_METADATA]`);
+                        parts.push('');
+                        
+                        if (this.directoryStructure.size > 0) {
+                            parts.push('[PTAM_DIRECTORY_STRUCTURE]');
+                            this.directoryStructure.forEach((tree, zipName) => {
+                                parts.push(this.treeToString(tree));
+                            });
+                            parts.push('[/PTAM_DIRECTORY_STRUCTURE]');
+                            parts.push('');
+                        }
+                    }
+
+                    for (const fileData of this.files) {
+                        if (fileData.type === 'zip') {
+                            this.log(`Processing ZIP: ${fileData.name} (${fileData.zipEntries.length} files)`, 'info');
+                            
+                            for (const entry of fileData.zipEntries) {
+                                processedCount++;
+                                this.updateLoadingDetail(`Merging ${processedCount}/${totalItems}: ${entry.path}`);
+                                
+                                const separator = this.detailedMode ? '═'.repeat(60) : '='.repeat(60);
+                                
+                                if (this.detailedMode) {
+                                    parts.push(`[PTAM_FILE_START]`);
+                                    parts.push(`${separator}`);
+                                    parts.push(`FILE_PATH: ${entry.path}`);
+                                    parts.push(`FILE_NAME: ${entry.name}`);
+                                    parts.push(`SIZE: ${this.formatSize(entry.size)}`);
+                                    parts.push(`SIZE_BYTES: ${entry.size}`);
+                                    parts.push(`SOURCE_ZIP: ${fileData.name}`);
+                                    parts.push(`IS_BINARY: ${entry.isBinary || false}`);
+                                    if (entry.isBinary) {
+                                        parts.push(`ENCODING: base64`);
+                                        parts.push(`ORIGINAL_EXT: ${entry.originalExt}`);
+                                    }
+                                    parts.push(`${separator}`);
+                                    parts.push(`[PTAM_CONTENT_START]`);
+                                    parts.push(entry.content);
+                                    parts.push(`[PTAM_CONTENT_END]`);
+                                    parts.push(`[PTAM_FILE_END]`);
+                                } else {
+                                    parts.push(`${separator}`);
+                                    parts.push(`FILE: ${entry.path}`);
+                                    parts.push(`SIZE: ${this.formatSize(entry.size)}`);
+                                    parts.push(`SOURCE: ${fileData.name}`);
+                                    if (entry.isBinary) {
+                                        parts.push(`TYPE: BINARY (base64)`);
+                                    }
+                                    parts.push(`${separator}`);
+                                    parts.push(entry.content);
+                                }
+                                parts.push('');
+                                parts.push('');
+                                
+                                if (processedCount % 5 === 0) {
+                                    await this.yieldToUI();
+                                }
+                            }
+                        } else {
+                            processedCount++;
+                            this.updateLoadingDetail(`Merging ${processedCount}/${totalItems}: ${fileData.name}`);
+                            
+                            try {
+                                const content = fileData.content || await this.readFileAsText(fileData.file);
+                                
+                                const separator = this.detailedMode ? '═'.repeat(60) : '='.repeat(60);
+                                
+                                if (this.detailedMode) {
+                                    parts.push(`[PTAM_FILE_START]`);
+                                    parts.push(`${separator}`);
+                                    parts.push(`FILE_NAME: ${fileData.name}`);
+                                    parts.push(`SIZE: ${this.formatSize(fileData.size)}`);
+                                    parts.push(`SIZE_BYTES: ${fileData.size}`);
+                                    parts.push(`TYPE: ${fileData.type.toUpperCase()}`);
+                                    parts.push(`IS_BINARY: ${fileData.isBinary || false}`);
+                                    if (fileData.isBinary) {
+                                        parts.push(`ENCODING: base64`);
+                                        parts.push(`ORIGINAL_EXT: ${fileData.originalExt}`);
+                                    }
+                                    if (fileData.wasRejected) {
+                                        parts.push(`RECOVERED: true`);
+                                        parts.push(`RETENTION_RATIO: ${fileData.retentionRatio.toFixed(1)}%`);
+                                    }
+                                    parts.push(`LAST_MODIFIED: ${new Date(fileData.lastModified).toISOString()}`);
+                                    parts.push(`${separator}`);
+                                    parts.push(`[PTAM_CONTENT_START]`);
+                                    parts.push(content);
+                                    parts.push(`[PTAM_CONTENT_END]`);
+                                    parts.push(`[PTAM_FILE_END]`);
+                                } else {
+                                    parts.push(`${separator}`);
+                                    parts.push(`FILE: ${fileData.name}`);
+                                    parts.push(`SIZE: ${this.formatSize(fileData.size)}`);
+                                    parts.push(`TYPE: ${fileData.type.toUpperCase()}`);
+                                    if (fileData.isBinary) {
+                                        parts.push(`BINARY: base64 encoded`);
+                                    }
+                                    if (fileData.wasRejected) {
+                                        parts.push(`RECOVERED: ${fileData.retentionRatio.toFixed(1)}% retained after cleaning`);
+                                    }
+                                    parts.push(`${separator}`);
+                                    parts.push(content);
+                                }
+                                parts.push('');
+                                parts.push('');
+                            } catch (error) {
+                                parts.push(`[ERROR reading ${fileData.name}: ${error.message}]`);
+                                this.log(`Error reading ${fileData.name}: ${error.message}`, 'error');
+                            }
+                            
+                            await this.yieldToUI();
+                        }
+                    }
+
+                    if (this.detailedMode) {
+                        parts.push('[PTAM_END_OF_FILE]');
+                    }
+
+                    this.mergedContent = parts.join('\n');
+                    this.hideLoading();
+                    this.showPreview();
+                    this.log(`Merge complete: ${totalItems} items processed`, 'success');
+                } catch (error) {
+                    this.hideLoading();
+                    this.showAlert(`Merge failed: ${error.message}`, 'error');
+                    this.log(`Merge failed: ${error.message}`, 'error');
+                }
+            },
+
+            showPreview() {
+                const previewContent = document.getElementById('previewContent');
+                const preview = this.mergedContent.substring(0, 2000);
+                const remaining = this.mergedContent.length - 2000;
+                
+                previewContent.textContent = preview + (remaining > 0 ? `\n\n... (${remaining} more characters)` : '');
+                this.openModal('previewModal');
+            },
+
+            downloadMerged() {
+                if (!this.mergedContent) return;
+
+                const filename = this.getFilename();
+                const blob = new Blob([this.mergedContent], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                this.showAlert(`Downloaded ${filename}`, 'success');
+                this.log(`Downloaded: ${filename}`, 'success');
+            },
+
+            async copyMerged() {
+                if (!this.mergedContent) return;
+
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(this.mergedContent);
+                    } else {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = this.mergedContent;
+                        textarea.style.position = 'fixed';
+                        textarea.style.opacity = '0';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                    }
+                    this.showAlert('Copied to clipboard!', 'success');
+                    this.log('Content copied to clipboard', 'success');
+                } catch (error) {
+                    this.showAlert('Failed to copy', 'error');
+                    this.log('Copy failed', 'error');
+                }
+            },
+
+            getFilename() {
+                const input = document.getElementById('filenameInput').value.trim();
+                const baseFilename = (input || 'merged').replace(/[<>:"/\\|?*]/g, '_').substring(0, 100);
+                
+                if (!this.filenameModified && baseFilename.toLowerCase() === 'merged') {
+                    const now = new Date();
+                    const mm = String(now.getMonth() + 1).padStart(2, '0');
+                    const dd = String(now.getDate()).padStart(2, '0');
+                    const yy = String(now.getFullYear()).substring(2);
+                    const hh = String(now.getHours()).padStart(2, '0');
+                    const min = String(now.getMinutes()).padStart(2, '0');
+                    
+                    const timestamp = `${mm}${dd}${yy}${hh}${min}`;
+                    this.log(`Auto-versioning filename: merged+${timestamp}`, 'info');
+                    return `merged+${timestamp}.ptam.txt`;
+                }
+                
+                return `${baseFilename}.ptam.txt`;
+            },
+
+            updateUI() {
+                let totalSize = 0;
+                let textCount = 0;
+                let binaryCount = 0;
+                let totalFileCount = 0;
+
+                this.files.forEach(f => {
+                    totalSize += f.size;
+                    if (f.type === 'zip') {
+                        totalFileCount += f.zipEntries.length;
+                        f.zipEntries.forEach(e => {
+                            if (e.isBinary) binaryCount++;
+                            else textCount++;
+                        });
+                    } else {
+                        totalFileCount++;
+                        if (f.type === 'binary' || f.isBinary) {
+                            binaryCount++;
+                        } else {
+                            textCount++;
+                        }
+                    }
+                });
+
+                document.getElementById('statFiles').textContent = totalFileCount;
+                document.getElementById('statSize').textContent = this.formatSize(totalSize);
+                document.getElementById('statText').textContent = textCount;
+                document.getElementById('statBinary').textContent = binaryCount;
+
+                const fileList = document.getElementById('fileList');
+                
+                if (this.files.length === 0) {
+                    fileList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📄</div>
+                            <div class="empty-text">No files added yet</div>
+                        </div>
+                    `;
+                } else {
+                    fileList.innerHTML = this.files.map((f, i) => {
+                        const icon = f.type === 'zip' ? '📦' : (f.type === 'binary' || f.isBinary ? '💾' : (f.wasRejected ? '🔧' : '📄'));
+                        const typeLabel = f.type === 'zip' ? `${f.zipEntries.length} files` : 
+                                         (f.type === 'binary' || f.isBinary ? 'binary (b64)' :
+                                         (f.wasRejected ? `recovered (${f.retentionRatio.toFixed(0)}%)` : f.type));
+                        return `
+                        <div class="file-card">
+                            <div class="file-info">
+                                <div class="file-name">${icon} ${this.escapeHtml(f.name)}</div>
+                                <div class="file-meta">
+                                    <span class="file-type ${f.type}">${typeLabel}</span>
+                                    <span>${this.formatSize(f.size)}</span>
+                                </div>
+                            </div>
+                            <button class="remove-btn" onclick="app.removeFile(${i})" title="Remove">×</button>
+                        </div>
+                    `;
+                    }).join('');
+                }
+
+                document.getElementById('mergeBtn').disabled = this.files.length === 0;
+            },
+
+            formatSize(bytes) {
+                if (bytes === 0) return '0B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return (bytes / Math.pow(k, i)).toFixed(1) + sizes[i];
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            toggleTheme() {
+                const body = document.body;
+                const btn = document.getElementById('themeBtn');
+                
+                body.classList.toggle('light-mode');
+                btn.textContent = body.classList.contains('light-mode') ? '☀️' : '🌙';
+                
+                const theme = body.classList.contains('light-mode') ? 'light' : 'dark';
+                localStorage.setItem('ptam_theme', theme);
+                this.log(`Theme: ${theme}`, 'info');
+            },
+
+            loadTheme() {
+                const theme = localStorage.getItem('ptam_theme');
+                if (theme === 'light') {
+                    document.body.classList.add('light-mode');
+                    document.getElementById('themeBtn').textContent = '☀️';
+                }
+            },
+
+            saveState() {
+                try {
+                    const state = {
+                        filename: document.getElementById('filenameInput').value,
+                        filenameModified: this.filenameModified,
+                        fileCount: this.files.length,
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('ptam_state', JSON.stringify(state));
+                    this.showAlert('State saved', 'success');
+                    this.log('State saved to localStorage', 'info');
+                } catch (error) {
+                    console.error('Failed to save state:', error);
+                    this.log('Failed to save state', 'error');
+                }
+            },
+
+            loadState() {
+                try {
+                    this.loadTheme();
+                    
+                    const debug = localStorage.getItem('ptam_debug') === 'true';
+                    document.getElementById('debugViewToggle').checked = debug;
+                    this.debugEnabled = debug;
+                    if (debug) {
+                        document.getElementById('debugConsole').classList.remove('hidden');
+                    }
+                    
+                    const responsiveMode = localStorage.getItem('ptam_responsive_mode') === 'true';
+                    document.getElementById('responsiveModeToggle').checked = responsiveMode;
+                    if (responsiveMode) {
+                        this.responsiveMode = true;
+                        document.getElementById('responsiveStatus').classList.remove('hidden');
+                    }
+                    
+                    const expertMode = localStorage.getItem('ptam_expert_mode') === 'true';
+                    document.getElementById('expertModeToggle').checked = expertMode;
+                    if (expertMode) {
+                        this.expertMode = true;
+                        document.getElementById('expertStatus').classList.remove('hidden');
+                    }
+                    
+                    const allPass = localStorage.getItem('ptam_all_pass') === 'true';
+                    document.getElementById('allPassToggle').checked = allPass;
+                    if (allPass) {
+                        this.allPassMode = true;
+                        document.getElementById('allPassStatus').classList.remove('hidden');
+                    }
+                    
+                    const detailedMode = localStorage.getItem('ptam_detailed_mode') === 'true';
+                    document.getElementById('detailedModeToggle').checked = detailedMode;
+                    if (detailedMode) {
+                        this.detailedMode = true;
+                        document.getElementById('detailedStatus').classList.remove('hidden');
+                    }
+                    
+                    const chunking = localStorage.getItem('ptam_chunking') || 'off';
+                    document.getElementById('chunkingSelect').value = chunking;
+                    this.chunkingStrategy = chunking;
+                    
+                    const state = localStorage.getItem('ptam_state');
+                    if (state) {
+                        const data = JSON.parse(state);
+                        if (data.filename) {
+                            document.getElementById('filenameInput').value = data.filename;
+                        }
+                        if (data.filenameModified !== undefined) {
+                            this.filenameModified = data.filenameModified;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to load state:', error);
+                }
+            },
+
+            showRefreshConfirm() {
+                if (this.files.length > 0) {
+                    this.openModal('refreshModal');
+                } else {
+                    this.showAlert('Nothing to clear', 'warning');
+                }
+            },
+
+            confirmRefresh() {
+                this.files = [];
+                this.mergedContent = null;
+                this.rejectedFiles = [];
+                this.directoryStructure.clear();
+                document.getElementById('filenameInput').value = 'merged';
+                this.filenameModified = false;
+                this.updateUI();
+                this.closeModal('refreshModal');
+                this.showAlert('All files cleared', 'success');
+                this.log('All files cleared via refresh', 'info');
+            },
+
+            openModal(id) {
+                document.getElementById(id).classList.add('active');
+            },
+
+            closeModal(id) {
+                document.getElementById(id).classList.remove('active');
+            },
+
+            showLoading(text) {
+                document.getElementById('loadingDetail').textContent = text;
+                document.getElementById('loading').classList.add('active');
+            },
+
+            updateLoadingDetail(text) {
+                document.getElementById('loadingDetail').textContent = text;
+            },
+
+            hideLoading() {
+                document.getElementById('loading').classList.remove('active');
+            },
+
+            showAlert(message, type = 'success') {
+                const container = document.getElementById('alertContainer');
+                
+                const icons = {
+                    success: '✓',
+                    error: '✗',
+                    warning: '⚠'
+                };
+
+                const alert = document.createElement('div');
+                alert.className = `alert ${type}`;
+                alert.innerHTML = `
+                    <div class="alert-icon">${icons[type] || 'ℹ'}</div>
+                    <div class="alert-text">${this.escapeHtml(message)}</div>
+                    <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+                `;
+
+                container.appendChild(alert);
+
+                setTimeout(() => {
+                    if (alert.parentElement) {
+                        alert.style.opacity = '0';
+                        alert.style.transform = 'translateY(-20px)';
+                        setTimeout(() => alert.remove(), 300);
+                    }
+                }, 5000);
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => app.init());
+    </script>
+</body>
+</html>
