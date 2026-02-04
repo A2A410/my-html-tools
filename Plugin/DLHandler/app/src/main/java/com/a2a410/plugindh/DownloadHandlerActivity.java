@@ -46,15 +46,9 @@ public class DownloadHandlerActivity extends Activity {
     }
 
     private void handleDownload(Intent intent) {
-<<<<<<< HEAD
         final String fileName = intent.getStringExtra("file_name") != null ?
                 intent.getStringExtra("file_name") : "downloaded_file";
         final String mimeType = intent.getStringExtra("mime_type") != null ?
-=======
-        final String fileName = intent.getStringExtra("file_name") != null ?
-                intent.getStringExtra("file_name") : "downloaded_file";
-        final String mimeType = intent.getStringExtra("mime_type") != null ?
->>>>>>> origin/main
                 intent.getStringExtra("mime_type") : "application/octet-stream";
         final String base64Data = intent.getStringExtra("file_data");
 

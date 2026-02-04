@@ -16,11 +16,7 @@ public class FilePickerActivity extends Activity {
 
     private static final String TAG = "FilePickerPlugin";
     private static final String SECRET_KEY = "jai";
-<<<<<<< HEAD
 
-=======
-
->>>>>>> origin/main
     private static final int REQUEST_CODE_PICK = 1001;
     private static final int REQUEST_CODE_SAVE = 1002;
 
@@ -62,11 +58,7 @@ public class FilePickerActivity extends Activity {
         Intent pickIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         pickIntent.addCategory(Intent.CATEGORY_OPENABLE);
         pickIntent.setType(mimeType);
-<<<<<<< HEAD
 
-=======
-
->>>>>>> origin/main
         try {
             startActivityForResult(pickIntent, REQUEST_CODE_PICK);
         } catch (Exception e) {
@@ -159,19 +151,11 @@ public class FilePickerActivity extends Activity {
                     os.flush();
                 }
             }
-<<<<<<< HEAD
 
             final Intent resultIntent = new Intent();
             resultIntent.putExtra("status", "success");
             resultIntent.putExtra("uri", uri.toString());
 
-=======
-
-            final Intent resultIntent = new Intent();
-            resultIntent.putExtra("status", "success");
-            resultIntent.putExtra("uri", uri.toString());
-
->>>>>>> origin/main
             runOnUiThread(() -> {
                 setResult(RESULT_OK, resultIntent);
                 if (callbackAction != null) {
