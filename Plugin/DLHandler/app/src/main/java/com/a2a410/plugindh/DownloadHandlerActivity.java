@@ -59,48 +59,10 @@ public class DownloadHandlerActivity extends Activity {
         }
 
         // Run in background thread to avoid ANR
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    final byte[] data = Base64.decode(base64Data, Base64.DEFAULT);
-                    Uri savedUri;
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        // Use MediaStore for Android 10+
-                        savedUri = saveWithMediaStore(fileName, mimeType, data);
-                    } else {
-                        // Use Legacy File API for Android < 10
-                        savedUri = saveWithLegacyApi(fileName, mimeType, data);
-                    }
-
-                    if (savedUri != null) {
-                        final String uriString = savedUri.toString();
-                        runOnUiThread(() -> {
-                            Toast.makeText(DownloadHandlerActivity.this, "File saved successfully", Toast.LENGTH_SHORT).show();
-                            Intent resultIntent = new Intent();
-                            resultIntent.putExtra("status", "success");
-                            resultIntent.putExtra("uri", uriString);
-                            setResult(RESULT_OK, resultIntent);
-                            finish();
-                        });
-                    } else {
-                        throw new Exception("Failed to save file");
-                    }
-
-                } catch (final Exception e) {
-                    Log.e(TAG, "Error handling download", e);
-                    runOnUiThread(() -> {
-                        Toast.makeText(DownloadHandlerActivity.this, "Download failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                        setResult(RESULT_CANCELED);
-                        finish();
-                    });
-                }
-            }
-        }).start();
+        new Thread(new DownloadRunnable(this, fileName, mimeType, base64Data)).start();
     }
 
-    private Uri saveWithMediaStore(String fileName, String mimeType, byte[] data) throws Exception {
+    Uri saveWithMediaStore(String fileName, String mimeType, byte[] data) throws Exception {
         ContentValues values = new ContentValues();
         values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
         values.put(MediaStore.Downloads.MIME_TYPE, mimeType);
@@ -120,7 +82,7 @@ public class DownloadHandlerActivity extends Activity {
         return fileUri;
     }
 
-    private Uri saveWithLegacyApi(String fileName, String mimeType, byte[] data) throws Exception {
+    Uri saveWithLegacyApi(String fileName, String mimeType, byte[] data) throws Exception {
         File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
         if (!downloadDir.exists()) {
             downloadDir.mkdirs();
