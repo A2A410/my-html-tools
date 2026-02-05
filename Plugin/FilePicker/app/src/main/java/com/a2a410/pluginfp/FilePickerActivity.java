@@ -5,12 +5,15 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Base64;
+import android.util.Base64InputStream;
+import android.util.Base64OutputStream;
 import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 public class FilePickerActivity extends Activity {
 
@@ -144,12 +147,19 @@ public class FilePickerActivity extends Activity {
         }
 
         try {
-            byte[] data = Base64.decode(base64Data, Base64.DEFAULT);
-            try (OutputStream os = getContentResolver().openOutputStream(uri)) {
-                if (os != null) {
-                    os.write(data);
-                    os.flush();
+            try (InputStream encodedInput = new java.io.ByteArrayInputStream(base64Data.getBytes(StandardCharsets.US_ASCII));
+                 InputStream decodedInput = new Base64InputStream(encodedInput, Base64.DEFAULT);
+                 OutputStream os = getContentResolver().openOutputStream(uri)) {
+                if (os == null) {
+                    throw new IOException("Unable to open destination URI for writing");
                 }
+
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = decodedInput.read(buffer)) != -1) {
+                    os.write(buffer, 0, read);
+                }
+                os.flush();
             }
 
             final Intent resultIntent = new Intent();
@@ -177,13 +187,19 @@ public class FilePickerActivity extends Activity {
 
     private String readUriAsBase64(Uri uri) throws IOException {
         try (InputStream is = getContentResolver().openInputStream(uri);
-             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+             ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             Base64OutputStream b64os = new Base64OutputStream(baos, Base64.NO_WRAP)) {
+            if (is == null) {
+                throw new IOException("Unable to open source URI for reading");
+            }
+
             byte[] buffer = new byte[8192];
             int bytesRead;
             while ((bytesRead = is.read(buffer)) != -1) {
-                baos.write(buffer, 0, bytesRead);
+                b64os.write(buffer, 0, bytesRead);
             }
-            return Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT);
+            b64os.flush();
+            return baos.toString(StandardCharsets.US_ASCII.name());
         }
     }
 }

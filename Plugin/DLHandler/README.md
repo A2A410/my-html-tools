@@ -7,6 +7,12 @@ A standalone Android plugin for handling downloads (saving blobs to the Download
 
 ## Usage
 
+### Caller Security
+- The exported activity is protected by a signature-level permission (`com.a2a410.plugindh.ACCESS_PLUGIN`).
+- Caller app must be signed with the same certificate and declare `uses-permission` for this permission.
+- Existing `secret_key` extra is still required as an additional app-level check.
+
+
 ### Secret Key
 All Intents must include the following extra:
 - `secret_key`: `"jai"`
@@ -34,3 +40,9 @@ All Intents must include the following extra:
 - Uses `DownloadManager.addCompletedDownload`
 - Supports `requestLegacyExternalStorage` for compatibility with Android 10
 - No launcher icon
+
+
+## Build Requirements
+- JDK 17 to 21 (recommended).
+- Android SDK installed and configured via `ANDROID_HOME` or `local.properties` (`sdk.dir=...`).
+- This project intentionally avoids machine-specific `org.gradle.java.home` so builds remain portable across environments.

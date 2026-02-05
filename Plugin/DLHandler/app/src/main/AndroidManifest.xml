@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.a2a410.plugindh">
 
+    <permission
+        android:name="com.a2a410.plugindh.ACCESS_PLUGIN"
+        android:protectionLevel="signature" />
+
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
@@ -16,7 +20,8 @@
         <activity
             android:name=".DownloadHandlerActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:permission="com.a2a410.plugindh.ACCESS_PLUGIN">
             <intent-filter>
                 <action android:name="com.a2a410.plugindh.ACTION_DOWNLOAD" />
                 <category android:name="android.intent.category.DEFAULT" />
