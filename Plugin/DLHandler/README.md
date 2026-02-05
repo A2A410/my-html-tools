@@ -34,3 +34,9 @@ All Intents must include the following extra:
 - Uses `DownloadManager.addCompletedDownload`
 - Supports `requestLegacyExternalStorage` for compatibility with Android 10
 - No launcher icon
+
+
+## Build Requirements
+- JDK 17 to 21 (recommended).
+- Android SDK installed and configured via `ANDROID_HOME` or `local.properties` (`sdk.dir=...`).
+- This project intentionally avoids machine-specific `org.gradle.java.home` so builds remain portable across environments.

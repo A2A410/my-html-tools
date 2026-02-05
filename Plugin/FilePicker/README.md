@@ -40,3 +40,9 @@ All Intents must include the following extra:
 - Targets Android 8.0+ (API 26)
 - Uses Storage Access Framework (SAF)
 - No launcher icon
+
+
+## Build Requirements
+- JDK 17 to 21 (recommended).
+- Android SDK installed and configured via `ANDROID_HOME` or `local.properties` (`sdk.dir=...`).
+- This project intentionally avoids machine-specific `org.gradle.java.home` so builds remain portable across environments.
