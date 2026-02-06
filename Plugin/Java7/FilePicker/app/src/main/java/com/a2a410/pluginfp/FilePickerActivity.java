@@ -102,9 +102,19 @@ public class FilePickerActivity extends Activity {
         final Uri uri = data.getData();
 
         if (requestCode == REQUEST_CODE_PICK) {
-            new Thread(() -> processPickResult(uri)).start();
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    processPickResult(uri);
+                }
+            }).start();
         } else if (requestCode == REQUEST_CODE_SAVE) {
-            new Thread(() -> processSaveResult(uri)).start();
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    processSaveResult(uri);
+                }
+            }).start();
         }
     }
 
@@ -118,23 +128,29 @@ public class FilePickerActivity extends Activity {
                 resultIntent.putExtra("file_data", base64Data);
             } catch (IOException e) {
                 Log.e(TAG, "Error reading file data", e);
-                runOnUiThread(() -> {
-                    setResult(RESULT_CANCELED);
-                    finish();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        setResult(RESULT_CANCELED);
+                        finish();
+                    }
                 });
                 return;
             }
         }
 
-        runOnUiThread(() -> {
-            setResult(RESULT_OK, resultIntent);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                setResult(RESULT_OK, resultIntent);
 
-            if (callbackAction != null) {
-                Intent broadcast = new Intent(callbackAction);
-                broadcast.putExtras(resultIntent);
-                sendBroadcast(broadcast);
+                if (callbackAction != null) {
+                    Intent broadcast = new Intent(callbackAction);
+                    broadcast.putExtras(resultIntent);
+                    sendBroadcast(broadcast);
+                }
+                finish();
             }
-            finish();
         });
     }
 
@@ -142,7 +158,12 @@ public class FilePickerActivity extends Activity {
         String base64Data = getIntent().getStringExtra("file_data");
         if (base64Data == null) {
             Log.e(TAG, "No file data provided for save action");
-            runOnUiThread(this::finish);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    finish();
+                }
+            });
             return;
         }
 
@@ -166,21 +187,27 @@ public class FilePickerActivity extends Activity {
             resultIntent.putExtra("status", "success");
             resultIntent.putExtra("uri", uri.toString());
 
-            runOnUiThread(() -> {
-                setResult(RESULT_OK, resultIntent);
-                if (callbackAction != null) {
-                    Intent broadcast = new Intent(callbackAction);
-                    broadcast.putExtras(resultIntent);
-                    sendBroadcast(broadcast);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    setResult(RESULT_OK, resultIntent);
+                    if (callbackAction != null) {
+                        Intent broadcast = new Intent(callbackAction);
+                        broadcast.putExtras(resultIntent);
+                        sendBroadcast(broadcast);
+                    }
+                    finish();
                 }
-                finish();
             });
 
         } catch (Exception e) {
             Log.e(TAG, "Error saving file data", e);
-            runOnUiThread(() -> {
-                setResult(RESULT_CANCELED);
-                finish();
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    setResult(RESULT_CANCELED);
+                    finish();
+                }
             });
         }
     }
