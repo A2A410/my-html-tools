@@ -38,7 +38,6 @@ All Intents must include the following extra:
 ## Implementation Details
 - Targets Android 8.0+ (API 26)
 - Uses `DownloadManager.addCompletedDownload`
-- Supports `requestLegacyExternalStorage` for compatibility with Android 10
 - No launcher icon
 
 
