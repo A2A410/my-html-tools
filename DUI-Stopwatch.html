@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Stopwatch v1.5.0</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:#000;
+  color:#fff;
+  height:100vh;
+  overflow:hidden;
+  touch-action:manipulation;
+  position:relative;
+}
+.island{
+  position:fixed;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(30,30,30,.95);
+  backdrop-filter:blur(20px);
+  border-radius:24px;
+  padding:8px 16px;
+  display:flex;
+  gap:12px;
+  align-items:center;
+  z-index:1000;
+  box-shadow:0 4px 16px rgba(0,0,0,.5);
+}
+.island-btn{
+  background:none;
+  border:none;
+  color:#fff;
+  font-size:20px;
+  cursor:pointer;
+  padding:8px;
+  transition:transform .1s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.island-btn:active{transform:scale(.9)}
+.screen{
+  width:100%;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  user-select:none;
+  transition:background .2s;
+  position:relative;
+}
+.circle-container{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+.circle{
+  position:absolute;
+  border-radius:50%;
+  pointer-events:none;
+  transition:all 8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.circle-bg{
+  width:65vw;
+  height:65vw;
+  background:#fff;
+  opacity:1;
+  z-index:1;
+}
+.circle-ring1{
+  width:65vw;
+  height:65vw;
+  background:transparent;
+  border:3px solid rgba(255,255,255,0.8);
+  opacity:0;
+  z-index:2;
+}
+.circle-ring2{
+  width:65vw;
+  height:65vw;
+  background:transparent;
+  border:2px solid rgba(255,255,255,0.5);
+  opacity:0;
+  z-index:3;
+}
+.circle-ring3{
+  width:65vw;
+  height:65vw;
+  background:transparent;
+  border:1px solid rgba(255,255,255,0.3);
+  opacity:0;
+  z-index:4;
+}
+.running .circle-bg{
+  background:rgba(255,255,255,0.05);
+  opacity:0.3;
+  width:50vw;
+  height:50vw;
+}
+.running .circle-ring1{
+  opacity:1;
+  width:75vw;
+  height:75vw;
+}
+.running .circle-ring2{
+  opacity:1;
+  width:85vw;
+  height:85vw;
+}
+.running .circle-ring3{
+  opacity:1;
+  width:95vw;
+  height:95vw;
+}
+.ms{
+  font-size:4vw;
+  font-weight:300;
+  color:#000;
+  margin-bottom:8px;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:0.1em;
+  position:relative;
+  z-index:10;
+  transition:color .2s, text-shadow .2s;
+  text-shadow:0 0 0 transparent;
+}
+.display{
+  font-size:20vw;
+  font-weight:200;
+  letter-spacing:0.02em;
+  font-variant-numeric:tabular-nums;
+  transition:font-size .3s ease, color .2s, text-shadow .2s;
+  position:relative;
+  z-index:10;
+  color:#000;
+  text-shadow:0 0 0 transparent;
+}
+.display.has-minutes{font-size:18vw}
+.display.has-hours{font-size:14vw}
+.running{background:#000}
+.running .ms{
+  color:#fff;
+  text-shadow:0 0 20px rgba(255,255,255,0.3),
+              0 0 40px rgba(255,255,255,0.2);
+}
+.running .display{
+  color:#fff;
+  text-shadow:0 0 30px rgba(255,255,255,0.4),
+              0 0 60px rgba(255,255,255,0.2),
+              0 0 90px rgba(255,255,255,0.1);
+}
+</style>
+</head>
+<body>
+<div class="island">
+  <button class="island-btn" onclick="app.reset()" title="Reset">⟲</button>
+  <button class="island-btn" onclick="app.refresh()" title="Reload">↻</button>
+</div>
+<div class="screen" id="screen" onclick="app.toggle()">
+  <div class="circle-container">
+    <div class="circle circle-bg"></div>
+    <div class="circle circle-ring1"></div>
+    <div class="circle circle-ring2"></div>
+    <div class="circle circle-ring3"></div>
+    <div class="ms" id="ms">000</div>
+    <div class="display" id="display">0</div>
+  </div>
+</div>
+<script>
+const T={
+  PAD2:n=>String(n).padStart(2,'0'),
+  PAD3:n=>String(n).padStart(3,'0')
+};
+const app={
+  startTime:0,
+  elapsed:0,
+  running:false,
+  rafId:null,
+  touchStartTime:0,
+  lastActionTime:0,
+  debounceMs:100,
+  init(){
+    this.loadState();
+    this.updateDisplay();
+    this.initTouchTracking();
+  },
+  initTouchTracking(){
+    const screen=document.getElementById('screen');
+    screen.addEventListener('touchstart',e=>{
+      this.touchStartTime=performance.now();
+    },{passive:true});
+  },
+  toggle(){
+    const now=performance.now();
+    if(now-this.lastActionTime<this.debounceMs)return;
+    this.lastActionTime=now;
+    const touchDelay=this.touchStartTime>0?(now-this.touchStartTime):0;
+    if(!this.running){
+      this.running=true;
+      this.startTime=now-this.elapsed;
+      document.body.classList.add('running');
+      this.tick();
+    }else{
+      const preciseStopTime=this.touchStartTime>0?this.touchStartTime:now;
+      this.elapsed=preciseStopTime-this.startTime;
+      this.running=false;
+      cancelAnimationFrame(this.rafId);
+      document.body.classList.remove('running');
+      this.updateDisplay();
+      this.saveState();
+    }
+    this.touchStartTime=0;
+  },
+  reset(){
+    const now=performance.now();
+    if(now-this.lastActionTime<this.debounceMs)return;
+    this.lastActionTime=now;
+    this.running=false;
+    cancelAnimationFrame(this.rafId);
+    this.elapsed=0;
+    this.startTime=0;
+    this.touchStartTime=0;
+    document.body.classList.remove('running');
+    this.updateDisplay();
+    this.saveState();
+  },
+  tick(){
+    if(!this.running)return;
+    this.elapsed=performance.now()-this.startTime;
+    this.updateDisplay();
+    this.rafId=requestAnimationFrame(()=>this.tick());
+  },
+  updateDisplay(){
+    const ms=Math.floor(this.elapsed);
+    const totalSec=Math.floor(ms/1000);
+    const min=Math.floor(totalSec/60);
+    const sec=totalSec%60;
+    const milli=Math.floor(ms%1000);
+    const display=document.getElementById('display');
+    const msDisplay=document.getElementById('ms');
+    const displayEl=document.querySelector('.display');
+    msDisplay.textContent=T.PAD3(milli);
+    if(min===0){
+      display.textContent=sec;
+      displayEl.classList.remove('has-minutes','has-hours');
+    }else if(min<100){
+      display.textContent=`${min}:${T.PAD2(sec)}`;
+      displayEl.classList.add('has-minutes');
+      displayEl.classList.remove('has-hours');
+    }else{
+      const hrs=Math.floor(min/60);
+      const m=min%60;
+      display.textContent=`${hrs}:${T.PAD2(m)}:${T.PAD2(sec)}`;
+      displayEl.classList.add('has-hours');
+    }
+  },
+  saveState(){
+    const state={elapsed:this.elapsed,running:this.running};
+    sessionStorage.setItem('sw_st',JSON.stringify(state));
+  },
+  loadState(){
+    const saved=sessionStorage.getItem('sw_st');
+    if(saved){
+      const state=JSON.parse(saved);
+      this.elapsed=state.elapsed||0;
+      this.updateDisplay();
+    }
+  },
+  refresh(){
+    location.reload();
+  }
+};
+window.addEventListener('DOMContentLoaded',()=>app.init());
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden&&app.running){
+    app.saveState();
+  }
+});
+</script>
+</body>
+</html>
