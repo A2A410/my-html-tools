@@ -26,6 +26,12 @@ A collection of small HTML tools intended to be deployed and accessed via a web 
 
 ---
 
+MUI - Material UI
+DUI - Dynamic UI
+MNUI - Minimal UI
+RUI - RGB UI
+TUI - Too Much Information UI
+
 ## License
 
 This project is released under a **Served-Only License**.
