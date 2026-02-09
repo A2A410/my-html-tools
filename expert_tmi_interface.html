@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Expert TMI UI</title>
+<style>
+:root{--bg:#0b0c0f;--panel:#111319;--line:#1e2230;--text:#e6e9f0;--muted:#8b90a8;--ok:#4cff9a;--warn:#ffb84c;--bad:#ff5f5f}
+*{box-sizing:border-box;font-family:ui-monospace,Consolas,Menlo,monospace}
+body{margin:0;background:var(--bg);color:var(--text)}
+.app{min-height:100vh;display:grid;grid-template-rows:auto 1fr}
+.header{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;font-size:.75rem}
+.main{display:grid;grid-template-columns:280px 1fr 320px;gap:0}
+.col{border-right:1px solid var(--line);padding:10px;overflow:auto}
+.col:last-child{border-right:0}
+.block{margin-bottom:10px}
+.title{font-size:.7rem;color:var(--muted);margin-bottom:4px}
+.kv{display:flex;justify-content:space-between;font-size:.75rem}
+.kv span:last-child{color:var(--muted)}
+.bar{height:3px;background:#1b1f2b;margin-top:3px;position:relative}
+.bar span{position:absolute;inset:0 40% 0 0;background:var(--ok)}
+.list{font-size:.7rem;line-height:1.4}
+.list div{display:flex;justify-content:space-between}
+.flag.ok{color:var(--ok)}
+.flag.warn{color:var(--warn)}
+.flag.bad{color:var(--bad)}
+.log{font-size:.65rem;color:var(--muted);white-space:pre-line}
+.footer{padding:6px 14px;border-top:1px solid var(--line);font-size:.65rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header"><div>SYSTEM :: EXPERT MODE</div><div>uptime 00:42:19</div></div>
+  <div class="main">
+    <section class="col">
+      <div class="block">
+        <div class="title">CORE METRICS</div>
+        <div class="kv"><span>Integrity</span><span>96.23%</span></div>
+        <div class="bar"><span></span></div>
+        <div class="kv"><span>Entropy Drift</span><span>+0.0031</span></div>
+        <div class="kv"><span>Clock Skew</span><span>−12µs</span></div>
+      </div>
+      <div class="block">
+        <div class="title">RESOURCE TABLE</div>
+        <div class="list">
+          <div><span>Energy</span><span>61.8%</span></div>
+          <div><span>Reserve</span><span>12.4%</span></div>
+          <div><span>Leak</span><span class="flag warn">0.04%</span></div>
+        </div>
+      </div>
+    </section>
+    <section class="col">
+      <div class="block">
+        <div class="title">SUBSYSTEM MAP</div>
+        <div class="list">
+          <div><span>Navigation</span><span class="flag ok">OK</span></div>
+          <div><span>Perception</span><span class="flag ok">OK</span></div>
+          <div><span>Limiter</span><span class="flag warn">Bypassed</span></div>
+          <div><span>Failsafe</span><span class="flag bad">Armed</span></div>
+        </div>
+      </div>
+      <div class="block">
+        <div class="title">PROCESS LOAD</div>
+        <div class="kv"><span>Total</span><span>43.19%</span></div>
+        <div class="kv"><span>Thread[03]</span><span>12.01%</span></div>
+        <div class="kv"><span>Thread[07]</span><span>9.88%</span></div>
+      </div>
+    </section>
+    <section class="col">
+      <div class="block">
+        <div class="title">EVENT STREAM</div>
+        <div class="log">00:42:11  sync.ok
+00:42:13  probe.update
+00:42:14  limiter.flag
+00:42:18  state.stable</div>
+      </div>
+      <div class="block">
+        <div class="title">FUTURE HOOKS</div>
+        <div class="list">
+          <div><span>Predictor</span><span class="flag warn">idle</span></div>
+          <div><span>Rollback</span><span class="flag warn">offline</span></div>
+          <div><span>Override</span><span class="flag warn">locked</span></div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="footer">input: ready | mode: observe | authority: user</div>
+</div>
+</body>
+</html>

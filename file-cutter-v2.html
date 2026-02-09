@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>File Cutter v2</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: monospace;
+            background: #000;
+            color: #0f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .app-bar {
+            background: #000;
+            padding: 12px;
+            border-bottom: 1px solid #0f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .title { font-size: 16px; display: flex; align-items: center; gap: 8px; }
+        .version { font-size: 10px; color: #0a0; margin-left: 8px; }
+        .container { padding: 12px; max-width: 100%; }
+        .card {
+            background: #000;
+            border: 1px solid #0f0;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .upload-zone {
+            border: 1px dashed #0f0;
+            padding: 24px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #000;
+        }
+        .upload-zone:hover { background: #001100; border-color: #0ff; }
+        .upload-zone.dragover { background: #001100; border-color: #0ff; }
+        .btn {
+            background: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 8px 16px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        .btn:hover { background: #0f0; color: #000; }
+        .btn:active { transform: scale(0.95); }
+        .btn-secondary { background: #000; color: #f00; border-color: #f00; }
+        .btn-secondary:hover { background: #f00; color: #000; }
+        input[type="file"] { display: none; }
+        .input-group {
+            margin: 12px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .input-group label { font-size: 12px; color: #0a0; }
+        .input-group input {
+            background: #000;
+            border: 1px solid #0f0;
+            padding: 8px;
+            color: #0f0;
+            font-size: 14px;
+            font-family: monospace;
+            width: 100%;
+        }
+        .input-group input:focus { outline: none; border-color: #0ff; }
+        .file-info {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 8px 12px;
+            font-size: 12px;
+            margin: 12px 0;
+        }
+        .file-info .label { color: #0a0; }
+        .file-info .value { color: #0f0; word-break: break-all; }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #001100;
+            border: 1px solid #0f0;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0f0, #0ff);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .file-item {
+            background: #000;
+            border: 1px solid #0f0;
+            padding: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .file-item-info { flex: 1; min-width: 0; }
+        .file-item-name { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-item-size { font-size: 10px; color: #0a0; margin-top: 4px; }
+        .icon-btn {
+            background: transparent;
+            border: 1px solid #0f0;
+            color: #0f0;
+            cursor: pointer;
+            padding: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 10px;
+        }
+        .icon-btn:hover { background: #0f0; color: #000; }
+        .status { font-size: 11px; margin: 10px 0; color: #0a0; display: flex; align-items: center; gap: 8px; }
+        .status.processing { color: #0ff; }
+        .status.complete { color: #0ff; }
+        .status.error { color: #f00; }
+        #debug-view {
+            background: #000;
+            border: 1px solid #0f0;
+            padding: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 10px;
+            margin-top: 12px;
+            display: none;
+        }
+        .debug-line { padding: 3px 0; border-bottom: 1px solid #001100; }
+        .debug-time { color: #0a0; }
+        .debug-info { color: #0ff; }
+        .debug-error { color: #f00; }
+        .fab {
+            position: fixed;
+            bottom: 12px;
+            right: 12px;
+            width: 48px;
+            height: 48px;
+            background: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        .fab:hover { background: #0f0; color: #000; }
+        .hidden { display: none !important; }
+        .changelog-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+        .changelog-content {
+            background: #000;
+            border: 1px solid #0f0;
+            padding: 16px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .changelog-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #0f0;
+        }
+        .changelog-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #001100;
+        }
+        .changelog-version { color: #0ff; }
+        .changelog-diff { font-size: 10px; color: #0a0; margin: 4px 0; }
+    </style>
+</head>
+<body>
+    <div class="app-bar">
+        <div class="title">
+            [✂] FILE CUTTER
+            <span class="version">v2</span>
+        </div>
+        <button class="icon-btn" onclick="showChangelog()">
+            [?]
+        </button>
+    </div>
+
+    <div class="container">
+        <div id="upload-section">
+            <div class="card">
+                <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+                    <p style="font-size: 32px;">[▲]</p>
+                    <p style="margin-top: 12px; font-size: 14px;">TAP TO SELECT FILE</p>
+                    <p style="margin-top: 6px; font-size: 10px; color: #0a0;">SUPPORTS LARGE FILES (1MB+)</p>
+                </div>
+                <input type="file" id="file-input" accept="*/*">
+            </div>
+        </div>
+
+        <div id="processing-section" class="hidden">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h3 style="font-size: 14px;">FILE INFO</h3>
+                    <button class="icon-btn" onclick="resetApp()">
+                        [↻]
+                    </button>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 12px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="expert-mode" onchange="toggleExpertMode()" style="width: auto;">
+                        <span>EXPERT MODE (50MB+ FILES)</span>
+                    </label>
+                    <div id="expert-status" style="font-size: 10px; color: #0a0; margin-top: 4px;"></div>
+                </div>
+                
+                <div class="file-info" id="file-info"></div>
+
+                <div class="input-group">
+                    <label for="chunk-size">MAX SIZE PER PIECE (MB)</label>
+                    <input type="number" id="chunk-size" min="1" value="25" step="1">
+                </div>
+
+                <button class="btn" onclick="startCutting()" style="width: 100%; justify-content: center;">
+                    [✂] START CUTTING
+                </button>
+
+                <div id="progress-container" class="hidden">
+                    <div class="status" id="status-text"></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="results-section" class="hidden">
+                <div class="card">
+                    <h3 style="font-size: 14px; margin-bottom: 12px;">CUT FILES</h3>
+                    <div class="file-list" id="file-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <button class="btn btn-secondary" onclick="toggleDebug()" style="width: 100%; justify-content: center;">
+                [!] TOGGLE DEBUG VIEW
+            </button>
+            <div id="debug-view"></div>
+        </div>
+    </div>
+
+    <div class="changelog-modal" id="changelog-modal" onclick="if(event.target === this) hideChangelog()">
+        <div class="changelog-content">
+            <div class="changelog-header">
+                <h3>CHANGELOG</h3>
+                <button class="icon-btn" onclick="hideChangelog()">
+                    [X]
+                </button>
+            </div>
+            <div id="changelog-list">
+                <div class="changelog-item">
+                    <div class="changelog-version">v2 (RGB UI)</div>
+                    <div class="changelog-diff">~150 / -200</div>
+                </div>
+                <div class="changelog-item">
+                    <div class="changelog-version">v1 (Initial Release)</div>
+                    <div class="changelog-diff">+850</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const T = {
+            UPLOAD: 'TAP TO SELECT FILE',
+            PROCESSING: 'PROCESSING...',
+            COMPLETE: 'COMPLETE!',
+            ERROR: 'ERROR OCCURRED',
+            CUTTING: 'CUTTING FILE...',
+            READY: 'READY TO CUT'
+        };
+
+        let currentFile = null;
+        let worker = null;
+        let cutFiles = [];
+
+        // Debug logging
+        const debugLog = (msg, type = 'info') => {
+            const debugView = document.getElementById('debug-view');
+            const time = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.className = `debug-line debug-${type}`;
+            line.innerHTML = `<span class="debug-time">[${time}]</span> ${msg}`;
+            debugView.appendChild(line);
+            debugView.scrollTop = debugView.scrollHeight;
+            console.log(`[${time}] ${msg}`);
+        };
+
+        function toggleDebug() {
+            const debugView = document.getElementById('debug-view');
+            debugView.style.display = debugView.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function showChangelog() {
+            document.getElementById('changelog-modal').style.display = 'flex';
+        }
+
+        function hideChangelog() {
+            document.getElementById('changelog-modal').style.display = 'none';
+        }
+
+        // File upload handling
+        const fileInput = document.getElementById('file-input');
+        const uploadZone = document.getElementById('upload-zone');
+
+        fileInput.addEventListener('change', handleFileSelect);
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFileSelect({ target: { files: e.dataTransfer.files } });
+            }
+        });
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            currentFile = file;
+            debugLog(`File selected: ${file.name} (${formatSize(file.size)})`, 'info');
+
+            document.getElementById('upload-section').classList.add('hidden');
+            document.getElementById('processing-section').classList.remove('hidden');
+
+            displayFileInfo(file);
+        }
+
+        function displayFileInfo(file) {
+            const fileInfo = document.getElementById('file-info');
+            fileInfo.innerHTML = `
+                <span class="label">NAME:</span>
+                <span class="value">${file.name}</span>
+                <span class="label">SIZE:</span>
+                <span class="value">${formatSize(file.size)}</span>
+                <span class="label">TYPE:</span>
+                <span class="value">${file.type || 'Unknown'}</span>
+                <span class="label">MODIFIED:</span>
+                <span class="value">${new Date(file.lastModified).toLocaleString()}</span>
+            `;
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function resetApp() {
+            currentFile = null;
+            cutFiles = [];
+            document.getElementById('upload-section').classList.remove('hidden');
+            document.getElementById('processing-section').classList.add('hidden');
+            document.getElementById('results-section').classList.add('hidden');
+            document.getElementById('progress-container').classList.add('hidden');
+            fileInput.value = '';
+            debugLog('App reset', 'info');
+        }
+
+        async function startCutting() {
+            if (!currentFile) return;
+
+            const chunkSizeMB = parseInt(document.getElementById('chunk-size').value);
+            if (!chunkSizeMB || chunkSizeMB < 1) {
+                alert('Please enter a valid chunk size (minimum 1 MB)');
+                return;
+            }
+
+            const chunkSize = chunkSizeMB * 1024 * 1024;
+            const progressContainer = document.getElementById('progress-container');
+            const statusText = document.getElementById('status-text');
+            const progressFill = document.getElementById('progress-fill');
+
+            progressContainer.classList.remove('hidden');
+            statusText.textContent = T.CUTTING;
+            statusText.className = 'status processing';
+
+            debugLog(`Starting cut: ${chunkSizeMB}MB per piece`, 'info');
+
+            try {
+                cutFiles = await cutFileIntoChunks(currentFile, chunkSize, (progress) => {
+                    progressFill.style.width = progress + '%';
+                });
+
+                statusText.textContent = T.COMPLETE;
+                statusText.className = 'status complete';
+                progressFill.style.width = '100%';
+
+                displayResults();
+                debugLog(`Cut complete: ${cutFiles.length} pieces created`, 'info');
+            } catch (error) {
+                statusText.textContent = T.ERROR + ': ' + error.message;
+                statusText.className = 'status error';
+                debugLog(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function cutFileIntoChunks(file, chunkSize, onProgress) {
+            const fileId = generateFileId();
+            const totalChunks = Math.ceil(file.size / chunkSize);
+            const chunks = [];
+
+            debugLog(`File ID: ${fileId}`, 'info');
+            debugLog(`Total chunks: ${totalChunks}`, 'info');
+
+            for (let i = 0; i < totalChunks; i++) {
+                const start = i * chunkSize;
+                const end = Math.min(start + chunkSize, file.size);
+                const chunk = file.slice(start, end);
+
+                // Read chunk data
+                const chunkData = await readChunkAsArrayBuffer(chunk);
+
+                // Create header
+                const header = createChunkHeader(fileId, i + 1, totalChunks, file.name);
+                
+                // Combine header and chunk data
+                const combinedData = new Uint8Array(header.length + chunkData.byteLength);
+                combinedData.set(header, 0);
+                combinedData.set(new Uint8Array(chunkData), header.length);
+
+                const blob = new Blob([combinedData], { type: 'application/octet-stream' });
+                const nameParts = file.name.split('.');
+                const ext = nameParts.length > 1 ? '.' + nameParts.pop() : '';
+                const baseName = nameParts.join('.');
+                const chunkName = `${baseName}.part${i + 1}of${totalChunks}${ext}`;
+
+                chunks.push({
+                    blob: blob,
+                    name: chunkName,
+                    size: blob.size,
+                    partNum: i + 1,
+                    totalParts: totalChunks
+                });
+
+                onProgress(Math.round(((i + 1) / totalChunks) * 100));
+            }
+
+            return chunks;
+        }
+
+        function generateFileId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+        }
+
+        function createChunkHeader(fileId, partNum, totalParts, originalName) {
+            const headerObj = {
+                type: 'FILE_CHUNK',
+                id: fileId,
+                part: partNum,
+                total: totalParts,
+                original: originalName,
+                version: 1
+            };
+            const headerJson = JSON.stringify(headerObj);
+            const headerBytes = new TextEncoder().encode(headerJson);
+            const headerLength = new Uint32Array([headerBytes.length]);
+            
+            const header = new Uint8Array(4 + headerBytes.length);
+            header.set(new Uint8Array(headerLength.buffer), 0);
+            header.set(headerBytes, 4);
+            
+            return header;
+        }
+
+        function readChunkAsArrayBuffer(chunk) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(chunk);
+            });
+        }
+
+        function displayResults() {
+            const resultsSection = document.getElementById('results-section');
+            const fileList = document.getElementById('file-list');
+
+            resultsSection.classList.remove('hidden');
+            fileList.innerHTML = '';
+
+            cutFiles.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <div class="file-item-info">
+                        <div class="file-item-name">${file.name}</div>
+                        <div class="file-item-size">${formatSize(file.size)} • PART ${file.partNum}/${file.totalParts}</div>
+                    </div>
+                    <button class="icon-btn" onclick="downloadChunk(${index})">
+                        [↓]
+                    </button>
+                `;
+                fileList.appendChild(item);
+            });
+        }
+
+        function downloadChunk(index) {
+            const file = cutFiles[index];
+            const url = URL.createObjectURL(file.blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            debugLog(`Downloaded: ${file.name}`, 'info');
+        }
+
+        // Initialize
+        debugLog('File Cutter initialized', 'info');
+    </script>
+</body>
+</html>

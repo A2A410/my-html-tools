@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>System Status Screen</title>
+<style>
+:root{--bg:#05070d;--glow:#6cf;--text:#e8f0ff;--muted:#7a86b6;--warn:#ffb86c;--ok:#50fa7b}
+*{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#0e1433,transparent),var(--bg);color:var(--text);overflow:hidden}
+.screen{position:relative;min-height:100vh;padding:20px;display:grid;grid-template-rows:auto 1fr auto;gap:18px}
+.header{display:flex;justify-content:space-between;align-items:center;opacity:.9}
+.header .title{font-weight:600;letter-spacing:.6px}
+.header .clock{font-size:.85rem;color:var(--muted)}
+.core{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px}
+.node{position:relative;padding:14px 12px;cursor:pointer}
+.node::before{content:"";position:absolute;inset:0;border-radius:14px;background:linear-gradient(120deg,transparent,rgba(108,204,255,.12),transparent);opacity:.35;transition:.25s}
+.node:hover::before{opacity:.75}
+.node h3{margin:0 0 6px 0;font-size:.95rem;font-weight:500}
+.node .value{font-size:1.6rem;font-weight:700}
+.node .sub{font-size:.75rem;color:var(--muted)}
+.bar{margin-top:8px;height:4px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar span{display:block;height:100%;width:65%;background:linear-gradient(90deg,transparent,var(--glow))}
+.list{display:flex;flex-direction:column;gap:10px}
+.flag{display:flex;justify-content:space-between;font-size:.8rem}
+.flag.ok{color:var(--ok)}
+.flag.warn{color:var(--warn)}
+.footer{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);opacity:.7}
+.scan{position:absolute;inset:0;pointer-events:none;background:linear-gradient(transparent 60%,rgba(108,204,255,.04),transparent);animation:scan 6s linear infinite}
+@keyframes scan{0%{transform:translateY(-100%)}100%{transform:translateY(100%)}}
+@media(max-width:700px){.screen{padding:14px}}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="scan"></div>
+  <div class="header">
+    <div class="title">SYSTEM STATUS</div>
+    <div class="clock">T+00:42:18</div>
+  </div>
+  <div class="core">
+    <div class="node">
+      <h3>Integrity</h3>
+      <div class="value">97%</div>
+      <div class="bar"><span></span></div>
+    </div>
+    <div class="node">
+      <h3>Energy Reserve</h3>
+      <div class="value">64%</div>
+      <div class="sub">Stable draw</div>
+    </div>
+    <div class="node">
+      <h3>Subsystems</h3>
+      <div class="list">
+        <div class="flag ok">Navigation<span>OK</span></div>
+        <div class="flag ok">Perception<span>OK</span></div>
+        <div class="flag warn">Limiter<span>Bypassed</span></div>
+      </div>
+    </div>
+    <div class="node">
+      <h3>Process Load</h3>
+      <div class="value">41%</div>
+      <div class="sub">No anomaly</div>
+    </div>
+  </div>
+  <div class="footer">
+    <div>MODE: PASSIVE OBSERVE</div>
+    <div>INPUT READY</div>
+  </div>
+</div>
+</body>
+</html>
