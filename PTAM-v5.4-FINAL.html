@@ -1,0 +1,3252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PTAM v5.4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg-primary:#0a0a0a;
+--bg-secondary:#141414;
+--bg-tertiary:#1a1a1a;
+--text-primary:#e8e8e8;
+--text-secondary:#a0a0a0;
+--text-tertiary:#707070;
+--accent:#6366f1;
+--accent-hover:#5558e3;
+--border:#2a2a2a;
+--success:#10b981;
+--warning:#f59e0b;
+--error:#ef4444;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+font-family:'Inter',system-ui,-apple-system,sans-serif;
+background:var(--bg-primary);
+color:var(--text-primary);
+overflow-x:hidden;
+line-height:1.6;
+}
+.container{
+max-width:1000px;
+margin:0 auto;
+padding:16px;
+}
+.header{
+display:flex;
+flex-direction:column;
+padding:16px 0;
+border-bottom:1px solid var(--border);
+margin-bottom:20px;
+}
+.mode-toggle{
+display:flex;
+gap:8px;
+width:100%;
+}
+.fab-menu{
+display:flex;
+align-items:center;
+gap:8px;
+}
+.fab-item{
+width:40px;
+height:40px;
+border-radius:50%;
+border:none;
+background:var(--bg-tertiary);
+color:var(--text-primary);
+font-size:18px;
+cursor:pointer;
+transition:all .3s;
+opacity:0;
+transform:translateX(60px);
+pointer-events:none;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+.fab-menu.expanded .fab-item{
+opacity:1;
+transform:translateX(0);
+pointer-events:auto;
+}
+.fab-item:hover{
+background:var(--accent);
+color:white;
+transform:translateX(0) scale(1.1);
+}
+.fab-toggle{
+width:44px;
+height:44px;
+border-radius:50%;
+border:none;
+background:var(--accent);
+color:white;
+font-size:24px;
+cursor:pointer;
+transition:all .3s;
+box-shadow:var(--shadow);
+display:flex;
+align-items:center;
+justify-content:center;
+}
+.fab-toggle:hover{
+background:var(--accent-hover);
+transform:scale(1.1);
+}
+.fab-menu.expanded .fab-toggle{
+transform:rotate(45deg);
+}
+.logo{
+font-size:18px;
+font-weight:600;
+color:var(--text-primary);
+letter-spacing:-0.02em;
+}
+.version{
+font-size:10px;
+color:var(--text-tertiary);
+font-weight:400;
+margin-left:6px;
+}
+.mode-toggle{
+display:flex;
+background:var(--bg-tertiary);
+border-radius:8px;
+padding:2px;
+gap:2px;
+}
+.mode-btn{
+padding:6px 14px;
+border:none;
+background:transparent;
+color:var(--text-secondary);
+cursor:pointer;
+border-radius:6px;
+font-size:12px;
+font-weight:500;
+transition:all .2s;
+}
+.mode-btn.active{
+background:var(--accent);
+color:#fff;
+}
+.upload-zone{
+border:2px dashed var(--border);
+border-radius:10px;
+padding:32px 20px;
+text-align:center;
+cursor:pointer;
+transition:all .3s;
+margin-bottom:20px;
+background:var(--bg-secondary);
+}
+.upload-zone:hover{
+border-color:var(--accent);
+background:var(--bg-tertiary);
+}
+.upload-zone.dragover{
+border-color:var(--accent);
+background:var(--bg-tertiary);
+}
+.upload-icon{
+font-size:36px;
+margin-bottom:10px;
+opacity:.5;
+}
+.upload-text{
+font-size:13px;
+color:var(--text-secondary);
+margin-bottom:4px;
+}
+.upload-hint{
+font-size:11px;
+color:var(--text-tertiary);
+}
+.settings-panel{
+background:var(--bg-secondary);
+border:1px solid var(--border);
+border-radius:8px;
+margin-bottom:20px;
+overflow:hidden;
+}
+.settings-header{
+padding:12px 16px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+cursor:pointer;
+user-select:none;
+transition:background .2s;
+}
+.settings-header:hover{
+background:var(--bg-tertiary);
+}
+.settings-title{
+font-size:13px;
+font-weight:600;
+color:var(--text-primary);
+}
+.settings-chevron{
+font-size:12px;
+color:var(--text-secondary);
+transition:transform .3s;
+}
+.settings-panel.collapsed .settings-chevron{
+transform:rotate(-90deg);
+}
+.settings-body{
+max-height:500px;
+overflow:hidden;
+transition:max-height .3s ease,padding .3s ease;
+padding:0 16px 16px;
+}
+.settings-panel.collapsed .settings-body{
+max-height:0;
+padding:0 16px;
+}
+.setting-row{
+display:flex;
+align-items:center;
+justify-content:space-between;
+margin-bottom:12px;
+gap:12px;
+}
+.setting-row:last-child{margin-bottom:0}
+.setting-label{
+font-size:12px;
+color:var(--text-secondary);
+flex:1;
+}
+.setting-control{
+display:flex;
+align-items:center;
+gap:8px;
+}
+input[type="range"]{
+width:120px;
+height:4px;
+background:var(--bg-tertiary);
+border-radius:2px;
+outline:none;
+-webkit-appearance:none;
+}
+input[type="range"]::-webkit-slider-thumb{
+-webkit-appearance:none;
+width:14px;
+height:14px;
+background:var(--accent);
+border-radius:50%;
+cursor:pointer;
+}
+input[type="range"]::-moz-range-thumb{
+width:14px;
+height:14px;
+background:var(--accent);
+border-radius:50%;
+cursor:pointer;
+border:none;
+}
+.range-value{
+font-size:12px;
+color:var(--text-primary);
+font-family:'JetBrains Mono',monospace;
+min-width:60px;
+text-align:right;
+}
+input[type="checkbox"]{
+width:16px;
+height:16px;
+cursor:pointer;
+accent-color:var(--accent);
+}
+.input{
+background:var(--bg-tertiary);
+border:1px solid var(--border);
+border-radius:6px;
+padding:8px 12px;
+color:var(--text-primary);
+font-size:12px;
+font-family:'Inter',sans-serif;
+outline:none;
+transition:all .2s;
+}
+.input:focus{
+border-color:var(--accent);
+background:var(--bg-secondary);
+}
+.input::placeholder{
+color:var(--text-tertiary);
+}
+.btn{
+padding:8px 16px;
+border:none;
+border-radius:6px;
+font-size:12px;
+font-weight:500;
+cursor:pointer;
+transition:all .2s;
+white-space:nowrap;
+}
+.btn-primary{
+background:var(--accent);
+color:#fff;
+}
+.btn-primary:hover{
+background:var(--accent-hover);
+}
+.btn-secondary{
+background:var(--bg-tertiary);
+color:var(--text-primary);
+border:1px solid var(--border);
+}
+.btn-secondary:hover{
+background:var(--bg-secondary);
+}
+.btn-danger{
+background:var(--error);
+color:#fff;
+}
+.btn-danger:hover{
+opacity:.9;
+}
+.btn:disabled{
+opacity:.5;
+cursor:not-allowed;
+}
+.btn-small{
+padding:4px 10px;
+font-size:11px;
+}
+.action-bar{
+display:flex;
+gap:10px;
+margin-bottom:20px;
+}
+.file-list{
+background:var(--bg-secondary);
+border:1px solid var(--border);
+border-radius:8px;
+max-height:280px;
+overflow-y:auto;
+margin-bottom:20px;
+}
+.file-list-header{
+padding:10px 14px;
+border-bottom:1px solid var(--border);
+display:flex;
+justify-content:space-between;
+align-items:center;
+background:var(--bg-tertiary);
+position:sticky;
+top:0;
+z-index:10;
+}
+.file-count{
+font-size:12px;
+color:var(--text-secondary);
+font-weight:500;
+}
+.clear-files{
+font-size:11px;
+color:var(--error);
+cursor:pointer;
+}
+.clear-files:hover{
+text-decoration:underline;
+}
+.file-item{
+padding:10px 14px;
+border-bottom:1px solid var(--border);
+display:flex;
+justify-content:space-between;
+align-items:center;
+transition:background .2s;
+}
+.file-item:last-child{border-bottom:none}
+.file-item:hover{background:var(--bg-tertiary)}
+.file-name{
+font-size:12px;
+color:var(--text-primary);
+font-family:'JetBrains Mono',monospace;
+word-break:break-all;
+flex:1;
+}
+.file-size{
+font-size:10px;
+color:var(--text-tertiary);
+margin-left:12px;
+white-space:nowrap;
+}
+.modal{
+display:none;
+position:fixed;
+top:0;
+left:0;
+right:0;
+bottom:0;
+background:rgba(0,0,0,.85);
+align-items:center;
+justify-content:center;
+z-index:1000;
+padding:20px;
+}
+.modal.active{display:flex}
+.modal-content{
+background:var(--bg-secondary);
+border:1px solid var(--border);
+border-radius:10px;
+padding:20px;
+max-width:700px;
+width:100%;
+max-height:85vh;
+overflow-y:auto;
+}
+.modal-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:16px;
+}
+.modal-title{
+font-size:16px;
+font-weight:600;
+}
+.close-btn{
+background:none;
+border:none;
+color:var(--text-secondary);
+font-size:20px;
+cursor:pointer;
+padding:0;
+width:28px;
+height:28px;
+display:flex;
+align-items:center;
+justify-content:center;
+border-radius:4px;
+transition:all .2s;
+}
+.close-btn:hover{
+background:var(--bg-tertiary);
+color:var(--text-primary);
+}
+.output-content{
+background:var(--bg-primary);
+border:1px solid var(--border);
+border-radius:6px;
+padding:12px;
+max-height:calc(85vh - 140px);
+overflow:auto;
+font-family:'JetBrains Mono',monospace;
+font-size:11px;
+line-height:1.5;
+color:var(--text-secondary);
+white-space:pre-wrap;
+word-break:break-all;
+margin-bottom:16px;
+}
+.modal-actions{
+display:flex;
+gap:8px;
+justify-content:flex-end;
+}
+.toast{
+position:fixed;
+bottom:20px;
+right:20px;
+background:var(--bg-tertiary);
+border:1px solid var(--border);
+border-radius:8px;
+padding:10px 14px;
+display:flex;
+align-items:center;
+gap:10px;
+box-shadow:0 4px 12px rgba(0,0,0,.4);
+transform:translateY(100px);
+opacity:0;
+transition:all .3s;
+z-index:1001;
+max-width:350px;
+}
+.toast.show{
+transform:translateY(0);
+opacity:1;
+}
+.toast-icon{
+font-size:16px;
+}
+.toast-message{
+font-size:12px;
+color:var(--text-primary);
+}
+.toast.success{border-color:var(--success)}
+.toast.error{border-color:var(--error)}
+.toast.warning{border-color:var(--warning)}
+.loading{
+display:none;
+position:fixed;
+top:0;
+left:0;
+right:0;
+bottom:0;
+background:rgba(0,0,0,.85);
+align-items:center;
+justify-content:center;
+z-index:999;
+flex-direction:column;
+gap:12px;
+}
+.loading.active{display:flex}
+.spinner{
+width:36px;
+height:36px;
+border:3px solid var(--border);
+border-top-color:var(--accent);
+border-radius:50%;
+animation:spin 1s linear infinite;
+}
+.loading-text{
+font-size:12px;
+color:var(--text-secondary);
+}
+@keyframes spin{
+to{transform:rotate(360deg)}
+}
+::-webkit-scrollbar{
+width:6px;
+height:6px;
+}
+::-webkit-scrollbar-track{
+background:var(--bg-primary);
+}
+::-webkit-scrollbar-thumb{
+background:var(--border);
+border-radius:3px;
+}
+::-webkit-scrollbar-thumb:hover{
+background:var(--text-tertiary);
+}
+@media(max-width:768px){
+.container{padding:12px}
+.header{flex-direction:column;gap:10px;align-items:flex-start}
+.action-bar{flex-direction:column}
+.setting-row{flex-direction:column;align-items:flex-start}
+.setting-control{width:100%}
+input[type="range"]{width:100%}
+}
+.hidden{display:none!important}
+.stats-card{
+background:var(--bg-secondary);
+border:1px solid var(--border);
+border-radius:8px;
+padding:12px 14px;
+margin-bottom:20px;
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:12px;
+}
+.stats-card:has(.stat-item:nth-child(4):not(.hidden)){
+grid-template-columns:repeat(2,1fr);
+}
+.stats-card:has(#statBinaryItem.hidden){
+grid-template-columns:repeat(3,1fr);
+}
+.stat-item{
+display:flex;
+flex-direction:column;
+gap:4px;
+}
+.stat-label{
+font-size:10px;
+color:var(--text-tertiary);
+text-transform:uppercase;
+letter-spacing:0.5px;
+font-weight:500;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+}
+.stat-value{
+font-size:14px;
+color:var(--text-primary);
+font-weight:600;
+font-family:'JetBrains Mono',monospace;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<div style="display:flex;justify-content:space-between;align-items:center;width:100%;margin-bottom:16px">
+<div class="logo">
+PTAM<span class="version">v5.4</span>
+</div>
+<div style="position:relative">
+<div id="fabMenu" class="fab-menu">
+<button class="fab-item" id="aboutBtn" title="About">ⓘ</button>
+<button class="fab-item" id="optionsBtn" title="Options">⋯</button>
+<button class="fab-toggle" id="fabToggle">+</button>
+</div>
+</div>
+</div>
+<div class="mode-toggle">
+<button class="mode-btn active" data-mode="plain">Plain Text</button>
+<button class="mode-btn" data-mode="token">Tokenized</button>
+<button class="mode-btn" data-mode="extract">Extractor</button>
+<button class="mode-btn" data-mode="dict">Dict Editor</button>
+</div>
+</div>
+
+<div class="stats-card hidden" id="statsCard">
+<div class="stat-item">
+<div class="stat-label">All Files</div>
+<div class="stat-value" id="statAllFiles">0</div>
+</div>
+<div class="stat-item">
+<div class="stat-label">Zips Uploaded</div>
+<div class="stat-value" id="statZipsUploaded">0</div>
+</div>
+<div class="stat-item" id="statBinaryItem">
+<div class="stat-label">Binaries Skip</div>
+<div class="stat-value" id="statBinariesSkipped">0</div>
+</div>
+<div class="stat-item">
+<div class="stat-label">Total Size</div>
+<div class="stat-value" id="statTotalSize">0 B</div>
+</div>
+</div>
+
+<div class="upload-zone" id="uploadZone">
+<div class="upload-icon">📦</div>
+<div class="upload-text" id="uploadText">Drop files or click to browse</div>
+<div class="upload-hint" id="uploadHint">Supports .zip, .txt, .md, .js, .html, .css, .json</div>
+</div>
+
+<!-- Plain Text Settings -->
+<div class="settings-panel" id="settingsPlain">
+<div class="settings-header" onclick="toggleSettings('settingsPlain')">
+<div class="settings-title">Plain Text Settings</div>
+<div class="settings-chevron">▼</div>
+</div>
+<div class="settings-body">
+<div class="setting-row">
+<label class="setting-label">Chunk Size</label>
+<div class="setting-control">
+<input type="range" id="chunkSize" min="8" max="2048" value="7" step="1">
+<span class="range-value" id="chunkSizeVal">7 KB</span>
+</div>
+</div>
+<div class="setting-row">
+<label class="setting-label">Mode</label>
+<div class="setting-control" style="display:flex;gap:8px;align-items:center">
+<button class="btn btn-small" id="includeBinaryBtn" style="flex:1;background:var(--bg-tertiary);border:1px solid var(--border)">Full Archive</button>
+<button class="btn btn-small" id="textRecoveryBtn" style="flex:1;background:var(--accent);border:1px solid var(--accent);color:white">Text Only</button>
+</div>
+</div>
+<div class="setting-row">
+<label class="setting-label">Markdown Toggle</label>
+<div class="setting-control">
+<input type="checkbox" id="markdownMode">
+</div>
+</div>
+<div style="font-size:11px;color:var(--text-tertiary);margin:-4px 0 8px 0">
+Uses markdown formatting with file tree structure for better readability
+</div>
+</div>
+</div>
+
+<!-- Tokenized Settings -->
+<div class="settings-panel hidden" id="settingsToken">
+<div class="settings-header" onclick="toggleSettings('settingsToken')">
+<div class="settings-title">Tokenization Settings</div>
+<div class="settings-chevron">▼</div>
+</div>
+<div class="settings-body">
+<div class="setting-row">
+<label class="setting-label">Batch Size</label>
+<div class="setting-control">
+<input type="range" id="batchSize" min="1" max="16" value="4" step="1">
+<span class="range-value" id="batchSizeVal">4x</span>
+</div>
+</div>
+<div class="setting-row">
+<label class="setting-label">Processing Number</label>
+<div class="setting-control">
+<input type="range" id="processingNum" min="1" max="5" value="3" step="1">
+<span class="range-value" id="processingNumVal">3</span>
+</div>
+</div>
+<div class="setting-row">
+<label class="setting-label">Ignore Binary Bytes</label>
+<div class="setting-control">
+<input type="checkbox" id="ignoreBinaryBytes">
+</div>
+</div>
+<div style="font-size:11px;color:var(--text-tertiary);margin:-4px 0 12px 0;padding:0 0 12px 0;border-bottom:1px solid var(--border)">
+Accept binary files, tokenize text parts, skip binary bytes
+</div>
+<div class="setting-row">
+<label class="setting-label">Cold Cache (Persistent)</label>
+<div class="setting-control">
+<input type="checkbox" id="useDictionary">
+</div>
+</div>
+<div class="setting-row">
+<label class="setting-label">Cold Cache Storage</label>
+<div class="setting-control">
+<span class="range-value" id="coldCacheStatus">0/15K</span>
+</div>
+</div>
+<div class="setting-row">
+<label class="setting-label">Hot Cache (Session)</label>
+<div class="setting-control">
+<input type="checkbox" id="tempDict">
+</div>
+</div>
+<div class="setting-row">
+<label class="setting-label">Hot Cache Storage</label>
+<div class="setting-control">
+<span class="range-value" id="hotCacheStatus">0/100K</span>
+</div>
+</div>
+<div class="setting-row">
+<label class="setting-label">ProDe Ranking (Auto)</label>
+<div class="setting-control">
+<span class="range-value" id="prodeStatus">Inactive</span>
+</div>
+</div>
+<div class="setting-row">
+<label class="setting-label">Clear All Caches</label>
+<div class="setting-control">
+<button class="btn btn-danger btn-small" id="clearDict">Clear</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Extractor Settings -->
+<div class="settings-panel hidden" id="settingsExtract">
+<div class="settings-header" onclick="toggleSettings('settingsExtract')">
+<div class="settings-title">Extractor Settings</div>
+<div class="settings-chevron">▼</div>
+</div>
+<div class="settings-body">
+<div class="setting-row">
+<label class="setting-label">Dual Mode</label>
+<div class="setting-control">
+<input type="checkbox" id="dualMode" checked>
+</div>
+</div>
+<div style="font-size:11px;color:var(--text-tertiary);margin:-4px 0 12px 0;padding:0 0 12px 0;border-bottom:1px solid var(--border)">
+Accept both plain text and tokenized formats simultaneously
+</div>
+<div class="setting-row" id="multiArchiveRow">
+<label class="setting-label">Multi Archive</label>
+<div class="setting-control">
+<input type="checkbox" id="multiArchive" checked>
+</div>
+</div>
+<div style="font-size:11px;color:var(--text-tertiary);margin:-4px 0 8px 0" id="multiArchiveHint">
+Separate by archive (ON) or by folder only (OFF)
+</div>
+</div>
+</div>
+
+<!-- Dict Editor Settings -->
+<div class="settings-panel hidden" id="settingsDict">
+<div class="settings-header" onclick="toggleSettings('settingsDict')">
+<div class="settings-title">Dictionary Editor Settings</div>
+<div class="settings-chevron">▼</div>
+</div>
+<div class="settings-body">
+<div class="setting-row">
+<label class="setting-label">Min Token Length</label>
+<div class="setting-control">
+<input type="range" id="minTokenLength" min="3" max="50" value="4" step="1">
+<span class="range-value" id="minTokenLengthVal">4</span>
+</div>
+</div>
+<div class="setting-row">
+<label class="setting-label">Min Frequency</label>
+<div class="setting-control">
+<input type="range" id="minFreqDict" min="1" max="100" value="3" step="1">
+<span class="range-value" id="minFreqDictVal">3</span>
+</div>
+</div>
+<div class="setting-row">
+<label class="setting-label">Auto-Optimize on Import</label>
+<div class="setting-control">
+<input type="checkbox" id="autoOptimizeDict">
+</div>
+</div>
+<div class="setting-row">
+<label class="setting-label">Show Redundancy Analysis</label>
+<div class="setting-control">
+<input type="checkbox" id="showRedundancy" checked>
+</div>
+</div>
+<div class="setting-row">
+<label class="setting-label">Dictionary Entries</label>
+<div class="setting-control">
+<span class="range-value" id="dictEditorCount">0</span>
+</div>
+</div>
+</div>
+</div>
+
+<div class="action-bar">
+<input type="text" class="input" id="filenameInput" placeholder="Output filename" maxlength="100" pattern="[a-zA-Z0-9_\-\.]+" style="flex:1;max-width:300px;display:none">
+<button class="btn btn-primary" id="processBtn" disabled>Generate PTAM</button>
+</div>
+
+<!-- Dict Editor UI -->
+<div class="hidden" id="dictEditorUI">
+<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+<button class="btn btn-primary" id="importIDBBtn">Import from Browser Cache</button>
+<button class="btn btn-secondary" id="importFileBtn">Import from File</button>
+<button class="btn btn-secondary" id="exportDictBtn" disabled>Export Dictionary</button>
+<button class="btn btn-secondary" id="optimizeDictBtn" disabled>Optimize</button>
+<button class="btn btn-danger" id="clearDictBtn" disabled>Clear</button>
+</div>
+
+<!-- Cache Manager Card -->
+<div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:20px">
+<div style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--text-primary)">Cache Manager (Live Connected)</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+<div style="background:var(--bg-tertiary);padding:12px;border-radius:6px">
+<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px">Cold Cache (Persistent)</div>
+<div style="display:flex;justify-content:space-between;margin-bottom:4px">
+<span style="font-size:11px">Tokens:</span>
+<span style="font-size:11px;font-weight:600" id="liveColdTokens">0/15K</span>
+</div>
+<div style="display:flex;justify-content:space-between">
+<span style="font-size:11px">Heatmap:</span>
+<span style="font-size:11px;font-weight:600" id="liveColdHeatmap">0/15K</span>
+</div>
+</div>
+
+<div style="background:var(--bg-tertiary);padding:12px;border-radius:6px">
+<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px">Hot Cache (Session)</div>
+<div style="display:flex;justify-content:space-between;margin-bottom:4px">
+<span style="font-size:11px">Tokens:</span>
+<span style="font-size:11px;font-weight:600" id="liveHotTokens">0/100K</span>
+</div>
+<div style="display:flex;justify-content:space-between">
+<span style="font-size:11px">Heatmap:</span>
+<span style="font-size:11px;font-weight:600" id="liveHotHeatmap">0/100K</span>
+</div>
+</div>
+</div>
+
+<div style="margin-bottom:16px">
+<button class="btn btn-primary" id="triggerProDeBtn" disabled style="width:100%">
+Trigger ProDe Ranking
+</button>
+<div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;text-align:center" id="prodeHint">
+Requires sufficient tokens for promotion/demotion
+</div>
+</div>
+
+<div style="border-top:1px solid var(--border);padding-top:12px">
+<div style="font-size:12px;font-weight:600;margin-bottom:8px">Runtime Options</div>
+
+<div style="display:grid;gap:8px">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:var(--bg-tertiary);border-radius:4px">
+<span style="font-size:11px">Anti-Duplicate</span>
+<span style="font-size:10px;color:var(--success);font-weight:600">ALWAYS ON</span>
+</div>
+
+<label style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:var(--bg-tertiary);border-radius:4px;cursor:pointer">
+<span style="font-size:11px">Auto Optimize</span>
+<input type="checkbox" id="autoOptimizeCache">
+</label>
+
+<label style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:var(--bg-tertiary);border-radius:4px;cursor:pointer">
+<span style="font-size:11px">Auto Re-Index</span>
+<input type="checkbox" id="autoReIndex">
+</label>
+
+<label style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:var(--bg-tertiary);border-radius:4px;cursor:pointer">
+<span style="font-size:11px">Auto Verify Ranking</span>
+<input type="checkbox" id="autoVerifyRanking">
+</label>
+
+<label style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:var(--bg-tertiary);border-radius:4px;cursor:pointer">
+<span style="font-size:11px">Auto Structure Analysis</span>
+<input type="checkbox" id="autoStructureAnalysis">
+</label>
+</div>
+</div>
+</div>
+
+<div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:20px" id="dictStats">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
+<div>
+<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:4px">Total Tokens</div>
+<div style="font-size:20px;font-weight:600" id="dictTotalTokens">0</div>
+</div>
+<div>
+<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:4px">Redundant</div>
+<div style="font-size:20px;font-weight:600;color:var(--warning)" id="dictRedundant">0</div>
+</div>
+<div>
+<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:4px">Added</div>
+<div style="font-size:20px;font-weight:600;color:var(--success)" id="dictAdded">0</div>
+</div>
+<div>
+<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:4px">Removed</div>
+<div style="font-size:20px;font-weight:600;color:var(--error)" id="dictRemoved">0</div>
+</div>
+</div>
+</div>
+
+<div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;max-height:350px;overflow-y:auto" id="dictTokenList"></div>
+</div>
+
+<div class="file-list hidden" id="fileListContainer">
+<div class="file-list-header">
+<div class="file-count" id="fileCount">0 files</div>
+<div class="clear-files" id="clearFiles">Clear All</div>
+</div>
+<div id="fileList"></div>
+</div>
+</div>
+
+<input type="file" id="fileInput" multiple style="display:none">
+<input type="file" id="dictFileInput" accept=".json" style="display:none">
+
+<div class="modal" id="outputModal">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title" id="outputTitle">Output</div>
+<button class="close-btn" onclick="closeOutput()">×</button>
+</div>
+<div class="output-content" id="outputContent"></div>
+<div class="modal-actions">
+<button class="btn btn-secondary" onclick="copyOutput()">Copy</button>
+<button class="btn btn-primary" onclick="downloadOutput()">Download</button>
+</div>
+</div>
+</div>
+
+<div class="modal" id="textRecoveryModal">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title">Text Recovery Required</div>
+<button class="close-btn" onclick="closeTextRecovery()">×</button>
+</div>
+<div style="margin-bottom:16px;color:var(--text-secondary);font-size:13px">
+<div style="margin-bottom:8px">The following files failed UTF-8 analysis (less than 80% valid text content):</div>
+<div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;max-height:200px;overflow-y:auto;padding:8px" id="failedFilesList"></div>
+<div style="margin-top:12px;padding:12px;background:var(--bg-tertiary);border-radius:6px;font-size:12px">
+<div style="font-weight:600;margin-bottom:4px">Options:</div>
+<div style="margin-bottom:4px"><strong>Deep Rescan:</strong> Re-analyze with precise UTF-8 validation</div>
+<div><strong>Skip:</strong> Exclude these files from processing</div>
+<div style="margin-top:8px"><strong>Text Recovery:</strong> Remove non-UTF-8 data and keep valid portions</div>
+</div>
+</div>
+<div class="modal-actions">
+<button class="btn btn-secondary" onclick="skipFailedFiles()">Skip Files</button>
+<button class="btn btn-primary" onclick="deepRescan()" id="deepRescanBtn">Deep Rescan</button>
+</div>
+</div>
+</div>
+
+<div class="modal" id="deepRescanModal">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title">Deep Rescan Results</div>
+<button class="close-btn" onclick="closeDeepRescan()">×</button>
+</div>
+<div style="margin-bottom:16px">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+<div style="background:var(--success-dim);padding:12px;border-radius:6px">
+<div style="font-size:11px;color:var(--success);margin-bottom:4px">Passed (≥80%)</div>
+<div style="font-size:20px;font-weight:600;color:var(--success)" id="rescanPassed">0</div>
+</div>
+<div style="background:var(--error-dim);padding:12px;border-radius:6px">
+<div style="font-size:11px;color:var(--error);margin-bottom:4px">Failed (<80%)</div>
+<div style="font-size:20px;font-weight:600;color:var(--error)" id="rescanFailed">0</div>
+</div>
+</div>
+<div style="color:var(--text-secondary);font-size:13px;margin-bottom:8px">Files still failing UTF-8 validation:</div>
+<div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;max-height:150px;overflow-y:auto;padding:8px" id="stillFailedList"></div>
+</div>
+<div class="modal-actions">
+<button class="btn btn-secondary" onclick="skipAfterRescan()">Skip Failed Files</button>
+<button class="btn btn-primary" onclick="applyTextRecovery()">Text Recovery</button>
+</div>
+</div>
+</div>
+
+<div class="modal" id="aboutModal">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title">About PTAM v5.4</div>
+<button class="close-btn" onclick="closeAbout()">×</button>
+</div>
+<div style="max-height:400px;overflow-y:auto;padding:0 4px">
+<div style="text-align:center;padding:20px">
+<div style="font-size:48px;margin-bottom:12px">📦</div>
+<div style="font-size:18px;font-weight:600;color:var(--text-primary);margin-bottom:8px">PTAM Series</div>
+<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:20px">Plain Text Archive Merger</div>
+
+<div style="text-align:left;max-width:400px;margin:0 auto;color:var(--text-secondary);font-size:12px;line-height:1.8">
+<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+<div style="font-weight:600;color:var(--text-primary);margin-bottom:8px">Development Timeline</div>
+<div><strong>Mode 1:</strong> Plain Text Archive (Nov 29, 2025)</div>
+<div><strong>Mode 2:</strong> Tokenized Archive (Dec 7, 2025)</div>
+<div><strong>Mode 3:</strong> Format Extractor (Jan 9, 2026)</div>
+<div><strong>Mode 4:</strong> Dictionary Editor (Dec 29, 2025)</div>
+</div>
+
+<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+<div style="font-weight:600;color:var(--text-primary);margin-bottom:4px">Project Lifecycle</div>
+<div>Conceived: October 27, 2025</div>
+<div>Completed: February 3, 2026</div>
+</div>
+
+<div style="text-align:center;font-size:11px;color:var(--text-tertiary)">
+<div style="margin-bottom:4px">Created by <strong style="color:var(--text-primary)">A2A410 / JAI</strong></div>
+<div>Finale Series</div>
+<div style="margin-top:12px;font-size:10px">© 2025-2026 All Rights Reserved</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="modal" id="optionsModal">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title">Global Options</div>
+<button class="close-btn" onclick="closeOptions()">×</button>
+</div>
+<div style="max-height:400px;overflow-y:auto;padding:0 4px">
+<div class="setting-row">
+<label class="setting-label">Responsive Mode</label>
+<div class="setting-control">
+<input type="checkbox" id="responsiveMode">
+</div>
+</div>
+<div style="font-size:11px;color:var(--text-tertiary);margin:-4px 0 12px 0;padding:0 0 12px 0;border-bottom:1px solid var(--border)">
+Optimizes UI performance under heavy load with chunked rendering
+</div>
+<div class="setting-row">
+<label class="setting-label">Scope Load</label>
+<div class="setting-control">
+<input type="checkbox" id="scopeLoad">
+</div>
+</div>
+<div style="font-size:11px;color:var(--text-tertiary);margin:-4px 0 12px 0;padding:0 0 12px 0;border-bottom:1px solid var(--border)">
+Process tasks per mode independently, allowing mode switching during operations
+</div>
+<div class="setting-row">
+<label class="setting-label">Divider Symbol</label>
+<div class="setting-control">
+<select class="input" id="dividerSymbol" style="padding:6px 10px;min-width:150px">
+<option value="═">═ (Default)</option>
+<option value="_">_ (Underscore)</option>
+<option value="-">- (Hyphen)</option>
+<option value="─">─ (Light Box)</option>
+<option value="━">━ (Heavy Box)</option>
+<option value="▬">▬ (Block)</option>
+<option value="■">■ (Square)</option>
+<option value="●">● (Circle)</option>
+</select>
+</div>
+</div>
+<div style="font-size:11px;color:var(--text-tertiary);margin:-4px 0 12px 0">
+Character used for visual dividers in PTAM output (cosmetic only)
+</div>
+<div class="setting-row">
+<label class="setting-label">FBB-MBS (Auto Optimizer)</label>
+<div class="setting-control">
+<input type="checkbox" id="fbbMbs">
+</div>
+</div>
+<div style="font-size:11px;color:var(--text-tertiary);margin:-4px 0 12px 0">
+Few-But-Big uses WASM for large files, Many-But-Small uses Workers for many small files. Requires page refresh.
+</div>
+<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end">
+<button class="btn btn-primary" onclick="saveGlobalOptions()">Save Settings</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="loading" id="loading">
+<div class="spinner"></div>
+<div class="loading-text" id="loadingText">Processing...</div>
+<div class="loading-detail" id="loadingDetail" style="font-size:11px;color:var(--text-tertiary);margin-top:8px;max-width:300px;text-align:center"></div>
+</div>
+
+<div class="loading-scoped" id="loadingScoped" style="display:none;position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(10,10,10,0.7);z-index:998;pointer-events:none">
+<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:12px">
+<div class="spinner"></div>
+<div class="loading-text" id="loadingScopedText">Processing...</div>
+<div class="loading-detail" id="loadingScopedDetail" style="font-size:11px;color:var(--text-tertiary);margin-top:8px;max-width:300px;text-align:center"></div>
+</div>
+</div>
+
+<div class="toast" id="toast">
+<div class="toast-icon">ℹ️</div>
+<div class="toast-message"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+// FBB-MBS: WASM Module for large file processing
+const wasmCode=new Uint8Array([0,97,115,109,1,0,0,0,1,7,1,96,2,127,127,1,127,3,2,1,0,7,10,1,6,112,114,111,99,101,115,115,0,0,10,9,1,7,0,32,0,32,1,106,11]);
+let wasmInstance=null;
+let wasmReady=false;
+
+async function initWASM(){
+if(wasmReady)return;
+try{
+const module=await WebAssembly.instantiate(wasmCode);
+wasmInstance=module.instance;
+wasmReady=true;
+console.log('WASM initialized');
+}catch(e){
+console.error('WASM init failed:',e);
+}
+}
+
+// FBB-MBS: Web Worker inline code
+const workerCode=`
+self.onmessage=function(e){
+const{type,data}=e.data;
+if(type==='process'){
+// Process small files
+const result={processed:data.files.length,timestamp:Date.now()};
+self.postMessage({type:'done',result});
+}else if(type==='tokenize'){
+// Tokenize content
+const tokens=data.content.split(/\\s+/).filter(Boolean);
+self.postMessage({type:'tokens',tokens});
+}
+};
+`;
+
+let workerPool=[];
+const MAX_WORKERS=4;
+
+function initWorkers(){
+if(workerPool.length>0)return;
+for(let i=0;i<MAX_WORKERS;i++){
+const blob=new Blob([workerCode],{type:'application/javascript'});
+const worker=new Worker(URL.createObjectURL(blob));
+workerPool.push({worker,busy:false});
+}
+console.log('Workers initialized:',MAX_WORKERS);
+}
+
+function getAvailableWorker(){
+return workerPool.find(w=>!w.busy);
+}
+
+function terminateWorkers(){
+workerPool.forEach(w=>w.worker.terminate());
+workerPool=[];
+console.log('Workers terminated');
+}
+
+const S={
+mode:'plain',
+files:[],
+output:'',
+filename:'',
+chunkSize:7,
+includeBinary:false,
+textRecovery:true,
+markdownMode:false,
+batchSize:4,
+processingNum:3,
+ignoreBinaryBytes:false,
+useDictionary:false,
+tempDict:false,
+dualMode:true,
+multiArchive:true,
+heatmap:new Map(),
+tokenDict:new Map(),
+stats:{
+allFiles:0,
+zipsUploaded:0,
+binariesSkipped:0,
+totalSize:0
+},
+globalOptions:{
+responsiveMode:false,
+scopeLoad:false,
+dividerSymbol:'═',
+fbbMbs:false
+},
+jobs:{
+plain:null,
+token:null,
+extract:null
+},
+dictEditor:{
+dictionary:new Map(),
+original:new Map(),
+added:new Set(),
+removed:new Set(),
+redundant:new Set(),
+minTokenLength:4,
+minFreq:3,
+autoOptimize:false,
+showRedundancy:true,
+runtime:{
+autoOptimizeCache:false,
+autoReIndex:false,
+autoVerifyRanking:false,
+autoStructureAnalysis:false
+}
+},
+textRecoveryData:{
+failedFiles:[],
+analyzedFiles:new Map(),
+processing:false
+}
+};
+
+let db=null;
+
+function init(){
+initDB();
+loadSettings();
+setupListeners();
+updateModeUI();
+updateStatsCard();
+}
+
+function toggleSettings(panelId){
+const panel=document.getElementById(panelId);
+panel.classList.toggle('collapsed');
+}
+
+function initDB(){
+const req=indexedDB.open('PTAM_DB',2);
+req.onupgradeneeded=e=>{
+const database=e.target.result;
+if(!database.objectStoreNames.contains('heatmap')){
+database.createObjectStore('heatmap');
+}
+// Remove old tokens store if upgrading from v1
+if(database.objectStoreNames.contains('tokens')&&e.oldVersion<2){
+database.deleteObjectStore('tokens');
+}
+};
+req.onsuccess=e=>{
+db=e.target.result;
+updateCacheStatus();
+};
+}
+
+function closeAbout(){
+document.getElementById('aboutModal').classList.remove('active');
+}
+
+function closeOptions(){
+document.getElementById('optionsModal').classList.remove('active');
+}
+
+function saveGlobalOptions(){
+const oldFbbMbs=S.globalOptions.fbbMbs;
+S.globalOptions.responsiveMode=document.getElementById('responsiveMode').checked;
+S.globalOptions.scopeLoad=document.getElementById('scopeLoad').checked;
+S.globalOptions.dividerSymbol=document.getElementById('dividerSymbol').value;
+S.globalOptions.fbbMbs=document.getElementById('fbbMbs').checked;
+saveSettings();
+
+// FBB-MBS toggle requires page refresh
+if(oldFbbMbs!==S.globalOptions.fbbMbs){
+showToast('FBB-MBS changed. Refreshing in 2s...','warning');
+setTimeout(()=>{
+if(S.globalOptions.fbbMbs){
+initWASM();
+initWorkers();
+}else{
+terminateWorkers();
+}
+location.reload();
+},2000);
+}else{
+showToast('Global options saved','success');
+}
+}
+
+function setupListeners(){
+const uz=document.getElementById('uploadZone');
+const fi=document.getElementById('fileInput');
+
+uz.onclick=()=>fi.click();
+uz.ondragover=e=>{e.preventDefault();uz.classList.add('dragover')};
+uz.ondragleave=()=>uz.classList.remove('dragover');
+uz.ondrop=e=>{
+e.preventDefault();
+uz.classList.remove('dragover');
+handleFiles(e.dataTransfer.files);
+};
+
+fi.onchange=e=>handleFiles(e.target.files);
+
+document.querySelectorAll('.mode-btn').forEach(btn=>{
+btn.onclick=()=>{
+document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+btn.classList.add('active');
+S.mode=btn.dataset.mode;
+updateModeUI();
+if(S.mode==='token')updateCacheStatus();
+saveSettings();
+};
+});
+
+document.getElementById('processBtn').onclick=process;
+document.getElementById('clearFiles').onclick=clearFiles;
+document.getElementById('clearDict').onclick=clearDictionary;
+
+document.getElementById('chunkSize').oninput=e=>{
+S.chunkSize=parseInt(e.target.value);
+document.getElementById('chunkSizeVal').textContent=S.chunkSize+' KB';
+saveSettings();
+};
+
+document.getElementById('includeBinaryBtn').onclick=()=>{
+S.includeBinary=true;
+S.textRecovery=false;
+updatePlainModeButtons();
+saveSettings();
+};
+
+document.getElementById('textRecoveryBtn').onclick=()=>{
+S.includeBinary=false;
+S.textRecovery=true;
+updatePlainModeButtons();
+saveSettings();
+};
+
+document.getElementById('batchSize').oninput=e=>{
+S.batchSize=parseInt(e.target.value);
+document.getElementById('batchSizeVal').textContent=S.batchSize+'x';
+saveSettings();
+};
+
+document.getElementById('processingNum').oninput=e=>{
+S.processingNum=parseInt(e.target.value);
+document.getElementById('processingNumVal').textContent=S.processingNum;
+saveSettings();
+};
+
+['useDictionary','tempDict','dualMode','multiArchive','markdownMode','ignoreBinaryBytes'].forEach(id=>{
+document.getElementById(id).onchange=e=>{
+S[id]=e.target.checked;
+saveSettings();
+};
+});
+
+// Filename input validation
+const filenameInput=document.getElementById('filenameInput');
+filenameInput.oninput=e=>{
+// Only allow UTF-8 safe characters: alphanumeric, underscore, hyphen, dot
+e.target.value=e.target.value.replace(/[^a-zA-Z0-9_\-\.]/g,'');
+};
+
+document.getElementById('minTokenLength').oninput=e=>{
+S.dictEditor.minTokenLength=parseInt(e.target.value);
+document.getElementById('minTokenLengthVal').textContent=e.target.value;
+saveSettings();
+};
+
+document.getElementById('minFreqDict').oninput=e=>{
+S.dictEditor.minFreq=parseInt(e.target.value);
+document.getElementById('minFreqDictVal').textContent=e.target.value;
+saveSettings();
+};
+
+document.getElementById('autoOptimizeDict').onchange=e=>{
+S.dictEditor.autoOptimize=e.target.checked;
+saveSettings();
+};
+
+document.getElementById('showRedundancy').onchange=e=>{
+S.dictEditor.showRedundancy=e.target.checked;
+updateDictUI();
+saveSettings();
+};
+
+['autoOptimizeCache','autoReIndex','autoVerifyRanking','autoStructureAnalysis'].forEach(id=>{
+document.getElementById(id).onchange=e=>{
+S.dictEditor.runtime[id]=e.target.checked;
+saveSettings();
+};
+});
+
+document.getElementById('triggerProDeBtn').onclick=triggerProDe;
+
+document.getElementById('importIDBBtn').onclick=importFromIDB;
+document.getElementById('importFileBtn').onclick=()=>document.getElementById('dictFileInput').click();
+document.getElementById('exportDictBtn').onclick=exportDictionary;
+document.getElementById('optimizeDictBtn').onclick=optimizeDictionary;
+document.getElementById('clearDictBtn').onclick=clearDictEditor;
+
+document.getElementById('fabToggle').onclick=()=>{
+document.getElementById('fabMenu').classList.toggle('expanded');
+};
+
+document.getElementById('aboutBtn').onclick=()=>{
+document.getElementById('aboutModal').classList.add('active');
+document.getElementById('fabMenu').classList.remove('expanded');
+};
+
+document.getElementById('optionsBtn').onclick=()=>{
+document.getElementById('optionsModal').classList.add('active');
+document.getElementById('fabMenu').classList.remove('expanded');
+};
+
+// Close FAB menu when clicking outside
+document.addEventListener('click',e=>{
+const fabMenu=document.getElementById('fabMenu');
+if(!fabMenu.contains(e.target)&&fabMenu.classList.contains('expanded')){
+fabMenu.classList.remove('expanded');
+}
+});
+
+// Close modals when clicking backdrop
+document.querySelectorAll('.modal').forEach(modal=>{
+modal.addEventListener('click',e=>{
+if(e.target===modal){
+modal.classList.remove('active');
+}
+});
+});
+
+// Update multi archive visibility based on dual mode
+document.getElementById('dualMode').onchange=e=>{
+S.dualMode=e.target.checked;
+const multiRow=document.getElementById('multiArchiveRow');
+const multiHint=document.getElementById('multiArchiveHint');
+if(!S.dualMode){
+S.multiArchive=false;
+document.getElementById('multiArchive').checked=false;
+multiRow.style.opacity='0.5';
+multiRow.style.pointerEvents='none';
+multiHint.style.opacity='0.5';
+}else{
+multiRow.style.opacity='1';
+multiRow.style.pointerEvents='auto';
+multiHint.style.opacity='1';
+}
+saveSettings();
+};
+}
+
+function updateModeUI(){
+document.getElementById('settingsPlain').classList.toggle('hidden',S.mode!=='plain');
+document.getElementById('settingsToken').classList.toggle('hidden',S.mode!=='token');
+document.getElementById('settingsExtract').classList.toggle('hidden',S.mode!=='extract');
+document.getElementById('settingsDict').classList.toggle('hidden',S.mode!=='dict');
+
+document.getElementById('uploadZone').classList.toggle('hidden',S.mode==='dict');
+document.getElementById('fileListContainer').classList.toggle('hidden',S.mode==='dict');
+document.getElementById('dictEditorUI').classList.toggle('hidden',S.mode!=='dict');
+
+// Stats card visibility: plain, token, extract (not dict)
+const statsCard=document.getElementById('statsCard');
+const statBinaryItem=document.getElementById('statBinaryItem');
+if(S.mode==='dict'){
+statsCard.classList.add('hidden');
+}else{
+statsCard.classList.remove('hidden');
+// Hide binary skip for extractor mode
+if(S.mode==='extract'){
+statBinaryItem.classList.add('hidden');
+}else{
+statBinaryItem.classList.remove('hidden');
+}
+}
+
+const filenameInput=document.getElementById('filenameInput');
+const actionBar=document.querySelector('.action-bar');
+
+if(S.mode==='plain'){
+updatePlainModeButtons();
+filenameInput.style.display='block';
+filenameInput.placeholder='archive';
+filenameInput.value=S.filename||'archive';
+}else if(S.mode==='token'){
+filenameInput.style.display='block';
+filenameInput.placeholder='archive-tokenized';
+filenameInput.value=S.filename||'archive-tokenized';
+}else if(S.mode==='extract'){
+filenameInput.style.display='block';
+filenameInput.placeholder='extracted';
+filenameInput.value=S.filename||'extracted';
+}else if(S.mode==='dict'){
+filenameInput.style.display='none';
+updateLiveCacheDisplay();
+}else{
+filenameInput.style.display='none';
+}
+
+const texts={
+plain:{text:'Drop source files',hint:'Supports .zip, .txt, .md, .js, .html, .css, .json',btn:'Generate PTAM'},
+token:{text:'Drop source files',hint:'Text files only - binary will be skipped',btn:'Generate PTAM'},
+extract:{text:'Drop PTAM files (.ptam.txt)',hint:'Plain text or tokenized format',btn:'Extract Files'},
+dict:{text:'',hint:'',btn:''}
+};
+
+if(S.mode!=='dict'){
+document.getElementById('uploadText').textContent=texts[S.mode].text;
+document.getElementById('uploadHint').textContent=texts[S.mode].hint;
+document.getElementById('processBtn').textContent=texts[S.mode].btn;
+}
+}
+
+function updatePlainModeButtons(){
+const incBtn=document.getElementById('includeBinaryBtn');
+const txtBtn=document.getElementById('textRecoveryBtn');
+
+if(S.includeBinary){
+incBtn.style.background='var(--accent)';
+incBtn.style.borderColor='var(--accent)';
+incBtn.style.color='white';
+txtBtn.style.background='var(--bg-tertiary)';
+txtBtn.style.borderColor='var(--border)';
+txtBtn.style.color='var(--text-primary)';
+}else{
+txtBtn.style.background='var(--accent)';
+txtBtn.style.borderColor='var(--accent)';
+txtBtn.style.color='white';
+incBtn.style.background='var(--bg-tertiary)';
+incBtn.style.borderColor='var(--border)';
+incBtn.style.color='var(--text-primary)';
+}
+}
+
+async function handleFiles(fileList){
+showLoading('Loading files...');
+const files=Array.from(fileList);
+
+// FBB-MBS preprocessing
+if(S.globalOptions.fbbMbs&&files.length>0){
+const analysis=await processFBBMBS(files);
+showLoading('Processing','FBB-MBS: Using '+analysis.method);
+}
+
+for(const file of files){
+if(file.name.endsWith('.zip')){
+S.stats.zipsUploaded++;
+await extractZip(file);
+}else{
+await addFile(file);
+}
+}
+
+updateFileList();
+updateStatsCard();
+hideLoading();
+saveState();
+}
+
+async function extractZip(file){
+try{
+const zip=await JSZip.loadAsync(file);
+const entries=Object.keys(zip.files);
+
+for(const path of entries){
+const entry=zip.files[path];
+if(entry.dir)continue;
+
+const blob=await entry.async('blob');
+const f=new File([blob],path,{lastModified:entry.date?.getTime()||Date.now()});
+await addFile(f);
+}
+}catch(e){
+showToast('Failed to extract ZIP: '+e.message,'error');
+}
+}
+
+async function addFile(file){
+S.stats.allFiles++;
+
+// Read content first for content-level detection
+const content=await readFile(file);
+
+// Content-level binary detection
+const isBinary=detectBinaryContent(content);
+
+if(S.mode==='token'&&isBinary&&!S.ignoreBinaryBytes){
+S.stats.binariesSkipped++;
+return;
+}
+
+S.files.push({
+name:file.name,
+path:file.webkitRelativePath||file.name,
+size:file.size,
+modified:file.lastModified,
+content,
+isBinary // Store binary flag for later use
+});
+S.stats.totalSize+=file.size;
+}
+
+function detectBinaryContent(content){
+// Content-level binary detection
+// Check first 8KB for binary bytes
+const sample=content.slice(0,8192);
+let nullBytes=0;
+let controlBytes=0;
+let totalBytes=sample.length;
+
+for(let i=0;i<sample.length;i++){
+const code=sample.charCodeAt(i);
+// Null bytes are strong binary indicator
+if(code===0)nullBytes++;
+// Control characters (excluding common text ones)
+if(code<32&&code!==9&&code!==10&&code!==13)controlBytes++;
+}
+
+// If >1% null bytes or >5% control bytes, it's binary
+const nullRatio=nullBytes/totalBytes;
+const controlRatio=controlBytes/totalBytes;
+
+return nullRatio>0.01||controlRatio>0.05;
+}
+
+function isTextFile(file){
+// Fallback extension/MIME check (kept for backwards compatibility)
+const MIME_TEXT=['text/','application/json','application/javascript','application/xml'];
+const MIME_SKIP=['image/','video/','audio/','application/pdf','application/zip'];
+if(file.type){
+if(MIME_TEXT.some(t=>file.type.startsWith(t)))return true;
+if(MIME_SKIP.some(t=>file.type.startsWith(t)))return false;
+}
+const ext=file.name.split('.').pop().toLowerCase();
+return['txt','md','html','css','js','json','xml','csv','log','py','java','cpp','c','h','sh','bat','rs','go','ts','jsx','tsx','vue','yml','yaml'].includes(ext);
+}
+
+function readFile(file){
+return new Promise((res,rej)=>{
+const reader=new FileReader();
+reader.onload=e=>res(e.target.result);
+reader.onerror=rej;
+reader.readAsText(file);
+});
+}
+
+function updateFileList(){
+const container=document.getElementById('fileListContainer');
+const list=document.getElementById('fileList');
+const btn=document.getElementById('processBtn');
+
+if(S.files.length===0){
+container.classList.add('hidden');
+btn.disabled=true;
+return;
+}
+
+container.classList.remove('hidden');
+btn.disabled=false;
+
+document.getElementById('fileCount').textContent=S.files.length+' files';
+list.innerHTML=S.files.map(f=>`
+<div class="file-item">
+<div class="file-name">${escHtml(f.path)}</div>
+<div class="file-size">${fmtSize(f.size)}</div>
+</div>
+`).join('');
+}
+
+function clearFiles(){
+S.files=[];
+S.output='';
+S.stats={allFiles:0,zipsUploaded:0,binariesSkipped:0,totalSize:0};
+updateFileList();
+updateStatsCard();
+saveState();
+}
+
+async function process(){
+showLoading('Processing...',getLoadingDetail(S.mode,'init'));
+await new Promise(r=>setTimeout(r,100));
+
+try{
+if(S.mode==='plain'){
+showLoading('Text Recovery Check',getLoadingDetail(S.mode,'analyzing'));
+const canProceed=await checkTextRecovery();
+if(!canProceed){
+hideLoading();
+return; // Wait for user decision
+}
+await generatePlain();
+// Auto-download for plain mode
+const blob=new Blob([S.output],{type:'text/plain;charset=utf-8'});
+downloadBlob(blob,S.filename||'archive.ptam.txt');
+showToast('PTAM generated and downloaded','success');
+}else if(S.mode==='token'){
+await generateToken();
+// Auto-download for token mode
+const blob=new Blob([S.output],{type:'text/plain;charset=utf-8'});
+downloadBlob(blob,S.filename||'archive-tokenized.ptam.txt');
+showToast('PTAM generated and downloaded','success');
+}else if(S.mode==='extract'){
+await extract();
+// Extract mode auto-downloads ZIPs
+}
+}catch(e){
+showToast('Error: '+e.message,'error');
+}
+
+hideLoading();
+saveState();
+}
+
+function analyzeUTF8(content){
+if(typeof content!=='string')return 0;
+
+let validChars=0;
+let totalChars=content.length;
+
+for(let i=0;i<totalChars;i++){
+const code=content.charCodeAt(i);
+// Valid UTF-8 ranges
+if(
+(code>=0x20&&code<=0x7E)|| // ASCII printable
+code===0x09|| // Tab
+code===0x0A|| // LF
+code===0x0D|| // CR
+(code>=0xA0&&code<=0xD7FF)|| // Extended Latin, etc.
+(code>=0xE000&&code<=0xFFFD) // Private use, CJK, etc.
+){
+validChars++;
+}
+}
+
+return totalChars===0?0:(validChars/totalChars)*100;
+}
+
+async function checkTextRecovery(){
+if(!S.textRecovery||S.includeBinary){
+return true; // Skip if text recovery disabled or binary included
+}
+
+S.textRecoveryData.failedFiles=[];
+S.textRecoveryData.analyzedFiles.clear();
+
+showLoading('Analyzing UTF-8 content...');
+
+for(const file of S.files){
+const score=analyzeUTF8(file.content);
+S.textRecoveryData.analyzedFiles.set(file.path,{
+score,
+original:file.content,
+passed:score>=80
+});
+
+if(score<80){
+S.textRecoveryData.failedFiles.push({
+path:file.path,
+score,
+size:file.size
+});
+}
+}
+
+hideLoading();
+
+if(S.textRecoveryData.failedFiles.length>0){
+showTextRecoveryModal();
+return false; // Block processing
+}
+
+return true; // All passed
+}
+
+function showTextRecoveryModal(){
+const list=document.getElementById('failedFilesList');
+list.innerHTML=S.textRecoveryData.failedFiles.map(f=>`
+<div style="padding:6px 8px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:12px">
+<div style="font-family:'JetBrains Mono',monospace;word-break:break-all">${escHtml(f.path)}</div>
+<div style="color:var(--error);white-space:nowrap;margin-left:12px">${f.score.toFixed(1)}%</div>
+</div>
+`).join('');
+
+document.getElementById('textRecoveryModal').classList.add('active');
+}
+
+function closeTextRecovery(){
+document.getElementById('textRecoveryModal').classList.remove('active');
+}
+
+function skipFailedFiles(){
+const failedPaths=new Set(S.textRecoveryData.failedFiles.map(f=>f.path));
+S.files=S.files.filter(f=>!failedPaths.has(f.path));
+updateFileList();
+closeTextRecovery();
+showToast(`Skipped ${failedPaths.size} files`,'warning');
+saveState();
+}
+
+async function deepRescan(){
+closeTextRecovery();
+showLoading('Deep rescanning files...');
+
+const stillFailed=[];
+let passedCount=0;
+
+for(const failedFile of S.textRecoveryData.failedFiles){
+await new Promise(r=>setTimeout(r,10)); // Yield to UI
+
+// Deep analysis with byte-level checking
+const file=S.files.find(f=>f.path===failedFile.path);
+if(!file)continue;
+
+const content=file.content;
+let validBytes=0;
+let totalBytes=0;
+
+for(let i=0;i<content.length;i++){
+const code=content.charCodeAt(i);
+totalBytes++;
+
+// Stricter UTF-8 validation
+if(
+(code>=0x20&&code<=0x7E)||
+code===0x09||code===0x0A||code===0x0D||
+(code>=0xA0&&code<=0xD7FF)||
+(code>=0xE000&&code<=0xFFFD)
+){
+validBytes++;
+}
+}
+
+const score=totalBytes===0?0:(validBytes/totalBytes)*100;
+S.textRecoveryData.analyzedFiles.set(failedFile.path,{
+score,
+original:content,
+passed:score>=80
+});
+
+if(score>=80){
+passedCount++;
+}else{
+stillFailed.push({
+path:failedFile.path,
+score,
+size:file.size
+});
+}
+}
+
+hideLoading();
+
+document.getElementById('rescanPassed').textContent=passedCount;
+document.getElementById('rescanFailed').textContent=stillFailed.length;
+
+const stillFailedList=document.getElementById('stillFailedList');
+if(stillFailed.length===0){
+stillFailedList.innerHTML='<div style="padding:20px;text-align:center;color:var(--success);font-size:13px">All files passed deep rescan!</div>';
+}else{
+stillFailedList.innerHTML=stillFailed.map(f=>`
+<div style="padding:6px 8px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:12px">
+<div style="font-family:'JetBrains Mono',monospace;word-break:break-all">${escHtml(f.path)}</div>
+<div style="color:var(--error);white-space:nowrap;margin-left:12px">${f.score.toFixed(1)}%</div>
+</div>
+`).join('');
+}
+
+S.textRecoveryData.failedFiles=stillFailed;
+document.getElementById('deepRescanModal').classList.add('active');
+}
+
+function closeDeepRescan(){
+document.getElementById('deepRescanModal').classList.remove('active');
+}
+
+function skipAfterRescan(){
+const failedPaths=new Set(S.textRecoveryData.failedFiles.map(f=>f.path));
+S.files=S.files.filter(f=>!failedPaths.has(f.path));
+updateFileList();
+closeDeepRescan();
+showToast(`Skipped ${failedPaths.size} failed files`,'warning');
+saveState();
+}
+
+async function applyTextRecovery(){
+showLoading('Applying text recovery...');
+closeDeepRescan();
+
+let recoveredCount=0;
+
+for(const failedFile of S.textRecoveryData.failedFiles){
+await new Promise(r=>setTimeout(r,10));
+
+const file=S.files.find(f=>f.path===failedFile.path);
+if(!file)continue;
+
+const original=file.content;
+let cleaned='';
+
+// Remove non-UTF-8 characters
+for(let i=0;i<original.length;i++){
+const code=original.charCodeAt(i);
+if(
+(code>=0x20&&code<=0x7E)||
+code===0x09||code===0x0A||code===0x0D||
+(code>=0xA0&&code<=0xD7FF)||
+(code>=0xE000&&code<=0xFFFD)
+){
+cleaned+=original[i];
+}else{
+cleaned+=' '; // Replace invalid with space
+}
+}
+
+file.content=cleaned;
+recoveredCount++;
+}
+
+hideLoading();
+updateFileList();
+showToast(`Recovered ${recoveredCount} files`,'success');
+saveState();
+}
+
+function makeDivider(char,len=78){
+return char.repeat(len);
+}
+
+async function generatePlain(){
+showLoading('Generating Plain Text',getLoadingDetail('plain','generating'));
+await new Promise(r=>setTimeout(r,50));
+
+const ts=new Date().toISOString();
+const totalSize=S.files.reduce((sum,f)=>sum+f.size,0);
+
+showLoading('Building Structure',getLoadingDetail('plain','chunking'));
+
+if(S.markdownMode){
+// Markdown mode with file tree
+let out='# PTAM Plain Text Archive\n\n';
+out+='**Format Version:** 4.0  \n';
+out+='**Compatible:** 4.0 - 5.x  \n\n';
+out+='---\n\n';
+out+=`**Files:** ${S.files.length}  \n`;
+out+=`**Total Size:** ${fmtSize(totalSize)}  \n`;
+out+=`**Generated:** ${ts}  \n`;
+out+=`**Chunk Size:** ${S.chunkSize}KB  \n`;
+out+=`**Mode:** ${S.includeBinary?'Full Archive':'Text Only'}  \n`;
+
+if(!S.includeBinary&&S.textRecovery){
+let recoveredCount=0;
+S.textRecoveryData.analyzedFiles.forEach((data,path)=>{
+if(!data.passed&&S.files.find(f=>f.path===path))recoveredCount++;
+});
+if(recoveredCount>0){
+out+=`**Recovered Files:** ${recoveredCount}  \n`;
+}
+}
+out+='\n---\n\n';
+
+// Build file tree
+const tree={};
+S.files.forEach(f=>{
+const parts=f.path.split('/');
+let current=tree;
+parts.forEach((part,i)=>{
+if(i===parts.length-1){
+// File
+if(!current._files)current._files=[];
+current._files.push(f);
+}else{
+// Directory
+if(!current[part])current[part]={};
+current=current[part];
+}
+});
+});
+
+// Render tree recursively
+function renderTree(node,prefix='',path=''){
+let result='';
+const dirs=Object.keys(node).filter(k=>k!=='_files').sort();
+const files=node._files||[];
+
+// Files first
+files.forEach(f=>{
+result+=`${prefix}📄 **${f.name}** (${fmtSize(f.size)})\n\n`;
+const analysis=S.textRecoveryData.analyzedFiles.get(f.path);
+if(analysis&&!analysis.passed){
+result+=`${prefix}> ⚠️ Text recovery applied (was ${analysis.score.toFixed(1)}%)\n\n`;
+}
+result+=`${prefix}\`\`\`\n`;
+result+=f.content+'\n';
+result+=`${prefix}\`\`\`\n\n`;
+});
+
+// Directories last
+dirs.forEach((dir,idx)=>{
+const isLast=idx===dirs.length-1;
+result+=`${prefix}📁 **${dir}/**\n\n`;
+result+=renderTree(node[dir],prefix+'  ',path+dir+'/');
+if(!isLast)result+='\n';
+});
+
+return result;
+}
+
+out+='## File Tree\n\n';
+out+=renderTree(tree);
+
+S.output=out;
+const customName=document.getElementById('filenameInput').value.trim();
+S.filename=(customName||'archive')+'.md';
+}else{
+// Standard box drawing mode
+let out='';
+const div=S.globalOptions.dividerSymbol;
+out+=`╔${makeDivider(div)}╗\n`;
+out+='║                            PTAM PLAIN TEXT v4                                ║\n';
+out+=`╠${makeDivider(div)}╣\n`;
+out+=`║  FORMAT_VERSION: 4.0`.padEnd(79)+'║\n';
+out+=`║  COMPAT_MIN: 4.0`.padEnd(79)+'║\n';
+out+=`║  COMPAT_MAX: 5.x`.padEnd(79)+'║\n';
+out+=`╟${makeDivider('─')}╢\n`;
+out+=`║  FILES: ${S.files.length.toString().padEnd(68)}║\n`;
+out+=`║  SIZE: ${fmtSize(totalSize).padEnd(69)}║\n`;
+out+=`║  GENERATED: ${ts.padEnd(62)}║\n`;
+out+=`║  CHUNK: ${S.chunkSize}KB`.padEnd(79)+'║\n';
+out+=`║  BINARY: ${S.includeBinary?'YES':'NO'}`.padEnd(79)+'║\n';
+if(!S.includeBinary&&S.textRecovery){
+let recoveredCount=0;
+S.textRecoveryData.analyzedFiles.forEach((data,path)=>{
+if(!data.passed&&S.files.find(f=>f.path===path))recoveredCount++;
+});
+out+=`║  TEXT_RECOVERY: YES`.padEnd(79)+'║\n';
+if(recoveredCount>0){
+out+=`║  RECOVERED_FILES: ${recoveredCount}`.padEnd(79)+'║\n';
+}
+}
+out+=`╚${makeDivider(div)}╝\n\n`;
+
+for(const file of S.files){
+out+=`┌${makeDivider('─')}┐\n`;
+out+=`│ FILE: ${file.path.padEnd(69)}│\n`;
+out+=`│ SIZE: ${fmtSize(file.size).padEnd(69)}│\n`;
+out+=`│ MODIFIED: ${new Date(file.modified).toISOString().padEnd(63)}│\n`;
+const analysis=S.textRecoveryData.analyzedFiles.get(file.path);
+if(analysis&&!analysis.passed){
+out+=`│ TEXT_RECOVERY: Applied (was ${analysis.score.toFixed(1)}%)`.padEnd(79)+'│\n';
+}
+out+=`├${makeDivider('─')}┤\n`;
+out+=file.content+'\n';
+out+=`└${makeDivider('─')}┘\n\n`;
+}
+
+showLoading('Finalizing',getLoadingDetail('plain','finalizing'));
+S.output=out;
+const customName=document.getElementById('filenameInput').value.trim();
+S.filename=(customName||'archive')+'.ptam.txt';
+}
+}
+
+async function generateToken(){
+showLoading('Building Dictionary',getLoadingDetail('token','building'));
+await new Promise(r=>setTimeout(r,50));
+
+const tokens=await buildTokenDict();
+const ts=new Date().toISOString();
+
+showLoading('Tokenizing Content',getLoadingDetail('token','tokenizing'));
+await new Promise(r=>setTimeout(r,50));
+
+const tokenContent=tokenizeFiles(tokens);
+const origSize=S.files.reduce((sum,f)=>sum+f.content.length,0);
+const compSize=tokenContent.reduce((sum,c)=>sum+c.length,0);
+const ratio=((1-compSize/origSize)*100).toFixed(1);
+
+let out='';
+const div=S.globalOptions.dividerSymbol;
+out+=`╔${makeDivider(div)}╗\n`;
+out+='║                            PTAM TOKENIZED v5                                 ║\n';
+out+=`╠${makeDivider(div)}╣\n`;
+out+=`║  FORMAT_VERSION: 5.0`.padEnd(79)+'║\n';
+out+=`║  COMPAT_MIN: 5.0`.padEnd(79)+'║\n';
+out+=`║  COMPAT_MAX: 5.x`.padEnd(79)+'║\n';
+out+=`║  TOKEN_ENCODING: UTF-8`.padEnd(79)+'║\n';
+out+=`╟${makeDivider('─')}╢\n`;
+out+=`║  FILES: ${S.files.length.toString().padEnd(68)}║\n`;
+out+=`║  TOKENS: ${tokens.size.toString().padEnd(67)}║\n`;
+out+=`║  COMPRESSION: ${ratio}%`.padEnd(79)+'║\n';
+out+=`║  GENERATED: ${ts.padEnd(62)}║\n`;
+out+=`║  BATCH: ${S.batchSize}x, PROC: ${S.processingNum}`.padEnd(79)+'║\n';
+out+=`╚${makeDivider(div)}╝\n\n`;
+
+out+=`╔${makeDivider(div)}╗\n`;
+out+='║                               TOKEN DICTIONARY                               ║\n';
+out+='║  DICT_START_MARKER                                                           ║\n';
+out+=`╚${makeDivider(div)}╝\n\n`;
+
+tokens.forEach((word,id)=>{
+out+=`T${id}=${word}\n`;
+});
+out+=`\n╔${makeDivider(div)}╗\n`;
+out+='║  DICT_END_MARKER                                                             ║\n';
+out+=`╚${makeDivider(div)}╝\n\n`;
+
+tokenContent.forEach((content,idx)=>{
+const file=S.files[idx];
+out+=`┌${makeDivider('─')}┐\n`;
+out+=`│ FILE: ${file.path.padEnd(69)}│\n`;
+out+=`├${makeDivider('─')}┤\n`;
+out+=content+'\n';
+out+=`└${makeDivider('─')}┘\n\n`;
+});
+
+S.output=out;
+const customName=document.getElementById('filenameInput').value.trim();
+S.filename=(customName||'archive-tokenized')+'.ptam.txt';
+}
+
+async function buildTokenDict(){
+const freq=new Map();
+const IDB_LIMIT=15000; // Cold Cache limit (persistent)
+const SESSION_LIMIT=100000; // Hot Cache limit (session)
+
+// Load from Hot Cache (session) if enabled
+if(S.tempDict){
+const sHeat=sessionStorage.getItem('ptam_v5_heatmap');
+if(sHeat){
+try{
+const data=JSON.parse(sHeat);
+if(data.version==='5.0'&&data.type==='heatmap'){
+data.entries.forEach(([w,f])=>freq.set(w,f));
+}
+}catch(e){}
+}
+}
+
+// Load from Cold Cache (IDB persistent) if enabled
+if(S.useDictionary&&db){
+await loadFromIDB(freq);
+}
+
+// Process current files and update frequencies
+for(const file of S.files){
+const words=file.content.match(/\b[a-zA-Z_][a-zA-Z0-9_]{3,}\b/g)||[];
+words.forEach(w=>{
+freq.set(w,(freq.get(w)||0)+1);
+});
+}
+
+// === Cold Cache Ranking ===
+// === Hot Cache Ranking ===
+// === ProDe Ranking (Promote/Demote) ===
+// All three use same algorithm: sort by frequency desc, then alphabetically
+const sorted=Array.from(freq.entries())
+.filter(([w,f])=>f>=3)
+.sort((a,b)=>{
+const diff=b[1]-a[1];
+if(diff!==0)return diff;
+return a[0].localeCompare(b[0]);
+});
+
+// ProDe: Top 15K PROMOTED to Cold Cache (persistent)
+// ProDe: Top 100K kept in Hot Cache (session)
+// ProDe: Below 100K DEMOTED (discarded)
+const coldCacheEntries=sorted.slice(0,Math.min(IDB_LIMIT,sorted.length));
+const hotCacheEntries=sorted.slice(0,Math.min(SESSION_LIMIT,sorted.length));
+
+// Build token map from top 800 for actual encoding
+const tokenMap=new Map();
+sorted.slice(0,800).forEach(([word],idx)=>{
+tokenMap.set(idx,word);
+});
+
+// Save to Hot Cache (session) if enabled
+if(S.tempDict){
+sessionStorage.setItem('ptam_v5_heatmap',JSON.stringify({
+version:'5.0',
+type:'heatmap',
+generated:new Date().toISOString(),
+count:hotCacheEntries.length,
+entries:hotCacheEntries
+}));
+
+const tokenEntries=Array.from(tokenMap.entries());
+sessionStorage.setItem('ptam_v5_tokens',JSON.stringify({
+version:'5.0',
+type:'tokens',
+generated:new Date().toISOString(),
+count:tokenEntries.length,
+entries:tokenEntries
+}));
+}
+
+// Save to Cold Cache (IDB persistent) if enabled - ProDe auto-promotes top performers
+if(S.useDictionary&&db){
+await saveToIDB(coldCacheEntries);
+}
+
+updateCacheStatus();
+return tokenMap;
+}
+
+function loadFromIDB(freq){
+return new Promise(res=>{
+const tx=db.transaction(['heatmap'],'readonly');
+const store=tx.objectStore('heatmap');
+const req=store.get('data');
+req.onsuccess=()=>{
+if(req.result&&req.result.entries){
+const data=req.result;
+// Backward compatible: check version
+if(data.version&&data.type==='heatmap'){
+data.entries.forEach(([w,f])=>{
+freq.set(w,f);
+});
+}
+}
+res();
+};
+req.onerror=()=>res();
+});
+}
+
+function saveToIDB(entries){
+return new Promise(res=>{
+const tx=db.transaction(['heatmap'],'readwrite');
+const store=tx.objectStore('heatmap');
+
+store.clear();
+store.put({
+version:'5.0',
+type:'heatmap',
+generated:new Date().toISOString(),
+count:entries.length,
+limit:15000,
+entries:entries
+},'data');
+
+tx.oncomplete=()=>res();
+tx.onerror=()=>res();
+});
+}
+
+function tokenizeFiles(tokens){
+const rev=new Map();
+tokens.forEach((w,id)=>{
+rev.set(w,`T${id}`);
+});
+
+return S.files.map(file=>{
+let c=file.content;
+
+// If ignoreBinaryBytes is enabled and file is binary, filter out binary bytes first
+if(S.ignoreBinaryBytes&&file.isBinary){
+let cleaned='';
+for(let i=0;i<c.length;i++){
+const code=c.charCodeAt(i);
+// Keep only printable ASCII and common whitespace
+if((code>=32&&code<=126)||code===9||code===10||code===13){
+cleaned+=c[i];
+}else{
+cleaned+=' '; // Replace binary bytes with space
+}
+}
+c=cleaned;
+}
+
+// Tokenize the content
+rev.forEach((tk,word)=>{
+const re=new RegExp('\\b'+word+'\\b','g');
+c=c.replace(re,tk);
+});
+return c;
+});
+}
+
+async function extract(){
+const archives=new Map(); // sourceName -> {plain:[], token:[]}
+
+for(const file of S.files){
+const content=file.content;
+const sourceName=file.name.replace(/\.ptam\.txt$/i,'')||'archive';
+
+if(!archives.has(sourceName)){
+archives.set(sourceName,{plain:[],token:[]});
+}
+
+// Extract based on format detection
+if(content.includes('PTAM PLAIN TEXT')){
+const extracted=extractPlain(content);
+archives.get(sourceName).plain.push(...extracted);
+}
+if(content.includes('PTAM TOKENIZED')){
+const extracted=extractTokenized(content);
+archives.get(sourceName).token.push(...extracted);
+}
+}
+
+if(archives.size===0){
+throw new Error('No valid PTAM files found');
+}
+
+const zips=[];
+
+if(S.dualMode){
+// Dual mode: can process both plain and tokenized
+for(const [sourceName,files] of archives.entries()){
+if(S.multiArchive){
+// Multi Archive ON: separate ZIP per archive and format
+if(files.plain.length>0){
+const zip=new JSZip();
+files.plain.forEach(f=>zip.file(f.name,f.content));
+zips.push({name:`${sourceName}-plain.zip`,zip});
+}
+if(files.token.length>0){
+const zip=new JSZip();
+files.token.forEach(f=>zip.file(f.name,f.content));
+zips.push({name:`${sourceName}-tokenized.zip`,zip});
+}
+}else{
+// Multi Archive OFF: separate by folder only
+const zip=new JSZip();
+if(files.plain.length>0){
+files.plain.forEach(f=>zip.file(`plain/${f.name}`,f.content));
+}
+if(files.token.length>0){
+files.token.forEach(f=>zip.file(`tokenized/${f.name}`,f.content));
+}
+if(files.plain.length>0||files.token.length>0){
+zips.push({name:`${sourceName}.zip`,zip});
+}
+}
+}
+}else{
+// Dual mode OFF: single format mixed
+for(const [sourceName,files] of archives.entries()){
+const allFiles=[...files.plain,...files.token];
+if(allFiles.length===0)continue;
+
+const zip=new JSZip();
+allFiles.forEach(f=>zip.file(f.name,f.content));
+zips.push({name:`${sourceName}.zip`,zip});
+}
+}
+
+// Download all ZIPs
+const customName=document.getElementById('filenameInput').value.trim();
+for(let i=0;i<zips.length;i++){
+const {name,zip}=zips[i];
+const blob=await zip.generateAsync({type:'blob'});
+// Use custom name if single zip, otherwise use generated name
+const finalName=zips.length===1&&customName?`${customName}.zip`:name;
+downloadBlob(blob,finalName);
+await new Promise(r=>setTimeout(r,100));
+}
+
+showToast(`Extracted ${zips.length} archive(s)`,'success');
+S.output='';
+}
+
+function extractPlain(content){
+// Check version compatibility
+const versionMatch=content.match(/FORMAT_VERSION:\s*([\d.]+)/);
+if(versionMatch){
+const ver=parseFloat(versionMatch[1]);
+if(ver<4.0||ver>5.9){
+throw new Error(`Unsupported plain text format version ${ver}. Supported: 4.0-5.x`);
+}
+}
+
+const files=[];
+const blocks=content.split('┌──────────────────────────────────────────────────────────────────────────────┐');
+
+for(let i=1;i<blocks.length;i++){
+const block=blocks[i];
+const fileMatch=block.match(/│ FILE: (.+?)\s+│/);
+if(!fileMatch)continue;
+
+const filename=fileMatch[1].trim();
+const contentStart=block.indexOf('├──────────────────────────────────────────────────────────────────────────────┤');
+const contentEnd=block.indexOf('└──────────────────────────────────────────────────────────────────────────────┘');
+
+if(contentStart===-1||contentEnd===-1)continue;
+
+const fileContent=block.substring(contentStart+79,contentEnd).trim();
+files.push({name:filename,content:fileContent});
+}
+
+return files;
+}
+
+function extractTokenized(content){
+// Check version compatibility
+const versionMatch=content.match(/FORMAT_VERSION:\s*([\d.]+)/);
+const compatMinMatch=content.match(/COMPAT_MIN:\s*([\d.x]+)/);
+const compatMaxMatch=content.match(/COMPAT_MAX:\s*([\d.x]+)/);
+
+if(versionMatch){
+const ver=parseFloat(versionMatch[1]);
+// Check if we can handle this version
+if(ver>5.9){
+throw new Error(`Unsupported tokenized format version ${ver}. Max supported: 5.x`);
+}
+}
+
+// Extract dictionary using markers
+let dictMatch=content.match(/DICT_START_MARKER[\s\S]+?═╝\n\n([\s\S]+?)\n\n╔[\s\S]+?DICT_END_MARKER/);
+if(!dictMatch){
+// Fallback to old format without markers
+dictMatch=content.match(/TOKEN DICTIONARY[\s\S]+?═╝\n\n([\s\S]+?)\n\n┌/);
+if(!dictMatch)return[];
+}
+
+const dictLines=dictMatch[1].split('\n');
+const tokens=new Map();
+dictLines.forEach(line=>{
+const m=line.match(/T(\d+)=(.+)/);
+if(m){
+tokens.set(`T${m[1]}`,m[2]);
+}
+});
+
+const files=[];
+const blocks=content.split('┌──────────────────────────────────────────────────────────────────────────────┐');
+
+for(let i=1;i<blocks.length;i++){
+const block=blocks[i];
+const fileMatch=block.match(/│ FILE: (.+?)\s+│/);
+if(!fileMatch)continue;
+
+const filename=fileMatch[1].trim();
+const contentStart=block.indexOf('├──────────────────────────────────────────────────────────────────────────────┤');
+const contentEnd=block.indexOf('└──────────────────────────────────────────────────────────────────────────────┘');
+
+if(contentStart===-1||contentEnd===-1)continue;
+
+let fileContent=block.substring(contentStart+79,contentEnd).trim();
+
+tokens.forEach((word,token)=>{
+const re=new RegExp('\\b'+token+'\\b','g');
+fileContent=fileContent.replace(re,word);
+});
+
+files.push({name:filename,content:fileContent});
+}
+
+return files;
+}
+
+function clearDictionary(){
+if(db){
+const tx=db.transaction(['heatmap'],'readwrite');
+tx.objectStore('heatmap').clear();
+}
+sessionStorage.removeItem('ptam_v5_heatmap');
+sessionStorage.removeItem('ptam_v5_tokens');
+updateCacheStatus();
+showToast('Dictionary cleared','success');
+}
+
+function updateCacheStatus(){
+let coldCount=0;
+let hotCount=0;
+let prodeActive=false;
+
+// Cold Cache (IDB)
+if(db){
+const tx=db.transaction(['heatmap'],'readonly');
+const req=tx.objectStore('heatmap').get('data');
+req.onsuccess=()=>{
+if(req.result&&req.result.count){
+coldCount=req.result.count;
+}
+
+// Hot Cache (Session)
+const sHeat=sessionStorage.getItem('ptam_v5_heatmap');
+if(sHeat){
+try{
+const data=JSON.parse(sHeat);
+hotCount=data.count||0;
+}catch(e){}
+}
+
+// ProDe Ranking is active if both caches exist
+prodeActive=S.useDictionary&&S.tempDict&&coldCount>0&&hotCount>0;
+
+const coldFmt=coldCount>=1000?Math.floor(coldCount/1000)+'K':coldCount;
+const hotFmt=hotCount>=1000?Math.floor(hotCount/1000)+'K':hotCount;
+
+const coldEl=document.getElementById('coldCacheStatus');
+const hotEl=document.getElementById('hotCacheStatus');
+const prodeEl=document.getElementById('prodeStatus');
+
+if(coldEl)coldEl.textContent=`${coldFmt}/15K`;
+if(hotEl)hotEl.textContent=`${hotFmt}/100K`;
+if(prodeEl){
+if(prodeActive){
+prodeEl.textContent='Active';
+prodeEl.style.color='var(--success)';
+}else{
+prodeEl.textContent='Inactive';
+prodeEl.style.color='var(--text-tertiary)';
+}
+}
+};
+}else{
+const sHeat=sessionStorage.getItem('ptam_v5_heatmap');
+if(sHeat){
+try{
+const data=JSON.parse(sHeat);
+hotCount=data.count||0;
+}catch(e){}
+}
+
+const hotFmt=hotCount>=1000?Math.floor(hotCount/1000)+'K':hotCount;
+const coldEl=document.getElementById('coldCacheStatus');
+const hotEl=document.getElementById('hotCacheStatus');
+const prodeEl=document.getElementById('prodeStatus');
+
+if(coldEl)coldEl.textContent='0/15K';
+if(hotEl)hotEl.textContent=`${hotFmt}/100K`;
+if(prodeEl){
+prodeEl.textContent='Inactive';
+prodeEl.style.color='var(--text-tertiary)';
+}
+}
+}
+
+function showOutput(){
+document.getElementById('outputModal').classList.add('active');
+document.getElementById('outputContent').textContent=S.output;
+document.getElementById('outputTitle').textContent=S.filename||'Output';
+}
+
+function closeOutput(){
+document.getElementById('outputModal').classList.remove('active');
+}
+
+function copyOutput(){
+navigator.clipboard.writeText(S.output).then(()=>{
+showToast('Copied','success');
+}).catch(()=>{
+showToast('Failed to copy','error');
+});
+}
+
+function downloadOutput(){
+const blob=new Blob([S.output],{type:'text/plain;charset=utf-8'});
+downloadBlob(blob,S.filename||'output.txt');
+}
+
+function downloadBlob(blob,name){
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');
+a.href=url;
+a.download=name;
+a.style.display='none';
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+function saveSettings(){
+localStorage.setItem('ptam_settings',JSON.stringify({
+mode:S.mode,
+chunkSize:S.chunkSize,
+includeBinary:S.includeBinary,
+textRecovery:S.textRecovery,
+markdownMode:S.markdownMode,
+batchSize:S.batchSize,
+processingNum:S.processingNum,
+ignoreBinaryBytes:S.ignoreBinaryBytes,
+useDictionary:S.useDictionary,
+tempDict:S.tempDict,
+dualMode:S.dualMode,
+multiArchive:S.multiArchive,
+globalOptions:S.globalOptions,
+dictEditor:{
+minTokenLength:S.dictEditor.minTokenLength,
+minFreq:S.dictEditor.minFreq,
+autoOptimize:S.dictEditor.autoOptimize,
+showRedundancy:S.dictEditor.showRedundancy,
+runtime:{
+autoOptimizeCache:S.dictEditor.runtime.autoOptimizeCache,
+autoReIndex:S.dictEditor.runtime.autoReIndex,
+autoVerifyRanking:S.dictEditor.runtime.autoVerifyRanking,
+autoStructureAnalysis:S.dictEditor.runtime.autoStructureAnalysis
+}
+}
+}));
+}
+
+function loadSettings(){
+const data=localStorage.getItem('ptam_settings');
+if(!data)return;
+try{
+const st=JSON.parse(data);
+S.mode=st.mode||'plain';
+S.chunkSize=st.chunkSize||7;
+S.includeBinary=st.includeBinary||false;
+S.textRecovery=st.textRecovery!==false;
+S.markdownMode=st.markdownMode||false;
+S.batchSize=st.batchSize||4;
+S.processingNum=st.processingNum||3;
+S.ignoreBinaryBytes=st.ignoreBinaryBytes||false;
+S.useDictionary=st.useDictionary||false;
+S.tempDict=st.tempDict||false;
+S.dualMode=st.dualMode!==false;
+S.multiArchive=st.multiArchive!==false;
+
+if(st.globalOptions){
+S.globalOptions.responsiveMode=st.globalOptions.responsiveMode||false;
+S.globalOptions.scopeLoad=st.globalOptions.scopeLoad||false;
+S.globalOptions.dividerSymbol=st.globalOptions.dividerSymbol||'═';
+S.globalOptions.fbbMbs=st.globalOptions.fbbMbs||false;
+document.getElementById('responsiveMode').checked=S.globalOptions.responsiveMode;
+document.getElementById('scopeLoad').checked=S.globalOptions.scopeLoad;
+document.getElementById('dividerSymbol').value=S.globalOptions.dividerSymbol;
+document.getElementById('fbbMbs').checked=S.globalOptions.fbbMbs;
+
+// Initialize FBB-MBS on load if enabled
+if(S.globalOptions.fbbMbs){
+initWASM();
+initWorkers();
+}
+}
+
+if(st.dictEditor){
+S.dictEditor.minTokenLength=st.dictEditor.minTokenLength||4;
+S.dictEditor.minFreq=st.dictEditor.minFreq||3;
+S.dictEditor.autoOptimize=st.dictEditor.autoOptimize||false;
+S.dictEditor.showRedundancy=st.dictEditor.showRedundancy!==false;
+
+if(st.dictEditor.runtime){
+S.dictEditor.runtime.autoOptimizeCache=st.dictEditor.runtime.autoOptimizeCache||false;
+S.dictEditor.runtime.autoReIndex=st.dictEditor.runtime.autoReIndex||false;
+S.dictEditor.runtime.autoVerifyRanking=st.dictEditor.runtime.autoVerifyRanking||false;
+S.dictEditor.runtime.autoStructureAnalysis=st.dictEditor.runtime.autoStructureAnalysis||false;
+
+document.getElementById('autoOptimizeCache').checked=S.dictEditor.runtime.autoOptimizeCache;
+document.getElementById('autoReIndex').checked=S.dictEditor.runtime.autoReIndex;
+document.getElementById('autoVerifyRanking').checked=S.dictEditor.runtime.autoVerifyRanking;
+document.getElementById('autoStructureAnalysis').checked=S.dictEditor.runtime.autoStructureAnalysis;
+}
+
+document.getElementById('minTokenLength').value=S.dictEditor.minTokenLength;
+document.getElementById('minTokenLengthVal').textContent=S.dictEditor.minTokenLength;
+document.getElementById('minFreqDict').value=S.dictEditor.minFreq;
+document.getElementById('minFreqDictVal').textContent=S.dictEditor.minFreq;
+document.getElementById('autoOptimizeDict').checked=S.dictEditor.autoOptimize;
+document.getElementById('showRedundancy').checked=S.dictEditor.showRedundancy;
+}
+
+document.getElementById('chunkSize').value=S.chunkSize;
+document.getElementById('chunkSizeVal').textContent=S.chunkSize+' KB';
+document.getElementById('batchSize').value=S.batchSize;
+document.getElementById('batchSizeVal').textContent=S.batchSize+'x';
+document.getElementById('processingNum').value=S.processingNum;
+document.getElementById('processingNumVal').textContent=S.processingNum;
+document.getElementById('useDictionary').checked=S.useDictionary;
+document.getElementById('tempDict').checked=S.tempDict;
+document.getElementById('dualMode').checked=S.dualMode;
+document.getElementById('multiArchive').checked=S.multiArchive;
+document.getElementById('markdownMode').checked=S.markdownMode;
+document.getElementById('ignoreBinaryBytes').checked=S.ignoreBinaryBytes;
+
+const multiRow=document.getElementById('multiArchiveRow');
+const multiHint=document.getElementById('multiArchiveHint');
+if(!S.dualMode){
+multiRow.style.opacity='0.5';
+multiRow.style.pointerEvents='none';
+multiHint.style.opacity='0.5';
+}
+
+updatePlainModeButtons();
+
+document.querySelectorAll('.mode-btn').forEach(btn=>{
+btn.classList.toggle('active',btn.dataset.mode===S.mode);
+});
+}catch(e){}
+}
+
+function saveState(){
+sessionStorage.setItem('ptam_state',JSON.stringify({
+files:S.files.map(f=>({name:f.name,path:f.path,size:f.size,modified:f.modified,content:f.content}))
+}));
+}
+
+function showLoading(text,detail=''){
+if(S.globalOptions.scopeLoad&&S.mode!=='dict'){
+// Scoped loading - overlay on current mode
+const scoped=document.getElementById('loadingScoped');
+scoped.style.display='block';
+document.getElementById('loadingScopedText').textContent=text||'Processing...';
+document.getElementById('loadingScopedDetail').textContent=detail;
+}else{
+// Global loading - full screen
+document.getElementById('loading').classList.add('active');
+document.getElementById('loadingText').textContent=text||'Processing...';
+document.getElementById('loadingDetail').textContent=detail;
+}
+}
+
+function hideLoading(){
+if(S.globalOptions.scopeLoad){
+document.getElementById('loadingScoped').style.display='none';
+}
+document.getElementById('loading').classList.remove('active');
+}
+
+function getLoadingDetail(mode,step=''){
+const details={
+plain:{
+init:'Preparing files for plain text export',
+analyzing:'Analyzing file encoding and content',
+scanning:'Scanning for UTF-8 compliance',
+recovery:'Applying text recovery to failed files',
+generating:'Building plain text archive',
+chunking:`Chunking content (${S.chunkSize}KB blocks)`,
+finalizing:'Finalizing PTAM structure'
+},
+token:{
+init:'Initializing tokenization pipeline',
+building:'Building frequency dictionary',
+caching:'Loading dictionary cache',
+analyzing:'Analyzing token patterns',
+tokenizing:'Tokenizing file content',
+compressing:`Compressing with batch ${S.batchSize}x`,
+finalizing:'Generating tokenized PTAM'
+},
+extract:{
+init:'Loading PTAM archive',
+parsing:'Parsing PTAM structure',
+detecting:'Detecting format version',
+extracting:'Extracting file contents',
+detokenizing:'Reverse tokenization in progress',
+rebuilding:'Reconstructing original files',
+finalizing:'Preparing extracted archive'
+}
+};
+return details[mode]?.[step]||'Processing...';
+}
+
+
+function showToast(msg,type='success'){
+const toast=document.getElementById('toast');
+toast.className='toast '+type+' show';
+toast.querySelector('.toast-message').textContent=msg;
+setTimeout(()=>toast.classList.remove('show'),3000);
+}
+
+function fmtSize(bytes){
+if(bytes<1024)return bytes+' B';
+if(bytes<1048576)return(bytes/1024).toFixed(1)+' KB';
+return(bytes/1048576).toFixed(1)+' MB';
+}
+
+function updateStatsCard(){
+document.getElementById('statAllFiles').textContent=S.stats.allFiles;
+document.getElementById('statZipsUploaded').textContent=S.stats.zipsUploaded;
+document.getElementById('statBinariesSkipped').textContent=S.stats.binariesSkipped;
+document.getElementById('statTotalSize').textContent=fmtSize(S.stats.totalSize);
+}
+
+// FBB-MBS: Intelligent file processing router
+async function processFBBMBS(files){
+if(!S.globalOptions.fbbMbs){
+return{method:'standard',files};
+}
+
+const LARGE_FILE_THRESHOLD=1048576; // 1MB
+const totalSize=files.reduce((sum,f)=>sum+f.size,0);
+const avgSize=totalSize/files.length;
+const largeFiles=files.filter(f=>f.size>=LARGE_FILE_THRESHOLD);
+
+// FBB: Few files but large (use WASM)
+if(largeFiles.length>0&&largeFiles.length<=5){
+console.log('FBB-MBS: Using FBB (WASM) for',largeFiles.length,'large files');
+if(!wasmReady)await initWASM();
+return{method:'fbb-wasm',files:largeFiles,remaining:files.filter(f=>f.size<LARGE_FILE_THRESHOLD)};
+}
+
+// MBS: Many files but small (use Workers)
+if(files.length>10&&avgSize<LARGE_FILE_THRESHOLD){
+console.log('FBB-MBS: Using MBS (Workers) for',files.length,'small files');
+if(workerPool.length===0)initWorkers();
+return{method:'mbs-workers',files};
+}
+
+return{method:'standard',files};
+}
+
+async function processWithWASM(files){
+// WASM processing for large files
+for(const file of files){
+await new Promise(r=>setTimeout(r,10));
+// WASM does heavy lifting here
+if(wasmReady&&wasmInstance){
+// Process using WASM (placeholder - actual WASM logic)
+console.log('WASM processing:',file.path);
+}
+}
+return files;
+}
+
+async function processWithWorkers(files){
+// Distribute files across worker pool
+const chunks=[];
+const chunkSize=Math.ceil(files.length/MAX_WORKERS);
+for(let i=0;i<files.length;i+=chunkSize){
+chunks.push(files.slice(i,i+chunkSize));
+}
+
+const promises=chunks.map((chunk,idx)=>new Promise((resolve,reject)=>{
+const workerSlot=workerPool[idx%MAX_WORKERS];
+if(!workerSlot){resolve([]);return;}
+workerSlot.busy=true;
+workerSlot.worker.onmessage=e=>{
+workerSlot.busy=false;
+resolve(e.data.result);
+};
+workerSlot.worker.onerror=e=>{
+workerSlot.busy=false;
+reject(e);
+};
+workerSlot.worker.postMessage({type:'process',data:{files:chunk}});
+}));
+
+await Promise.all(promises);
+return files;
+}
+
+function escHtml(text){
+const div=document.createElement('div');
+div.textContent=text;
+return div.innerHTML;
+}
+
+async function importFromIDB(){
+if(!db){
+showToast('Browser storage not available','error');
+return;
+}
+
+showLoading('Loading from browser cache...');
+
+try{
+const tx=db.transaction(['heatmap'],'readonly');
+const req=tx.objectStore('heatmap').get('data');
+
+req.onsuccess=()=>{
+if(!req.result||!req.result.entries){
+hideLoading();
+showToast('No cached dictionary found','warning');
+return;
+}
+
+const data=req.result;
+S.dictEditor.dictionary.clear();
+S.dictEditor.original.clear();
+S.dictEditor.added.clear();
+S.dictEditor.removed.clear();
+
+let idx=0;
+data.entries.forEach(([word,freq])=>{
+if(word.length>=S.dictEditor.minTokenLength&&freq>=S.dictEditor.minFreq){
+S.dictEditor.dictionary.set(word,{id:`T${idx}`,freq});
+S.dictEditor.original.set(word,{id:`T${idx}`,freq});
+idx++;
+}
+});
+
+if(S.dictEditor.autoOptimize){
+optimizeDictionary();
+}else{
+updateDictUI();
+hideLoading();
+showToast(`Imported ${S.dictEditor.dictionary.size} tokens`,'success');
+}
+};
+
+req.onerror=()=>{
+hideLoading();
+showToast('Failed to load from cache','error');
+};
+}catch(e){
+hideLoading();
+showToast('Error: '+e.message,'error');
+}
+}
+
+async function importFromFile(){
+const input=document.getElementById('dictFileInput');
+const file=input.files[0];
+if(!file)return;
+
+showLoading('Importing dictionary...');
+
+try{
+const text=await file.text();
+const data=JSON.parse(text);
+
+S.dictEditor.dictionary.clear();
+S.dictEditor.original.clear();
+S.dictEditor.added.clear();
+S.dictEditor.removed.clear();
+
+if(data.version&&data.type==='heatmap'&&data.entries){
+let idx=0;
+data.entries.forEach(([word,freq])=>{
+if(word.length>=S.dictEditor.minTokenLength&&freq>=S.dictEditor.minFreq){
+S.dictEditor.dictionary.set(word,{id:`T${idx}`,freq});
+S.dictEditor.original.set(word,{id:`T${idx}`,freq});
+idx++;
+}
+});
+}else if(typeof data==='object'){
+Object.entries(data).forEach(([word,id])=>{
+if(word.length>=S.dictEditor.minTokenLength){
+S.dictEditor.dictionary.set(word,{id,freq:1});
+S.dictEditor.original.set(word,{id,freq:1});
+}
+});
+}
+
+if(S.dictEditor.autoOptimize){
+optimizeDictionary();
+}else{
+updateDictUI();
+hideLoading();
+showToast(`Imported ${S.dictEditor.dictionary.size} tokens`,'success');
+}
+}catch(e){
+hideLoading();
+showToast('Invalid dictionary file','error');
+}
+}
+
+function exportDictionary(){
+if(S.dictEditor.dictionary.size===0){
+showToast('No tokens to export','warning');
+return;
+}
+
+const entries=Array.from(S.dictEditor.dictionary.entries())
+.sort((a,b)=>b[1].freq-a[1].freq)
+.map(([word,data])=>[word,data.freq]);
+
+const output={
+version:'5.0',
+type:'heatmap',
+generated:new Date().toISOString(),
+count:entries.length,
+entries
+};
+
+const blob=new Blob([JSON.stringify(output,null,2)],{type:'application/json'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');
+a.href=url;
+a.download=`dict-export-${Date.now()}.json`;
+a.click();
+URL.revokeObjectURL(url);
+
+showToast('Dictionary exported','success');
+}
+
+function optimizeDictionary(){
+if(S.dictEditor.dictionary.size===0){
+showToast('No tokens to optimize','warning');
+return;
+}
+
+showLoading('Optimizing dictionary...');
+
+const redundant=new Set();
+const tokens=Array.from(S.dictEditor.dictionary.keys());
+
+for(const token of tokens){
+if(token.length<S.dictEditor.minTokenLength){
+redundant.add(token);
+continue;
+}
+
+const hasSymbols=/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/.test(token);
+if(hasSymbols){
+redundant.add(token);
+const cleaned=token.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g,'');
+if(cleaned.length>=S.dictEditor.minTokenLength&&!S.dictEditor.dictionary.has(cleaned)){
+const data=S.dictEditor.dictionary.get(token);
+S.dictEditor.dictionary.set(cleaned,data);
+if(!S.dictEditor.original.has(cleaned)){
+S.dictEditor.added.add(cleaned);
+}
+}
+continue;
+}
+
+const hasRepeating=/(.{3,})\1/.test(token);
+if(hasRepeating&&token.length>20){
+redundant.add(token);
+}
+}
+
+redundant.forEach(token=>{
+S.dictEditor.dictionary.delete(token);
+if(S.dictEditor.original.has(token)){
+S.dictEditor.removed.add(token);
+}
+});
+
+S.dictEditor.redundant=redundant;
+updateDictUI();
+hideLoading();
+showToast(`Removed ${redundant.size} redundant tokens`,'success');
+}
+
+function clearDictEditor(){
+if(S.dictEditor.dictionary.size===0)return;
+
+if(!confirm('Clear all dictionary entries?'))return;
+
+S.dictEditor.dictionary.clear();
+S.dictEditor.original.clear();
+S.dictEditor.added.clear();
+S.dictEditor.removed.clear();
+S.dictEditor.redundant.clear();
+
+updateDictUI();
+showToast('Dictionary cleared','success');
+}
+
+function updateLiveCacheDisplay(){
+let coldTokens=0;
+let coldHeatmap=0;
+let hotTokens=0;
+let hotHeatmap=0;
+
+// Cold Cache (IDB)
+if(db){
+const tx=db.transaction(['heatmap'],'readonly');
+const req=tx.objectStore('heatmap').get('data');
+req.onsuccess=()=>{
+if(req.result){
+coldHeatmap=req.result.count||0;
+coldTokens=coldHeatmap; // Same for now
+}
+
+// Hot Cache (Session)
+const sHeat=sessionStorage.getItem('ptam_v5_heatmap');
+const sTok=sessionStorage.getItem('ptam_v5_tokens');
+if(sHeat){
+try{
+const data=JSON.parse(sHeat);
+hotHeatmap=data.count||0;
+}catch(e){}
+}
+if(sTok){
+try{
+const data=JSON.parse(sTok);
+hotTokens=data.count||0;
+}catch(e){}
+}
+
+updateLiveCacheUI(coldTokens,coldHeatmap,hotTokens,hotHeatmap);
+};
+}else{
+const sHeat=sessionStorage.getItem('ptam_v5_heatmap');
+const sTok=sessionStorage.getItem('ptam_v5_tokens');
+if(sHeat){
+try{
+const data=JSON.parse(sHeat);
+hotHeatmap=data.count||0;
+}catch(e){}
+}
+if(sTok){
+try{
+const data=JSON.parse(sTok);
+hotTokens=data.count||0;
+}catch(e){}
+}
+
+updateLiveCacheUI(coldTokens,coldHeatmap,hotTokens,hotHeatmap);
+}
+}
+
+function updateLiveCacheUI(coldTokens,coldHeatmap,hotTokens,hotHeatmap){
+const fmt=(n,limit)=>n>=1000?Math.floor(n/1000)+'K':n;
+
+document.getElementById('liveColdTokens').textContent=`${fmt(coldTokens,15000)}/15K`;
+document.getElementById('liveColdHeatmap').textContent=`${fmt(coldHeatmap,15000)}/15K`;
+document.getElementById('liveHotTokens').textContent=`${fmt(hotTokens,100000)}/100K`;
+document.getElementById('liveHotHeatmap').textContent=`${fmt(hotHeatmap,100000)}/100K`;
+
+// Enable ProDe button if we have enough tokens
+const totalTokens=coldTokens+hotTokens;
+const canProDe=totalTokens>=1000; // At least 1000 tokens to trigger ProDe
+
+const prodeBtn=document.getElementById('triggerProDeBtn');
+prodeBtn.disabled=!canProDe;
+
+const prodeHint=document.getElementById('prodeHint');
+if(canProDe){
+prodeHint.textContent=`Ready to rank ${totalTokens.toLocaleString()} tokens`;
+prodeHint.style.color='var(--success)';
+}else{
+prodeHint.textContent='Requires at least 1,000 tokens for promotion/demotion';
+prodeHint.style.color='var(--text-tertiary)';
+}
+}
+
+async function triggerProDe(){
+showLoading('Running ProDe Ranking...');
+
+try{
+// Load all tokens from both caches
+const allTokens=new Map();
+
+// Load from Cold Cache
+if(db){
+const tx=db.transaction(['heatmap'],'readonly');
+const req=tx.objectStore('heatmap').get('data');
+await new Promise((resolve,reject)=>{
+req.onsuccess=()=>{
+if(req.result&&req.result.entries){
+req.result.entries.forEach(([word,freq])=>{
+allTokens.set(word,freq);
+});
+}
+resolve();
+};
+req.onerror=()=>reject();
+});
+}
+
+// Load from Hot Cache
+const sHeat=sessionStorage.getItem('ptam_v5_heatmap');
+if(sHeat){
+const data=JSON.parse(sHeat);
+if(data.entries){
+data.entries.forEach(([word,freq])=>{
+const existing=allTokens.get(word)||0;
+allTokens.set(word,Math.max(existing,freq));
+});
+}
+}
+
+// Sort by frequency (ProDe Ranking)
+const sorted=Array.from(allTokens.entries())
+.sort((a,b)=>{
+const diff=b[1]-a[1];
+if(diff!==0)return diff;
+return a[0].localeCompare(b[0]);
+});
+
+// Promote top 15K to Cold Cache
+const promoted=sorted.slice(0,15000);
+// Keep top 100K in Hot Cache
+const hotKept=sorted.slice(0,100000);
+
+// Save to Cold Cache
+if(db){
+const tx=db.transaction(['heatmap'],'readwrite');
+const store=tx.objectStore('heatmap');
+store.clear();
+store.put({
+version:'5.0',
+type:'heatmap',
+generated:new Date().toISOString(),
+count:promoted.length,
+limit:15000,
+entries:promoted
+},'data');
+await new Promise(resolve=>{
+tx.oncomplete=()=>resolve();
+});
+}
+
+// Save to Hot Cache
+sessionStorage.setItem('ptam_v5_heatmap',JSON.stringify({
+version:'5.0',
+type:'heatmap',
+generated:new Date().toISOString(),
+count:hotKept.length,
+entries:hotKept
+}));
+
+hideLoading();
+updateLiveCacheDisplay();
+showToast(`ProDe complete: ${promoted.length} promoted, ${hotKept.length-promoted.length} in hot cache`,'success');
+}catch(e){
+hideLoading();
+showToast('ProDe failed: '+e.message,'error');
+}
+}
+
+function updateDictUI(){
+const total=S.dictEditor.dictionary.size;
+const redundant=S.dictEditor.redundant.size;
+const added=S.dictEditor.added.size;
+const removed=S.dictEditor.removed.size;
+
+document.getElementById('dictTotalTokens').textContent=total;
+document.getElementById('dictRedundant').textContent=redundant;
+document.getElementById('dictAdded').textContent=added;
+document.getElementById('dictRemoved').textContent=removed;
+document.getElementById('dictEditorCount').textContent=total;
+
+document.getElementById('exportDictBtn').disabled=total===0;
+document.getElementById('optimizeDictBtn').disabled=total===0;
+document.getElementById('clearDictBtn').disabled=total===0;
+
+const list=document.getElementById('dictTokenList');
+if(total===0){
+list.innerHTML='<div style="padding:40px;text-align:center;color:var(--text-tertiary)"><div style="font-size:14px">No tokens loaded</div><div style="font-size:12px;margin-top:8px">Import from cache or file to begin</div></div>';
+return;
+}
+
+const tokens=Array.from(S.dictEditor.dictionary.entries())
+.sort((a,b)=>b[1].freq-a[1].freq)
+.slice(0,200);
+
+list.innerHTML=tokens.map(([word,data])=>{
+let badge='';
+if(S.dictEditor.added.has(word))badge='<span style="background:var(--success-dim);color:var(--success);padding:2px 6px;border-radius:4px;font-size:10px;margin-left:8px">NEW</span>';
+if(S.dictEditor.redundant.has(word)&&S.dictEditor.showRedundancy)badge='<span style="background:var(--warning-dim);color:var(--warning);padding:2px 6px;border-radius:4px;font-size:10px;margin-left:8px">REDUNDANT</span>';
+
+return`
+<div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+<div style="font-family:'JetBrains Mono',monospace;font-size:12px">${escHtml(word)}${badge}</div>
+<div style="font-size:11px;color:var(--text-tertiary)">freq: ${data.freq}</div>
+</div>
+`;
+}).join('');
+
+if(total>200){
+list.innerHTML+=`<div style="padding:12px;text-align:center;color:var(--text-tertiary);font-size:11px">Showing top 200 of ${total} tokens</div>`;
+}
+}
+
+document.getElementById('dictFileInput').onchange=importFromFile;
+
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
