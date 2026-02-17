@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>HTML Apps v1.4.0</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#e6edf3;--dim:#8b949e;--accent:#58a6ff;--hover:#21262d}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:12px;font-size:14px}
+.wrap{max-width:480px;margin:0 auto}
+
+/* Search bar */
+.bar{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.bar input{background:transparent;border:none;color:var(--text);flex:1;font-size:14px;outline:none}
+.bar input::placeholder{color:var(--dim)}
+.btn-cog{background:transparent;border:none;color:var(--dim);font-size:18px;cursor:pointer;padding:4px 6px;line-height:1}
+.btn-cog:active{color:var(--text)}
+
+/* Settings drawer */
+.drawer{display:none;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px}
+.drawer.open{display:block}
+.dgrp{margin-bottom:12px}
+.dgrp:last-child{margin-bottom:0}
+.dlabel{display:block;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.drow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.drow label{font-size:13px;color:var(--text);cursor:pointer;user-select:none}
+input[type=radio],input[type=checkbox]{cursor:pointer;accent-color:var(--accent)}
+.sub{margin-top:8px;padding-left:10px;border-left:2px solid var(--border)}
+.txt-in{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:7px 8px;color:var(--text);font-size:13px;outline:none;margin-top:6px}
+.txt-in:disabled{opacity:.4;cursor:not-allowed}
+.txt-in:focus{border-color:var(--accent)}
+.scan-btn{width:100%;background:var(--accent);color:#fff;border:none;padding:9px;border-radius:6px;font-size:13px;cursor:pointer;margin-top:4px}
+.scan-btn:active{opacity:.8}
+
+/* App container — grid default */
+#cont{margin-top:4px}
+#cont.grid{display:grid;gap:10px}
+#cont.grid.c2{grid-template-columns:repeat(2,1fr)}
+#cont.grid.c3{grid-template-columns:repeat(3,1fr)}
+#cont.grid.c4{grid-template-columns:repeat(4,1fr)}
+#cont.grid.c5{grid-template-columns:repeat(5,1fr)}
+#cont.lst{display:flex;flex-direction:column;gap:8px}
+#cont.lst.c2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:12px;cursor:pointer;transition:background .12s;overflow:hidden}
+.card:hover{background:var(--hover)}
+.card:active{transform:scale(.98)}
+.c-name{font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-sub{font-size:11px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px}
+/* Compact: name only, tighter */
+#cont.s-compact .card{padding:8px 10px}
+#cont.s-compact .c-sub{display:none}
+/* Detailed: name + full served URL — default */
+/* Filename: humanized title only */
+#cont.s-filename .c-sub{display:none}
+
+.status{font-size:12px;color:var(--dim);text-align:center;padding:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="bar">
+  <input type="text" id="srch" placeholder="Search apps...">
+  <button class="btn-cog" onclick="toggleDrawer()" title="Settings">⚙</button>
+</div>
+
+<div class="drawer" id="drawer">
+  <div class="dgrp">
+    <span class="dlabel">Repository</span>
+    <input class="txt-in" type="text" id="repoIn" placeholder="owner/repo  (leave blank = auto-detect)">
+  </div>
+
+  <div class="dgrp">
+    <div class="drow">
+      <input type="checkbox" id="useUrl" onchange="onUseUrl()">
+      <label for="useUrl">Use custom URL</label>
+    </div>
+    <input class="txt-in" type="text" id="urlIn" placeholder="https://example.com" disabled>
+  </div>
+
+  <div class="dgrp">
+    <span class="dlabel">View</span>
+    <div class="drow">
+      <input type="radio" name="vw" id="vGrid" value="grid" onchange="onView()"> <label for="vGrid">Grid</label>
+      <input type="radio" name="vw" id="vList" value="list" onchange="onView()"> <label for="vList">List</label>
+    </div>
+    <div class="sub" id="gridSub">
+      <span class="dlabel" style="margin-top:6px">Columns</span>
+      <div class="drow">
+        <input type="radio" name="gc" value="2" onchange="onGridCol()"> <label>2</label>
+        <input type="radio" name="gc" value="3" onchange="onGridCol()"> <label>3</label>
+        <input type="radio" name="gc" value="4" onchange="onGridCol()"> <label>4</label>
+        <input type="radio" name="gc" value="5" onchange="onGridCol()"> <label>5</label>
+      </div>
+    </div>
+    <div class="sub" id="listSub" style="display:none">
+      <span class="dlabel" style="margin-top:6px">Columns</span>
+      <div class="drow">
+        <input type="radio" name="lc" value="1" onchange="onListCol()"> <label>1</label>
+        <input type="radio" name="lc" value="2" onchange="onListCol()"> <label>2</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="dgrp">
+    <span class="dlabel">Display</span>
+    <div class="drow">
+      <input type="radio" name="ds" id="dCompact" value="compact" onchange="onStyle()"> <label for="dCompact">Compact</label>
+      <input type="radio" name="ds" id="dDetailed" value="detailed" onchange="onStyle()"> <label for="dDetailed">Detailed</label>
+      <input type="radio" name="ds" id="dFilename" value="filename" onchange="onStyle()"> <label for="dFilename">Filename</label>
+    </div>
+  </div>
+
+  <div class="dgrp">
+    <div class="drow">
+      <input type="checkbox" id="chkFilter" onchange="onFilter()">
+      <label for="chkFilter">Filter (only served)</label>
+    </div>
+  </div>
+
+  <button class="scan-btn" onclick="scan()">Scan</button>
+</div>
+
+<div id="cont"></div>
+<div id="status" class="status">Ready</div>
+
+</div>
+<script>
+// Keys
+const K={D:'ha_data',R:'ha_repo',V:'ha_view',GC:'ha_gcol',LC:'ha_lcol',DS:'ha_style',FE:'ha_filter',CU:'ha_curl',UU:'ha_uurl',FC:'ha_fcache'};
+let apps=[],shown=[],fcache={};
+
+const $=id=>document.getElementById(id);
+const sv=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const ld=k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}};
+
+// Humanize filename → title
+function toTitle(name){
+  return name.replace(/\.html?$/i,'').replace(/[-_.]+/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/\s+/g,' ').trim();
+}
+
+function toggleDrawer(){$('drawer').classList.toggle('open')}
+
+// --- Setting change handlers ---
+function onView(){
+  const v=selVal('vw');
+  sv(K.V,v);
+  $('gridSub').style.display=v==='grid'?'block':'none';
+  $('listSub').style.display=v==='list'?'block':'none';
+  render();
+}
+function onGridCol(){sv(K.GC,selVal('gc'));render()}
+function onListCol(){sv(K.LC,selVal('lc'));render()}
+function onStyle(){sv(K.DS,selVal('ds'));render()}
+function onUseUrl(){
+  const on=$('useUrl').checked;
+  $('urlIn').disabled=!on;
+  sv(K.UU,on);
+  if(on)$('urlIn').focus();
+}
+async function onFilter(){
+  const on=$('chkFilter').checked;
+  sv(K.FE,on);
+  if(on&&apps.length){
+    $('status').textContent='Checking served status...';
+    for(const a of apps){
+      if(fcache[a.url]==null){
+        try{await fetch(a.url,{method:'HEAD',mode:'no-cors'});fcache[a.url]=true;}
+        catch{fcache[a.url]=false;}
+      }
+    }
+    sv(K.FC,fcache);
+  }
+  applyFilter();
+  render();
+  $('status').textContent='Ready';
+}
+
+// Get selected radio value
+function selVal(name){
+  const el=document.querySelector(`input[name="${name}"]:checked`);
+  return el?el.value:null;
+}
+function setRadio(name,val){
+  const el=document.querySelector(`input[name="${name}"][value="${val}"]`);
+  if(el)el.checked=true;
+}
+
+// --- Restore UI from storage ---
+function restoreUI(){
+  const v=ld(K.V)||'grid';
+  const gc=ld(K.GC)||'3';
+  const lc=ld(K.LC)||'1';
+  const ds=ld(K.DS)||'detailed';
+  const fe=ld(K.FE)||false;
+  const uu=ld(K.UU)||false;
+  const cu=ld(K.CU)||'';
+  const repo=ld(K.R)||'';
+
+  setRadio('vw',v);
+  setRadio('gc',gc);
+  setRadio('lc',lc);
+  setRadio('ds',ds);
+
+  $('gridSub').style.display=v==='grid'?'block':'none';
+  $('listSub').style.display=v==='list'?'block':'none';
+
+  $('chkFilter').checked=fe;
+  $('useUrl').checked=uu;
+  $('urlIn').disabled=!uu;
+  $('urlIn').value=cu;
+  $('repoIn').value=repo;
+}
+
+// --- Filter ---
+function applyFilter(){
+  const on=$('chkFilter').checked;
+  shown=on?apps.filter(a=>fcache[a.url]!==false):apps.slice();
+}
+
+// --- Render ---
+function render(){
+  const v=ld(K.V)||'grid';
+  const gc=ld(K.GC)||'3';
+  const lc=ld(K.LC)||'1';
+  const ds=ld(K.DS)||'detailed';
+  const q=$('srch').value.toLowerCase().trim();
+
+  const list=q?shown.filter(a=>a.name.toLowerCase().includes(q)||a.url.toLowerCase().includes(q)):shown;
+
+  const cont=$('cont');
+  // Reset classes
+  cont.className=v==='grid'?`grid c${gc}`:`lst${lc==='2'?' c2':''}`;
+  // Style modifier
+  if(ds!=='detailed')cont.classList.add('s-'+ds);
+
+  if(!list.length){cont.innerHTML='<div class="status">No apps found</div>';return;}
+
+  cont.innerHTML=list.map(a=>{
+    const title=ds==='filename'?toTitle(a.name):a.name;
+    const sub=ds==='detailed'?a.url:(ds==='compact'?'':'');
+    return`<div class="card" onclick="openApp('${a.url}')">
+<div class="c-name">${title}</div>${sub?`<div class="c-sub">${sub}</div>`:''}
+</div>`;
+  }).join('');
+}
+
+function openApp(url){window.open(url,'_blank','noopener,noreferrer')}
+
+// --- Scan ---
+async function scan(){
+  const manual=$('repoIn').value.trim();
+  const h=location.hostname,p=location.pathname;
+  let repo=manual;
+  if(!repo){
+    const m=h.match(/^([^.]+)\.github\.io$/);
+    if(!m){$('status').textContent='Enter repo manually';return;}
+    const pts=p.split('/').filter(Boolean);
+    repo=`${m[1]}/${pts[0]||m[1]}`;
+  }
+  $('status').textContent=`Scanning ${repo}...`;
+  try{
+    const files=await fetchRepo(repo);
+    apps=files;
+    sv(K.D,apps);sv(K.R,repo);
+    $('repoIn').value=repo;
+    applyFilter();render();
+    $('status').textContent=`${apps.length} apps`;
+  }catch(e){$('status').textContent=`Error: ${e.message}`;}
+}
+
+async function fetchRepo(repo){
+  const[ow,nm]=repo.split('/');
+  if(!ow||!nm)throw new Error('Use format: owner/repo');
+  let res=await fetch(`https://api.github.com/repos/${ow}/${nm}/git/trees/main?recursive=1`);
+  if(!res.ok)res=await fetch(`https://api.github.com/repos/${ow}/${nm}/git/trees/master?recursive=1`);
+  if(!res.ok)throw new Error('Repo not found');
+  const d=await res.json();
+  const uu=$('useUrl').checked;
+  const cu=$('urlIn').value.trim();
+  const base=uu&&cu?cu:`https://${ow}.github.io/${nm}`;
+  return d.tree
+    .filter(f=>f.type==='blob'&&/\.html?$/i.test(f.path))
+    .map(f=>({name:f.path.split('/').pop(),path:f.path,url:`${base}/${f.path}`}))
+    .sort((a,b)=>a.path.localeCompare(b.path));
+}
+
+// --- Init ---
+window.onload=()=>{
+  fcache=ld(K.FC)||{};
+  const saved=ld(K.D);
+  if(saved){apps=saved;}
+  restoreUI();
+  applyFilter();
+  render();
+  if(saved)$('status').textContent=`${apps.length} apps (cached)`;
+
+  $('srch').addEventListener('input',render);
+  $('urlIn').addEventListener('change',()=>sv(K.CU,$('urlIn').value.trim()));
+
+  if(!saved&&location.hostname.match(/^([^.]+)\.github\.io$/)){
+    setTimeout(scan,400);
+  }
+};
+</script>
+</body>
+</html>
