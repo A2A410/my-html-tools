@@ -9,6 +9,9 @@ Publicly accessible for testing and exploration.
 
 ➡️ **[Continue to Testing Page](https://a2a410.github.io/my-html-tools/Engine-Index-Here/Engine-Launcher.html)**
 
+➡️ **[Continue to Optimal Paging](https://a2a410.github.io/my-html-tools/Engine-Index-Here/EIH.html)**
+
+
 # my-html-tools
 
 ![License: Served-Only](https://img.shields.io/badge/license-Served--Only-red)
